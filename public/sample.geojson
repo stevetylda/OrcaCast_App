@@ -1,0 +1,14 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "prob": 0.72, "label": "SRKW forecast cell" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.406, 47.606]
+      }
+    }
+  ]
+}
+
