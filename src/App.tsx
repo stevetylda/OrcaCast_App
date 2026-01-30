@@ -31,17 +31,33 @@ export default function App() {
     <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
       <header style={{ padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
         <strong>Orca Forecast Viewer</strong>
+
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           Forecast:
           <select value={name} onChange={(e) => setName(e.target.value)}>
             <option value="sample">sample</option>
           </select>
         </label>
+
         {err && <span style={{ color: "crimson" }}>Error: {err}</span>}
       </header>
 
       <MapContainer center={center} zoom={9} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution
+          attribution="&copy; OpenStreetMap contributors"
+        />
 
+        {data && (
+          <GeoJSONLayer
+            data={data}
+            onEachFeature={(feature: Feature<Geometry, ForecastProps>, layer: Layer) => {
+              const p = feature.properties ?? {};
+              layer.bindPopup(`${p.label ?? "cell"}<br/>prob=${p.prob ?? "?"}`);
+            }}
+          />
+        )}
+      </MapContainer>
+    </div>
+  );
+}
