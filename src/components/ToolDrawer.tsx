@@ -1,4 +1,3 @@
-import React from "react";
 import { MapToolbar } from "./MapToolbar";
 
 type Props = {
