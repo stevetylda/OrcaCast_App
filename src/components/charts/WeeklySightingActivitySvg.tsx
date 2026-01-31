@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { area as d3Area, curveCatmullRom } from "d3-shape";
 
 type WeeklyActivityRow = {
@@ -10,7 +10,7 @@ type WeeklyActivityRow = {
 type Props = {
   rows: WeeklyActivityRow[];
   currentWeek: number;
-  darkMode: boolean; // kept for compatibility; chart text is forced white per request
+  darkMode: boolean; // kept for API compatibility (not used internally right now)
 };
 
 /**
@@ -28,7 +28,7 @@ const MARKER_COLOR = "#F59E0B"; // orange-amber
 
 // Area fill/stroke styling
 const FILL_ALPHA = 0.22;
-const STROKE_ALPHA = 0.60;
+const STROKE_ALPHA = 0.6;
 const STROKE_WIDTH = 1.25;
 
 type Margin = { top: number; right: number; bottom: number; left: number };
@@ -40,9 +40,11 @@ type ChartState = {
   maxY: number;
 };
 
-export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props) {
+export function WeeklySightingActivitySvg({ rows, currentWeek }: Props) {
   const clipId = useId();
-  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // NOTE: ref type is HTMLDivElement; hook is generic so this is accepted.
+  const wrapRef = useRef<HTMLDivElement>(null);
   const size = useResizeObserver(wrapRef);
 
   const chart = useMemo(() => buildChart(rows), [rows]);
@@ -83,9 +85,9 @@ export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props
   // Smooth area generator
   const areaGen = useMemo(() => {
     return d3Area<number>()
-      .x((_, i) => xScale(weeks[i]))
+      .x((_: number, i: number) => xScale(weeks[i]))
       .y0(() => baselineY)
-      .y1((v) => yScale(v))
+      .y1((v: number) => yScale(v))
       .curve(curveCatmullRom.alpha(0.55));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, plotWidth, plotHeight, maxY, maxWeek, weeks]);
@@ -149,13 +151,7 @@ export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props
                 stroke={gridStroke}
                 strokeWidth={1}
               />
-              <text
-                x={margin.left - 10}
-                y={y + 4}
-                textAnchor="end"
-                fontSize="12"
-                fill={tickText}
-              >
+              <text x={margin.left - 10} y={y + 4} textAnchor="end" fontSize="12" fill={tickText}>
                 {formatTick(t)}
               </text>
             </g>
@@ -319,8 +315,8 @@ function buildChart(rows: WeeklyActivityRow[]): ChartState | null {
   return { decades, weeks, valuesByDecade, maxY };
 }
 
-/** ResizeObserver hook for responsive sizing */
-function useResizeObserver(ref: React.RefObject<HTMLElement>) {
+/** ResizeObserver hook for responsive sizing (generic so it works with div refs, svg refs, etc.) */
+function useResizeObserver<T extends HTMLElement>(ref: React.RefObject<T | null>) {
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {

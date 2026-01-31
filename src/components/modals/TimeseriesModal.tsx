@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { H3Resolution } from "../../config/dataPaths";
 import { FORECAST_PATH_LATEST_WEEKLY } from "../../config/dataPaths";
 import { isoWeekFromDate } from "../../core/time/forecastPeriodToIsoWeek";

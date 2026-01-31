@@ -1,4 +1,3 @@
-import React from "react";
 import { AttributionHover } from "./AttributionHover";
 
 type Props = {

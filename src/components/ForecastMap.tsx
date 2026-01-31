@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -12,6 +12,9 @@ import {
 } from "../map/colorScale";
 import type { HeatScale } from "../map/colorScale";
 import { ProbabilityLegend } from "./ProbabilityLegend";
+import type { DataDrivenPropertyValueSpecification } from "maplibre-gl";
+
+type FillColorSpec = DataDrivenPropertyValueSpecification<string>;
 
 type Props = {
   darkMode: boolean;
@@ -46,7 +49,7 @@ export function ForecastMap({ darkMode, resolution, showLastWeek, timeseriesOpen
   const mapRef = useRef<MapLibreMap | null>(null);
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
   const overlayRef = useRef<FeatureCollection | null>(null);
-  const fillExprRef = useRef<unknown[] | null>(null);
+  const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
   const [legendOpen, setLegendOpen] = useState(true);
@@ -78,20 +81,40 @@ export function ForecastMap({ darkMode, resolution, showLastWeek, timeseriesOpen
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: styleUrl,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-      preserveDrawingBuffer: false,
-      // @ts-expect-error: not in older typings
-      cooperativeGestures: false,
-    });
+    // const map = new maplibregl.Map({
+    //   container: containerRef.current,
+    //   style: styleUrl,
+    //   center: DEFAULT_CENTER,
+    //   zoom: DEFAULT_ZOOM,
+    //   attributionControl: false,
+    //   preserveDrawingBuffer: false,
+    //   // @ts-expect-error: not in older typings
+    //   cooperativeGestures: false,
+    // });
+
+    // Some MapLibre options exist at runtime but aren't present in the published TS types.
+  type MapOptionsPatched = maplibregl.MapOptions & {
+    preserveDrawingBuffer?: boolean;
+    cooperativeGestures?: boolean;
+  };
+
+  const mapOptions: MapOptionsPatched = {
+    container: containerRef.current,
+    style: styleUrl,
+    center: DEFAULT_CENTER,
+    zoom: DEFAULT_ZOOM,
+    attributionControl: false,
+    preserveDrawingBuffer: false,
+    cooperativeGestures: false,
+  };
+
+  const map = new maplibregl.Map(mapOptions);
+
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
 
-    map.on("error", (e: any) => {
+    // map.on("error", (e: any) => {
+    map.on("error", (e: { error?: unknown }) => {
       // eslint-disable-next-line no-console
       console.error("[MapLibre] error:", e?.error || e);
     });
@@ -155,15 +178,18 @@ export function ForecastMap({ darkMode, resolution, showLastWeek, timeseriesOpen
     const scale = legendSpecRef.current;
     const threshold = scale?.hotspotThreshold;
     const hotspots = scale ? hotspotsOnlyRef.current : false;
-    const fillExpr = scale
-      ? hotspots && threshold !== undefined
-        ? buildHotspotOnlyExpr(scale, threshold)
-        : buildFillExprFromScale(scale)
+    const fillExpr: FillColorSpec | undefined = scale
+      ? (hotspots && threshold !== undefined
+          ? (buildHotspotOnlyExpr(scale, threshold) as unknown as FillColorSpec)
+          : (buildFillExprFromScale(scale) as unknown as FillColorSpec))
       : fillExprRef.current ?? undefined;
+
     if (fillExpr) {
       fillExprRef.current = fillExpr;
     }
+
     addGridOverlay(map, overlayRef.current, fillExpr, threshold, hotspots);
+
     if (scale) {
       setHotspotVisibility(map, hotspots);
     }
@@ -226,7 +252,7 @@ export function ForecastMap({ darkMode, resolution, showLastWeek, timeseriesOpen
         const joined = attachProbabilities(grid, values);
         const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE);
         overlayRef.current = joined;
-        fillExprRef.current = fillColorExpr;
+        fillExprRef.current = fillColorExpr as unknown as FillColorSpec;
         hotspotThresholdRef.current = scale?.hotspotThreshold;
         setLegendSpec(scale);
         if (!scale) {
@@ -378,12 +404,18 @@ export function ForecastMap({ darkMode, resolution, showLastWeek, timeseriesOpen
     return () => window.clearTimeout(id);
   }, [legendSpec]);
 
+  type MapMouseEventWithFeatures = maplibregl.MapMouseEvent & {
+    features?: Array<{ properties?: { datetime?: string } }>;
+  };
+
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !lastWeekPopupRef.current) return;
 
     const popup = lastWeekPopupRef.current;
-    const onMove = (e: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+    // const onMove = (e: maplibregl.MapMouseEvent & maplibregl.EventData) => {
+      const onMove = (e: MapMouseEventWithFeatures) => {
       const feature = e.features?.[0] as { properties?: { datetime?: string } } | undefined;
       const datetime = feature?.properties?.datetime;
       if (!datetime) return;

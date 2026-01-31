@@ -1,4 +1,3 @@
-import React from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import { H3ResolutionPill } from "./controls/H3ResolutionPill";
 

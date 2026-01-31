@@ -1,4 +1,3 @@
-import React from "react";
 import { attribution } from "../config/attribution";
 
 type Props = {
