@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "last_week_sightings_2026-W1",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-04T05:01:00", "LATITUDE": 48.42779, "LONGITUDE": -122.97017, "WEEK": 1, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -122.97017, 48.42779 ] } }
+]
+}

@@ -238,13 +238,6 @@ export function addGridOverlay(
     });
   }
 
-  removeLayerIfExists(map, PEAK_GLOW_ID);
-  removeLayerIfExists(map, PEAK_BASE_ID);
-  removeLayerIfExists(map, HOT_SPARKLE_ID);
-  removeLayerIfExists(map, HOT_BASE_ID);
-  removeLayerIfExists(map, lineId);
-  removeLayerIfExists(map, fillId);
-
   // Default fill-color expression (typed)
   const defaultFillColorExpr: ExpressionSpecification = [
     "interpolate",
@@ -268,79 +261,136 @@ export function addGridOverlay(
   const fillColor: FillColorSpec = (fillColorExpr ??
     (defaultFillColorExpr as unknown as FillColorSpec)) as FillColorSpec;
 
-  map.addLayer({
-    id: fillId,
-    type: "fill",
-    source: sourceId,
-    paint: {
-      "fill-color": fillColor,
-      "fill-opacity": 0.7,
-    },
-  });
+  if (map.getLayer(fillId)) {
+    map.setPaintProperty(fillId, "fill-color", fillColor);
+    map.setPaintProperty(fillId, "fill-opacity", 0.8);
+    map.setPaintProperty(fillId, "fill-opacity-transition", { duration: 200, delay: 0 });
+  } else {
+    map.addLayer({
+      id: fillId,
+      type: "fill",
+      source: sourceId,
+      paint: {
+        "fill-color": fillColor,
+        "fill-opacity": 0.8,
+        "fill-opacity-transition": { duration: 200, delay: 0 },
+      },
+    });
+  }
 
-  map.addLayer({
-    id: lineId,
-    type: "line",
-    source: sourceId,
-    paint: {
-      "line-color": "rgba(25,240,215,0.25)",
-      "line-width": 0.5,
-    },
-  });
+  if (map.getLayer(lineId)) {
+    map.setPaintProperty(lineId, "line-color", "rgba(25,240,215,0.25)");
+    map.setPaintProperty(lineId, "line-width", 0.5);
+    map.setPaintProperty(lineId, "line-opacity", 0.35);
+  } else {
+    map.addLayer({
+      id: lineId,
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": "rgba(25,240,215,0.25)",
+        "line-width": 0.5,
+        "line-opacity": 0.35,
+      },
+    });
+  }
 
   if (hotspotThreshold !== undefined) {
     const visibility = hotspotsVisible ? "visible" : "none";
-    map.addLayer({
-      id: HOT_BASE_ID,
-      type: "line",
-      source: sourceId,
-      filter: [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification,
-      layout: { visibility },
-      paint: {
-        "line-color": "rgba(9,26,68,0.95)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.4, 9, 2.4, 12, 3.0] as ExpressionSpecification,
-        "line-opacity": 0.95,
-      },
-    });
-    map.addLayer({
-      id: HOT_SPARKLE_ID,
-      type: "line",
-      source: sourceId,
-      filter: [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification,
-      layout: { visibility },
-      paint: {
-        "line-color": "rgba(255,45,170,0.9)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
-        "line-opacity": 0.85,
-        "line-blur": 1.6,
-      },
-    });
+    const filter = [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification;
+    if (map.getLayer(HOT_BASE_ID)) {
+      map.setFilter(HOT_BASE_ID, filter);
+      map.setLayoutProperty(HOT_BASE_ID, "visibility", visibility);
+    } else {
+      map.addLayer({
+        id: HOT_BASE_ID,
+        type: "line",
+        source: sourceId,
+        filter,
+        layout: { visibility },
+        paint: {
+          "line-color": "rgba(9,26,68,0.95)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.4, 9, 2.4, 12, 3.0] as ExpressionSpecification,
+          "line-opacity": 0.95,
+        },
+      });
+    }
+    if (map.getLayer(HOT_SPARKLE_ID)) {
+      map.setFilter(HOT_SPARKLE_ID, filter);
+      map.setLayoutProperty(HOT_SPARKLE_ID, "visibility", visibility);
+    } else {
+      map.addLayer({
+        id: HOT_SPARKLE_ID,
+        type: "line",
+        source: sourceId,
+        filter,
+        layout: { visibility },
+        paint: {
+          "line-color": "rgba(255,45,170,0.9)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
+          "line-opacity": 0.85,
+          "line-blur": 1.6,
+        },
+      });
+    }
 
-    map.addLayer({
-      id: PEAK_BASE_ID,
-      type: "line",
-      source: sourceId,
-      filter: [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification,
-      layout: { visibility },
-      paint: {
-        "line-color": "rgba(255,255,255,0.9)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
-        "line-opacity": 0.95,
-      },
-    });
-    map.addLayer({
-      id: PEAK_GLOW_ID,
-      type: "line",
-      source: sourceId,
-      filter: [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification,
-      layout: { visibility },
-      paint: {
-        "line-color": "rgba(255,45,170,0.45)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 3.0, 9, 4.2, 12, 5.4] as ExpressionSpecification,
-        "line-opacity": 0.85,
-        "line-blur": 2.2,
-      },
-    });
+    if (map.getLayer(PEAK_BASE_ID)) {
+      map.setFilter(PEAK_BASE_ID, filter);
+      map.setLayoutProperty(PEAK_BASE_ID, "visibility", visibility);
+    } else {
+      map.addLayer({
+        id: PEAK_BASE_ID,
+        type: "line",
+        source: sourceId,
+        filter,
+        layout: { visibility },
+        paint: {
+          "line-color": "rgba(255,255,255,0.9)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
+          "line-opacity": 0.95,
+        },
+      });
+    }
+    if (map.getLayer(PEAK_GLOW_ID)) {
+      map.setFilter(PEAK_GLOW_ID, filter);
+      map.setLayoutProperty(PEAK_GLOW_ID, "visibility", visibility);
+    } else {
+      map.addLayer({
+        id: PEAK_GLOW_ID,
+        type: "line",
+        source: sourceId,
+        filter,
+        layout: { visibility },
+        paint: {
+          "line-color": "rgba(255,45,170,0.45)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 3.0, 9, 4.2, 12, 5.4] as ExpressionSpecification,
+          "line-opacity": 0.85,
+          "line-blur": 2.2,
+        },
+      });
+    }
+  } else {
+    removeLayerIfExists(map, PEAK_GLOW_ID);
+    removeLayerIfExists(map, PEAK_BASE_ID);
+    removeLayerIfExists(map, HOT_SPARKLE_ID);
+    removeLayerIfExists(map, HOT_BASE_ID);
+  }
+}
+
+export function setGridVisibility(
+  map: MapLibreMap,
+  visible: boolean,
+  fillId = DEFAULT_FILL_ID,
+  lineId = DEFAULT_LINE_ID
+) {
+  if (map.getLayer(fillId)) {
+    map.setPaintProperty(fillId, "fill-opacity", visible ? 0.8 : 0);
+  }
+  if (map.getLayer(lineId)) {
+    map.setPaintProperty(lineId, "line-opacity", visible ? 0.35 : 0);
+  }
+  if (!visible) {
+    setHotspotVisibility(map, false);
   }
 }
 

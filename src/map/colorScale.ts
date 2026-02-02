@@ -10,16 +10,16 @@ type ColorScaleResult = {
   scale: HeatScale | null;
 };
 
-const ZERO_COLOR = "rgba(25,240,215,0.12)";
+export const ZERO_COLOR = "rgba(25,240,215,0.12)";
 const BASE_PALETTE = [
-  "#123BFF",
-  "#1B74FF",
-  "#1AA8FF",
-  "#14D3FF",
-  "#00F5FF",
-  "#00FFC6",
+  "#1A4DFF",
+  "#2E7BFF",
+  "#24B6FF",
+  "#19E0FF",
   "#00FFF0",
-  "#E8FFFD",
+  "#00FFC6",
+  "#5CFF6B",
+  "#E9FF6A",
 ];
 
 const LABELS = [
@@ -167,10 +167,11 @@ export function buildAutoColorExprFromValues(
   if (thresholds.length > 7) {
     thresholds = thresholds.slice(0, 7);
   }
+  const maxValue = Math.max(...values);
   const bins = Math.max(1, thresholds.length + 1);
   const alphaRamp = Array.from({ length: bins }, (_, i) => {
     const t = i / Math.max(1, bins - 1);
-    return 0.45 + t * (0.98 - 0.45);
+    return 0.6 + t * (1.0 - 0.6);
   });
   const colors = buildRamp(adjustPalette(palette), bins, alphaRamp);
 
@@ -181,7 +182,7 @@ export function buildAutoColorExprFromValues(
         thresholds: [],
         binColorsRgba: colors.length ? colors : [ZERO_COLOR],
         labels: LABELS,
-        hotspotThreshold: undefined,
+        hotspotThreshold: maxValue,
       },
     };
   }
@@ -221,7 +222,6 @@ export function buildFillExprFromScale(scale: HeatScale, zeroColor = ZERO_COLOR)
 }
 
 export function buildHotspotOnlyExpr(
-  _scale: HeatScale,
   threshold: number,
   hotspotFill = "rgba(255,45,170,0.65)",
   zeroColor = "rgba(0,0,0,0)"

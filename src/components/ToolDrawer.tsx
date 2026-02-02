@@ -4,7 +4,9 @@ type Props = {
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
-  onToggleLastWeek: () => void;
+  onSelectLastWeek: (mode: "previous" | "selected") => void;
+  lastWeekMode: "none" | "previous" | "selected" | "both";
+  showLastWeek: boolean;
   onToggleHistoric: () => void;
   onOpenTimeseries: () => void;
   onToggleParks: () => void;
@@ -15,7 +17,9 @@ export function ToolDrawer({
   open,
   onToggle,
   onClose,
-  onToggleLastWeek,
+  onSelectLastWeek,
+  lastWeekMode,
+  showLastWeek,
   onToggleHistoric,
   onOpenTimeseries,
   onToggleParks,
@@ -33,7 +37,9 @@ export function ToolDrawer({
           <div className="toolDrawer__panel">
             <MapToolbar
               className="toolbar--drawer"
-              onToggleLastWeek={onToggleLastWeek}
+              onSelectLastWeek={onSelectLastWeek}
+              lastWeekMode={lastWeekMode}
+              showLastWeek={showLastWeek}
               onToggleHistoric={onToggleHistoric}
               onOpenTimeseries={onOpenTimeseries}
               onToggleParks={onToggleParks}

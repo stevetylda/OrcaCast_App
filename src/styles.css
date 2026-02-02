@@ -73,12 +73,17 @@ body {
   z-index: 20;
 }
 
+.app .header {
+  background: linear-gradient(90deg, var(--navy), var(--navy2));
+}
+
 .header__left {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 260px;
 }
+
 
 .brand__title {
   font-family: "Space Grotesk", "Sora", sans-serif;
@@ -138,14 +143,192 @@ body {
   font-weight: 700;
 }
 
+.periodPill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.periodPill__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-h);
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.periodPill__label {
+  color: var(--panel-text-muted);
+  white-space: nowrap;
+}
+
+.periodPill__value {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.periodPill__playIcon {
+  font-size: 18px;
+  opacity: 0.5;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+.periodPill__button:hover,
+.periodPill__button:focus-visible {
+  border-color: rgba(25, 240, 215, 0.35);
+  box-shadow: var(--teal-glow-soft);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.periodPill__button:hover .periodPill__playIcon,
+.periodPill__button:focus-visible .periodPill__playIcon {
+  opacity: 0.85;
+  color: var(--teal);
+}
+
+.periodPill--disabled .periodPill__button {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.periodPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(8, 18, 44, 0.92);
+  border: 1px solid rgba(25, 240, 215, 0.45);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  display: grid;
+  gap: 10px;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+}
+
+.periodPopover__slider {
+  width: 100%;
+  accent-color: rgba(25, 240, 215, 0.9);
+  height: 6px;
+  background: transparent;
+}
+
+.periodPopover__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.periodPopover__btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  border: 1px solid rgba(25, 240, 215, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.periodPopover__btn .material-symbols-rounded {
+  font-size: 18px;
+  line-height: 1;
+  display: block;
+}
+
+.periodPopover__btn:hover,
+.periodPopover__btn:focus-visible {
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+  transform: translateY(-1px);
+}
+
+.periodPopover__btn--play {
+  border-color: rgba(0, 240, 220, 0.6);
+  box-shadow: 0 0 12px rgba(0, 240, 220, 0.25);
+}
+
+.periodPopover__speed {
+  margin-left: auto;
+  height: 28px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--panel-text);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.periodPopover__speed:focus-visible {
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+}
+
+.periodSelect {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: var(--control-h);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.periodSelect__label {
+  color: var(--panel-text-muted);
+  text-shadow: 0 0 8px rgba(25, 240, 215, 0.2);
+  white-space: nowrap;
+}
+
+.select--period {
+  min-width: 200px;
+}
+
+.periodSelect .select {
+  height: calc(var(--control-h) - 8px);
+  padding: 0 6px;
+  border-radius: 10px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.periodSelect .select:hover,
+.periodSelect .select:focus {
+  border-color: rgba(25, 240, 215, 0.25);
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 /* Footer bar */
 .app__footer {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   height: 50px;
   pointer-events: none;
+  z-index: 30;
 }
 
 .footer {
@@ -295,88 +478,46 @@ body {
   min-width: 220px;
 }
 
-.h3pill {
-  --h3-pill-index: 0;
+.h3menu {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: inline-flex;
   align-items: center;
-  height: var(--control-h);
-  padding: 2px 0;
-  border-radius: 999px;
-  border: 1px solid rgba(25, 240, 215, 0.38);
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: var(--teal-glow-soft);
-  min-width: 150px;
-  gap: 0;
-  overflow: hidden;
 }
 
-.h3pill::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: calc((100% - 4px) / 3);
-  height: calc(100% - 4px);
-  border-radius: 999px;
-  background: rgba(0, 240, 220, 0.28);
-  box-shadow: 0 0 18px rgba(0, 240, 220, 0.45);
-  transform: translateX(calc(var(--h3-pill-index) * 100%));
-  transition: transform 180ms ease, background 180ms ease;
+.h3menu__trigger {
+  width: var(--control-h);
+  height: var(--control-h);
+  border-radius: 12px;
+  border: 1px solid rgba(25, 240, 215, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--panel-text);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  position: relative;
+  box-shadow: var(--teal-glow-soft);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.h3menu__trigger:hover,
+.h3menu__trigger:focus-visible {
+  border-color: rgba(25, 240, 215, 0.75);
+  box-shadow: var(--teal-glow);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.h3menu--disabled {
+  opacity: 0.6;
   pointer-events: none;
 }
 
-.h3pill__segment {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  height: calc(var(--control-h) - 4px);
-  width: 100%;
-  padding: 0 2px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--panel-text-muted);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: color 120ms ease, filter 120ms ease;
-}
-
-.h3pill__segment:not(:first-child) {
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.h3pill__segment:hover,
-.h3pill__segment:focus-visible {
-  color: var(--panel-text);
-  filter: brightness(1.08);
-  outline: none;
-}
-
-.h3pill__segment--active {
-  color: #6bfff0;
-  text-shadow: 0 0 12px rgba(0, 240, 220, 0.55);
-}
-
-.h3pill__icon {
-  line-height: 1;
-}
-
-.h3pill__label {
-  white-space: nowrap;
-}
-
-.h3pill--compact .h3pill__segment {
-  padding: 0 2px;
-}
-
-.h3pill--disabled {
-  opacity: 0.6;
+.h3menu__trigger svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
   pointer-events: none;
 }
 
@@ -387,10 +528,15 @@ body {
   border: 1px solid rgba(25, 240, 215, 0.35);
   background: rgba(255, 255, 255, 0.12);
   color: var(--panel-text);
+  padding: 0;
   cursor: pointer;
   display: grid;
   place-items: center;
   transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.iconBtn .material-symbols-rounded {
+  display: block;
 }
 
 .iconBtn:hover,
@@ -495,6 +641,79 @@ body {
   box-shadow: none;
 }
 
+.toolMenu {
+  position: relative;
+  display: inline-flex;
+}
+
+.toolMenu__popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-auto-flow: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(8, 18, 44, 0.92);
+  border: 1px solid rgba(25, 240, 215, 0.45);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  backdrop-filter: blur(10px);
+  z-index: 30;
+}
+
+.toolMenu__option {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.toolMenu__option .material-symbols-rounded {
+  display: block;
+  line-height: 1;
+}
+
+.toolMenu__option:hover,
+.toolMenu__option:focus-visible {
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.toolMenu__option--active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.toolMenu__option--prev {
+  color: #FF3B5C;
+}
+
+.toolMenu__option--next {
+  color: #7CFF6B;
+}
+
+.toolMenu__option--prev.toolMenu__option--active {
+  border-color: #FF3B5C;
+  box-shadow: 0 0 16px rgba(255, 59, 92, 0.5);
+  background: rgba(255, 59, 92, 0.2);
+}
+
+.toolMenu__option--next.toolMenu__option--active {
+  border-color: #7CFF6B;
+  box-shadow: 0 0 16px rgba(124, 255, 107, 0.45);
+  background: rgba(124, 255, 107, 0.2);
+}
+
 .toolBtn {
   width: var(--control-h);
   height: var(--control-h);
@@ -511,6 +730,31 @@ body {
 .toolBtn:hover {
   transform: translateY(-1px);
   box-shadow: var(--teal-glow-soft);
+}
+
+.toolBtn--active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.toolBtn--activePrev {
+  border-color: #FF3B5C;
+  box-shadow: 0 0 16px rgba(255, 59, 92, 0.5);
+  background: rgba(255, 59, 92, 0.2);
+  color: #FF3B5C;
+}
+
+.toolBtn--activeNext {
+  border-color: #7CFF6B;
+  box-shadow: 0 0 16px rgba(124, 255, 107, 0.45);
+  background: rgba(124, 255, 107, 0.2);
+  color: #7CFF6B;
+}
+
+.toolBtn--activeBoth {
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 12px rgba(255, 59, 92, 0.45), 0 0 12px rgba(124, 255, 107, 0.4);
+  background: linear-gradient(90deg, rgba(255, 59, 92, 0.28) 0%, rgba(255, 59, 92, 0.28) 50%, rgba(124, 255, 107, 0.25) 50%, rgba(124, 255, 107, 0.25) 100%);
+  color: #ffffff;
 }
 
 .app--dark .toolBtn {
@@ -543,7 +787,7 @@ body {
   left: 0;
   top: 0;
   bottom: 0;
-  width: min(320px, 86vw);
+  width: min(200px, 86vw);
   background: linear-gradient(180deg, rgba(8, 18, 44, 0.95), rgba(9, 14, 28, 0.98));
   color: #ffffff;
   box-shadow: 12px 0 28px rgba(0, 0, 0, 0.35);
@@ -558,6 +802,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 10px; /* reduce if larger */
 }
 
 .sideDrawer__title {
@@ -577,11 +822,20 @@ body {
   border: 1px solid rgba(25, 240, 215, 0.25);
   color: #ffffff;
   border-radius: 12px;
-  padding: 12px 14px;
+  /* padding: 12px 14px; */
+  padding: 12px 16px; /* instead of ~12px 12px */
   text-align: left;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  gap: 10px;
+
+}
+
+.sideDrawer__item--active {
+  border-color: rgba(25, 240, 215, 0.85);
+  box-shadow: var(--teal-glow-soft);
+  background: rgba(25, 240, 215, 0.12);
 }
 
 .modal {
@@ -708,12 +962,12 @@ body {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.modal__attribList {
+/* .modal__attribList {
   margin: 6px 0 0;
   padding-left: 16px;
   display: grid;
   gap: 4px;
-}
+} */
 
 /* Legend */
 .legend {
@@ -825,6 +1079,28 @@ body {
   gap: 8px;
 }
 
+.map__kdeWarning {
+  position: absolute;
+  right: 16px;
+  bottom: 132px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: rgba(255, 193, 7, 0.16);
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  color: rgba(20, 20, 20, 0.92);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.map__kdeWarning .material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+  color: rgba(140, 95, 0, 0.95);
+}
+
 .legendClusterBtn {
   background: rgba(8, 18, 44, 0.72);
   border: 1px solid rgba(25, 240, 215, 0.5);
@@ -852,15 +1128,28 @@ body {
   color: #ff2daa;
 }
 
+.legendKde {
+  background: rgba(8, 18, 44, 0.72);
+  border: 1px solid rgba(25, 240, 215, 0.5);
+  box-shadow: var(--teal-glow-soft);
+}
+
+.legendKde--active {
+  border-color: rgba(255, 90, 90, 0.85);
+  box-shadow: 0 0 16px rgba(255, 90, 90, 0.45);
+  background: rgba(255, 90, 90, 0.3);
+}
+
+.legendKde--active .material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 24;
+  color: #ff6b6b;
+}
+
 @media (max-width: 1100px) {
   .header__right {
     min-width: 0;
     flex-wrap: wrap;
     justify-content: flex-end;
-  }
-
-  .h3pill {
-    min-width: 200px;
   }
 }
 
@@ -870,12 +1159,9 @@ body {
     font-size: 14px;
   }
 
-  .periodChip {
+  .periodChip,
+  .periodSelect {
     font-size: 12px;
-  }
-
-  .h3pill {
-    min-width: 170px;
   }
 
   .footer__attrib {
@@ -892,12 +1178,9 @@ body {
     gap: 8px;
   }
 
-  .periodChip {
+  .periodChip,
+  .periodSelect {
     padding: 4px 8px;
-  }
-
-  .h3pill {
-    min-width: 140px;
   }
 
   .footer {
@@ -958,4 +1241,3209 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 3px;
+}
+
+
+.modal__callout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  margin-top: 14px;
+  padding: 12px 12px;
+
+  border-radius: 12px;
+  border: 1px solid var(--callout-border);
+
+  background: var(--callout-bg);
+  color: var(--callout-fg);
+}
+
+.modal__calloutIcon {
+  font-size: 20px;
+  line-height: 1;
+  margin-top: 1px;
+  color: var(--callout-icon);
+}
+
+.modal__calloutText {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.modal__calloutText strong {
+  font-weight: 650;
+}
+
+/* Light mode */
+:root {
+  --callout-bg: rgba(255, 193, 7, 0.16);     /* soft amber */
+  --callout-border: rgba(255, 193, 7, 0.45);
+  --callout-fg: rgba(20, 20, 20, 0.92);
+  --callout-icon: rgba(140, 95, 0, 0.95);
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --callout-bg: rgba(255, 193, 7, 0.12);
+  --callout-border: rgba(255, 193, 7, 0.32);
+  --callout-fg: rgba(245, 245, 245, 0.92);
+  --callout-icon: rgba(255, 220, 120, 0.95);
+}
+
+.modal__callout {
+  position: sticky;
+  bottom: 0;
+  margin-top: 16px;
+
+  /* Helps it feel pinned above the modal edge */
+  box-shadow: 0 -8px 18px rgba(0,0,0,0.08);
+  backdrop-filter: blur(6px);
+}
+
+.modal__body {
+  line-height: 1.55;
+  font-size: 15.5px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modal__body p {
+  margin: 0 0 14px 0;
+}
+
+.modal__body h3 {
+  margin: 18px 0 10px 0;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.modal__callout {
+  /* slimmer */
+  padding: 10px 12px;            /* was ~12–14px */
+  margin-top: 14px;
+
+  /* softer border so it competes less with Sources card */
+  border: 1px solid rgba(255, 193, 7, 0.22); /* was ~0.35–0.45 */
+
+  /* slightly dimmer background */
+  background: rgba(255, 193, 7, 0.10);       /* was ~0.12–0.16 */
+
+  /* reduce “card-ness” */
+  border-radius: 12px;            /* was 14px */
+  box-shadow: none;               /* remove any inset/outer shadows if you added them */
+}
+
+.modal__calloutIcon {
+  font-size: 18px;                /* was ~20px */
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.modal__calloutText {
+  line-height: 1.32;
+  font-size: 14.5px;              /* tiny downshift helps it feel like a footer note */
+}
+
+
+.modal__calloutText strong {
+  color: rgba(255, 255, 255, 0.98);
+  font-weight: 700;
+}
+
+.modal__body h3 {
+  margin: 20px 0 10px;
+}
+
+.modal__body p {
+  margin: 0 0 12px;
+}
+
+.modal__body ul {
+  margin: 8px 0 14px;
+  padding-left: 18px;
+}
+
+.modal__muted {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+}
+
+.modal__attribList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two columns */
+  gap: 6px 18px;
+}
+
+
+.modal__sources {
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+.modal__sourcesSummary {
+  list-style: none; /* remove default marker */
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 12px;
+  font-weight: 650;
+}
+
+.modal__sourcesSummary::-webkit-details-marker {
+  display: none; /* Safari/Chrome marker */
+}
+
+.modal__sourcesMeta {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.modal__sourcesChevron {
+  margin-left: auto;
+  font-size: 20px;
+  opacity: 0.8;
+  transition: transform 160ms ease;
+}
+
+.modal__sources[open] .modal__sourcesChevron {
+  transform: rotate(180deg);
+}
+
+/* Use your existing list styles, but add padding inside the panel */
+.modal__sources .modal__attribList {
+  margin: 0;
+  padding: 0 12px 12px 28px;
+}
+
+/* Optional: two-column layout if you want it tighter */
+@media (min-width: 520px) {
+  .modal__sources .modal__attribList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+  }
+}
+
+.modal__bullets {
+  margin: 10px 0 14px;
+  padding-left: 18px;
+}
+
+.modal__bullets li {
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.modal__muted {
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.modal__sourcesBody {
+  padding: 12px;
+}
+
+.modal__sourcesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 560px) {
+  .modal__sourcesGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.modal__sourcesGroupTitle {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+
+.modal__sourceList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.modal__sourceList li {
+  margin: 6px 0;
+}
+
+.modal__link {
+  color: rgba(255,255,255,0.92);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.22);
+  padding-bottom: 1px;
+}
+
+.modal__link:hover {
+  border-bottom-color: rgba(255,255,255,0.55);
+}
+
+.modal__sourcesFooter {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal__learnMore {
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal__linkIcon {
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+.modal__sourcesNote {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.modal__link {
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.22);
+  padding-bottom: 1px;
+}
+
+.modal__link:hover {
+  border-bottom-color: rgba(255,255,255,0.60);
+}
+
+.modal__sourcesGrid {
+  align-items: start;
+  gap: 18px;
+}
+
+.modal__sourceList li {
+  margin: 8px 0;
+}
+
+.modal__learnMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,0.28);
+  padding-bottom: 2px;
+}
+
+.modal__learnMore:hover {
+  border-bottom-color: rgba(255,255,255,0.60);
+}
+
+.modal__sourcesNote {
+  opacity: 0.5;
+  font-size: 12px;
+}
+
+.modal__callout {
+  margin-top: 14px;
+  padding: 10px 0 0;              /* remove the box padding */
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.modal__calloutIcon {
+  font-size: 18px;
+  color: rgba(255, 214, 102, 0.95);
+  margin-top: 2px;
+}
+
+.modal__calloutText {
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.modal__calloutText strong {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+/* Info pages */
+.pageHeader {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(90deg, var(--navy), var(--navy2));
+  color: var(--panel-text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 20;
+}
+
+.pageHeader__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageHeader__title {
+  font-family: "Space Grotesk", "Sora", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.pageHeader__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backToMap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--panel-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.backToMap:hover,
+.backToMap:focus-visible {
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+}
+
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 20px 40px;
+  background: radial-gradient(circle at top, rgba(13, 32, 80, 0.2), transparent 45%),
+    var(--bg);
+}
+
+.app--dark .page {
+  background: radial-gradient(circle at top, rgba(13, 32, 80, 0.35), transparent 45%),
+    var(--bg-dark);
+}
+
+.page__content {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.pageSection {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(12, 15, 24, 0.08);
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.app--dark .pageSection {
+  background: rgba(8, 16, 32, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pageSection h2 {
+  margin-top: 0;
+  font-family: "Space Grotesk", "Sora", sans-serif;
+}
+
+.pageSection ul {
+  padding-left: 18px;
+  margin-bottom: 0;
+}
+
+.pageGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.pageCard {
+  background: rgba(11, 20, 40, 0.04);
+  border: 1px solid rgba(12, 15, 24, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.app--dark .pageCard {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pageCard__title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.pageCard__meta {
+  margin: 0 0 10px;
+  opacity: 0.85;
+}
+
+.pageCard__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pageTag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(25, 240, 215, 0.12);
+  border: 1px solid rgba(25, 240, 215, 0.25);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pageLink {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.pageTable {
+  display: grid;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(12, 15, 24, 0.08);
+}
+
+.pageTable__row {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) repeat(4, minmax(80px, 1fr));
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.app--dark .pageTable__row {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pageTable__row--header {
+  font-weight: 700;
+  background: rgba(25, 240, 215, 0.18);
+}
+
+.pageNote {
+  margin-top: 10px;
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.pageList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.pageControlRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pageToggle {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 15, 24, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pageToggle--active {
+  border-color: rgba(25, 240, 215, 0.7);
+  box-shadow: var(--teal-glow-soft);
+  background: rgba(25, 240, 215, 0.16);
+}
+
+.app--dark .pageToggle {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pageAction {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(12, 15, 24, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app--dark .pageAction {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pageCallout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.16);
+  color: rgba(20, 20, 20, 0.92);
+}
+
+.app--dark .pageCallout {
+  border-color: rgba(255, 193, 7, 0.32);
+  background: rgba(255, 193, 7, 0.12);
+  color: rgba(245, 245, 245, 0.92);
+}
+
+.pageCallout__icon {
+  font-size: 20px;
+  margin-top: 2px;
+  color: rgba(140, 95, 0, 0.95);
+}
+
+.app--dark .pageCallout__icon {
+  color: rgba(255, 220, 120, 0.95);
+}
+
+.pageCallout__text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .pageTable__row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+
+.sideDrawer__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sideDrawer__itemIcon {
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.sideDrawer__itemLabel {
+  font-weight: 650;
+}
+
+/* Optional: make active item pop a bit more */
+.sideDrawer__item--active .sideDrawer__itemIcon {
+  opacity: 1;
+}
+
+/* Base button styling should already exist — this adds the glow behavior */
+.sideDrawer__item {
+  position: relative;
+  transition: box-shadow 160ms ease, border-color 160ms ease, transform 120ms ease;
+  will-change: box-shadow, transform;
+}
+
+/* Hover: subtle glow */
+.sideDrawer__item:hover {
+  border-color: rgba(125, 207, 182, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(125, 207, 182, 0.25),
+    0 10px 28px rgba(0, 178, 202, 0.12),
+    0 0 18px rgba(125, 207, 182, 0.22);
+  transform: translateY(-1px);
+}
+
+/* Keyboard focus: same vibe as hover, but a touch cleaner */
+.sideDrawer__item:focus-visible {
+  outline: none;
+  border-color: rgba(125, 207, 182, 0.65);
+  box-shadow:
+    0 0 0 2px rgba(125, 207, 182, 0.30),
+    0 0 0 6px rgba(125, 207, 182, 0.10),
+    0 12px 32px rgba(0, 178, 202, 0.14);
+}
+
+/* Active/selected: persistent glow (stronger than hover) */
+.sideDrawer__item--active {
+  border-color: rgba(125, 207, 182, 0.70);
+  box-shadow:
+    0 0 0 1px rgba(125, 207, 182, 0.32),
+    0 14px 40px rgba(0, 178, 202, 0.18),
+    0 0 24px rgba(125, 207, 182, 0.28);
+}
+
+/* Optional: make active icon/text feel slightly “on” */
+.sideDrawer__item--active .sideDrawer__itemIcon,
+.sideDrawer__item--active .sideDrawer__itemLabel {
+  opacity: 1;
+}
+
+/* Optional: tone down non-active items just a hair */
+.sideDrawer__item .sideDrawer__itemIcon {
+  opacity: 0.9;
+}
+
+
+.sideDrawer__item--active::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(125, 207, 182, 0.9);
+  box-shadow: 0 0 12px rgba(125, 207, 182, 0.35);
+}
+
+/* --- About page theme tokens (works in dark/light if you tweak vars) --- */
+:root {
+  --about-card-bg: rgba(10, 16, 28, 0.62);
+  --about-card-border: rgba(255, 255, 255, 0.10);
+  --about-card-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+
+  --about-text: rgba(255, 255, 255, 0.88);
+  --about-text-strong: rgba(255, 255, 255, 0.96);
+
+  --about-radius: 18px;
+}
+
+/* Stage background: prevents white gutters behind about */
+.pageStage--about {
+  background: #050b18;
+}
+
+/* Models page cinematic backdrop */
+.pageStage--models {
+  background:
+    radial-gradient(1200px 640px at 55% 0%, rgba(76, 96, 150, 0.28), rgba(9, 12, 20, 0.92)),
+    radial-gradient(900px 520px at 10% 20%, rgba(40, 120, 255, 0.15), transparent 55%),
+    #0b0f1a;
+  color: #e9eefc;
+}
+
+/* =========================================================
+   FULL-BLEED PAGE SUPPORT (keep in global CSS)
+   ========================================================= */
+
+.page--fullBleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+
+  padding: 0 !important;
+  background: transparent;
+}
+
+.page__content--fullBleed {
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pageStage--chrome .page {
+  padding-bottom: 70px; /* footer (50) + rail (12) + breathing room */
+}
+
+.pageStage--noChrome .page {
+  padding-bottom: 16px;
+}
+
+/* Defensive: if any chrome is still present in the stage, kill it */
+.pageStage--noChrome .appShell__bottomRail,
+.pageStage--noChrome .app__footer {
+  display: none !important;
+}
+
+/* Optional: About stage background prevents white flash/gutters */
+.pageStage--about {
+  background: #050b18;
+}
+
+/* =========================================================
+   ABOUT THEME VARIABLES (single source of truth)
+   Light mode is default; dark mode overrides via .app--dark
+   ========================================================= */
+
+.app {
+  --about-overlay-base: rgba(4, 10, 24, 0.34);
+  --about-overlay-top: rgba(4, 10, 24, 0.22);
+  --about-overlay-bottom: rgba(4, 10, 24, 0.56);
+
+  --about-sheet-bg: rgba(8, 12, 20, 0.66);
+  --about-sheet-border: rgba(255, 255, 255, 0.12);
+
+  --about-pill-bg: rgba(255, 255, 255, 0.04);
+  --about-pill-border: rgba(255, 255, 255, 0.14);
+
+  --about-subtle-fg: rgba(255, 255, 255, 0.72);
+  --about-fg: rgba(255, 255, 255, 0.88);
+  --about-fg-strong: rgba(255, 255, 255, 0.96);
+}
+
+/* Dark mode overrides */
+.app.app--dark {
+  --about-overlay-base: rgba(4, 10, 24, 0.62);
+  --about-overlay-top: rgba(4, 10, 24, 0.40);
+  --about-overlay-bottom: rgba(4, 10, 24, 0.80);
+
+  --about-sheet-bg: rgba(8, 12, 20, 0.78);
+  --about-sheet-border: rgba(255, 255, 255, 0.10);
+
+  --about-pill-bg: rgba(255, 255, 255, 0.045);
+  --about-pill-border: rgba(255, 255, 255, 0.12);
+}
+
+/* =========================================================
+   ABOUT PAGE LAYOUT
+   ========================================================= */
+
+/* Full-bleed background wrapper */
+.aboutBg {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+
+  /* Responsive breathing room */
+  padding: clamp(18px, 4vw, 44px) 0 clamp(28px, 5vw, 64px);
+
+  display: grid;
+  justify-items: center;
+
+  background-color: #050b18;
+  background-image: var(--about-bg-url);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 80% 60%;
+}
+
+/* Overlay owns the canvas (THE ONLY .aboutOverlay RULE) */
+.aboutOverlay {
+  position: absolute;
+  inset: 0;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  background:
+    radial-gradient(900px 520px at 22% 10%, rgba(0, 178, 202, 0.10), transparent 60%),
+    linear-gradient(to bottom, var(--about-overlay-top), var(--about-overlay-bottom));
+  background-color: var(--about-overlay-base);
+}
+
+/* subtle spotlight to lift the sheet */
+.aboutOverlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    900px 650px at 50% 35%,
+    rgba(255, 255, 255, 0.05),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Constrained content on top of background */
+.aboutContent {
+  position: relative;
+  z-index: 1;
+
+  /* Match map page density: not too wide */
+  width: min(1040px, calc(100vw - (2 * clamp(16px, 4vw, 56px))));
+  display: grid;
+  gap: 14px;
+}
+
+/* =========================================================
+   ABOUT "SHEET" SURFACE (single source of truth)
+   ========================================================= */
+
+.aboutSheet {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid var(--about-sheet-border);
+  background: var(--about-sheet-bg);
+
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+
+.aboutSection {
+  padding: clamp(18px, 2.6vw, 26px);
+}
+
+.aboutDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0 clamp(14px, 2vw, 20px);
+}
+
+/* Typography */
+.aboutSheet h2 {
+  margin: 0 0 10px;
+  color: var(--about-fg-strong);
+  letter-spacing: -0.01em;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+/* subtle accent underline */
+.aboutSheet h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  width: 54px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 178, 202, 0.70),
+    rgba(0, 178, 202, 0.00)
+  );
+}
+
+.aboutSheet p,
+.aboutSheet li {
+  color: var(--about-fg);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.aboutSubtle {
+  margin-top: 6px;
+  color: var(--about-subtle-fg);
+  max-width: 72ch;
+}
+
+/* Bullets */
+.aboutBullets {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+.aboutBullets li + li {
+  margin-top: 8px;
+}
+
+/* Pills */
+.aboutPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aboutPill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--about-pill-border);
+  background: var(--about-pill-bg);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.90);
+}
+
+.aboutPill:hover {
+  border-color: rgba(0, 178, 202, 0.22);
+  background: rgba(0, 178, 202, 0.08);
+}
+
+/* Grid table */
+.aboutGridTable {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 1.5fr;
+  gap: 8px 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.aboutGridHead {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.60);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.aboutGridCell {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.90);
+}
+.aboutGridCell strong {
+  color: rgba(255, 255, 255, 0.98);
+}
+
+/* Stack table on narrow screens */
+@media (max-width: 720px) {
+  .aboutGridTable {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Accordion button (feels like map pill control) */
+.aboutSummary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.90);
+}
+
+.aboutSummary::-webkit-details-marker {
+  display: none;
+}
+
+.aboutSummary:hover {
+  background: rgba(0, 178, 202, 0.10);
+  border-color: rgba(0, 178, 202, 0.28);
+}
+
+.aboutDetails[open] .aboutSummary {
+  background: rgba(0, 178, 202, 0.14);
+  border-color: rgba(0, 178, 202, 0.34);
+}
+
+.aboutDetailsList {
+  margin-top: 12px;
+}
+
+/* Callout (softened yellow so it doesn't scream) */
+.aboutCallout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  padding: 14px 16px;
+  border-radius: 14px;
+
+  background: rgba(255, 193, 7, 0.09);
+  border: 1px solid rgba(255, 193, 7, 0.22);
+  color: rgba(255, 255, 255, 0.90);
+}
+
+.aboutCalloutIcon {
+  color: rgba(255, 220, 120, 0.92);
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 24;
+}
+
+/* Photo credit */
+.aboutPhotoCredit {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 12px;
+  border-radius: 999px;
+
+  background: rgba(8, 18, 44, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 12px;
+  font-weight: 650;
+
+  width: fit-content;
+}
+
+/* ===========================
+   Models Page — Flip Cards
+   =========================== */
+
+.modelsHeaderRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modelsHeaderHint {
+  opacity: 0.75;
+  font-size: 0.95rem;
+}
+
+.pageStage--models .modelsHeaderRow h2,
+.pageStage--models .m3cTitle {
+  color: #f4f7ff;
+}
+
+.pageStage--models .modelsHeaderHint,
+.pageStage--models .m3cHint {
+  color: rgba(233, 238, 252, 0.72);
+}
+
+.modelsPage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 24px 70px;
+}
+
+.modelsSection {
+  margin-top: 4px;
+}
+
+.modelsState {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 18, 44, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.modelsState--error {
+  border-color: rgba(255, 90, 90, 0.5);
+  color: rgba(255, 210, 210, 0.92);
+  background: rgba(40, 8, 12, 0.65);
+}
+
+.modelsFooterRow {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Horizontal "carousel" via scroll-snap */
+.modelsCarousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(280px, 320px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 6px 2px 14px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modelsCarousel > * {
+  scroll-snap-align: start;
+}
+
+/* Optional: nicer scrollbar (webkit only) */
+.modelsCarousel::-webkit-scrollbar {
+  height: 10px;
+}
+.modelsCarousel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+.modelsCarousel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+.modelsCarousel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+/* ---------------------------
+   Card base + flip mechanics
+   --------------------------- */
+
+.modelCard {
+  border-radius: 18px;
+  min-height: 420px;
+  perspective: 1200px;
+  /* Helps prevent ugly overflow on rotation */
+  overflow: visible;
+}
+
+.modelCard__inner {
+  position: relative;
+  width: 100%;
+  height: 420px; /* matches min-height; ensures flip faces align */
+  transform-style: preserve-3d;
+  transition: transform 420ms ease;
+}
+
+.modelCard.isFlipped .modelCard__inner {
+  transform: rotateY(180deg);
+}
+
+.modelCard__face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  overflow: hidden; /* keeps rounded corners */
+}
+
+/* Front is a <button> in your markup — normalize button styles */
+.modelCard__front {
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+
+  display: flex;
+  flex-direction: column;
+
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+}
+
+.modelCard__back {
+  transform: rotateY(180deg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Hover / focus glow */
+.modelCard__front:hover,
+.modelCard__back:hover {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.modelCard__front:focus-visible {
+  outline: 2px solid rgba(125, 207, 182, 0.65);
+  outline-offset: 3px;
+}
+
+/* Slight lift on hover (feels fancy) */
+.modelCard:hover .modelCard__face {
+  transform: translateY(-1px);
+}
+
+/* ---------------------------
+   Card content
+   --------------------------- */
+
+.modelCard__topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modelCard__name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.modelCard__tierPill {
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  opacity: 0.92;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.modelCard__desc {
+  margin-top: 8px;
+  opacity: 0.92;
+  line-height: 1.25rem;
+}
+
+.modelCard__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.modelCard__badge {
+  font-size: 0.78rem;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0.92;
+}
+
+.modelCard__metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.modelCard__tag {
+  font-size: 0.78rem;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  opacity: 0.95;
+}
+
+.modelCard__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.modelCard__metric {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.modelCard__metricLabel {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.modelCard__metricVal {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* Image block */
+.modelCard__imageWrap {
+  margin-top: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.modelCard__image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.modelCard__imagePlaceholder {
+  margin-top: 12px;
+  height: 120px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.02);
+  opacity: 0.7;
+}
+
+/* Bottom row stays pinned to bottom on front */
+.modelCard__bottomRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.modelCard__hint {
+  opacity: 0.9;
+}
+
+/* Back header + action button */
+.modelCard__backHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modelCard__flipBackBtn {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.modelCard__flipBackBtn:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.modelCard__longDesc {
+  opacity: 0.92;
+  line-height: 1.3rem;
+}
+
+.modelCard__actions {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.modelCard__linkBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+  color: inherit;
+}
+
+.modelCard__linkBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---------------------------
+   Tier borders (outline + glow)
+   --------------------------- */
+
+.modelCard--gold .modelCard__face {
+  outline: 2px solid rgba(255, 215, 0, 0.65);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(255, 215, 0, 0.12);
+}
+
+.modelCard--silver .modelCard__face {
+  outline: 2px solid rgba(192, 192, 192, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(192, 192, 192, 0.10);
+}
+
+.modelCard--bronze .modelCard__face {
+  outline: 2px solid rgba(205, 127, 50, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(205, 127, 50, 0.10);
+}
+
+.modelCard--blue .modelCard__face {
+  outline: 2px solid rgba(100, 170, 255, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(100, 170, 255, 0.10);
+}
+
+/* ---------------------------
+   Reduced motion accessibility
+   --------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .modelCard__inner {
+    transition: none;
+  }
+  .modelCard:hover .modelCard__face {
+    transform: none;
+  }
+}
+
+/* ===========================
+   Premium carousel shell
+   =========================== */
+
+.mcWrap {
+  width: 100%;
+}
+
+.mcHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mcTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.mcHint {
+  opacity: 0.75;
+  font-size: 0.95rem;
+}
+
+/* Stage holds arrows + scroller */
+.mcStage {
+  position: relative;
+  width: 100%;
+  /* item width + a peek region (so neighbors show) */
+  --mc-item-w: 320px;
+  --mc-peek: 72px;
+  --mc-hover: 0;
+}
+
+/* The scroller is the carousel */
+.mcScroller {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--mc-item-w);
+  gap: 14px;
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: calc(50% - (var(--mc-item-w) / 2));
+  scroll-padding-right: calc(50% - (var(--mc-item-w) / 2));
+
+  /* Center the active item and allow peeking */
+  padding: 8px calc(var(--mc-peek) + 44px) 14px; /* +44 accounts for arrow button area */
+  border-radius: 16px;
+
+  outline: none;
+  transition: transform 220ms ease;
+}
+
+/* Hide scrollbar but keep scrolling */
+.mcScroller::-webkit-scrollbar {
+  display: none;
+}
+.mcScroller {
+  scrollbar-width: none;
+}
+
+/* Each carousel slot */
+.mcItem {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transition: transform 220ms ease, filter 220ms ease, opacity 220ms ease, box-shadow 220ms ease;
+  opacity: 0.88;
+  filter: saturate(0.95);
+}
+
+/* Active item gets the spotlight */
+.mcItem.isActive {
+  transform: scale(1.04);
+  opacity: 1;
+  filter: saturate(1.08);
+}
+
+/* Neighbor items are subtly de-emphasized */
+.mcItem:not(.isActive) .modelCard__face {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.14);
+}
+
+/* Dynamic hover sweep */
+.mcScroller:hover .mcItem {
+  transform: translateX(calc(var(--mc-hover) * -18px));
+}
+
+.mcScroller:hover .mcItem.isActive {
+  transform: scale(1.05) translateX(calc(var(--mc-hover) * -22px));
+}
+
+.mcScroller:hover .mcItem:not(.isActive) {
+  opacity: 0.78;
+  filter: saturate(0.9) brightness(0.98);
+}
+
+.mcScroller:hover .mcItem:hover {
+  transform: translateY(-4px) scale(1.03);
+  opacity: 1;
+  filter: saturate(1.15);
+}
+
+/* Arrow nav buttons */
+.mcNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: inherit;
+}
+
+.mcNavBtn:hover {
+  background: rgba(255,255,255,0.16);
+}
+
+.mcNavBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.mcNavBtn--left {
+  left: 10px;
+}
+
+.mcNavBtn--right {
+  right: 10px;
+}
+
+/* Dots */
+.mcDots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.mcDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+
+.mcDot.isActive {
+  width: 18px;
+  background: rgba(125, 207, 182, 0.55); /* teal-ish */
+  border-color: rgba(125, 207, 182, 0.75);
+}
+
+.mcDot:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+/* Keyboard focus ring on the scroller */
+.mcScroller:focus-visible {
+  outline: 2px solid rgba(125, 207, 182, 0.55);
+  outline-offset: 4px;
+}
+
+/* Mobile: reduce peek so it doesn't feel cramped */
+@media (max-width: 560px) {
+  .mcStage {
+    --mc-item-w: 290px;
+    --mc-peek: 24px;
+  }
+  .mcNavBtn {
+    display: none; /* swipe instead */
+  }
+  .mcScroller {
+    padding: 8px var(--mc-peek) 14px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .mcItem {
+    transition: none;
+  }
+  .mcScroller {
+    transition: none;
+  }
+  .mcScroller:hover .mcItem,
+  .mcScroller:hover .mcItem.isActive,
+  .mcScroller:hover .mcItem:hover {
+    transform: none;
+  }
+}
+
+/* ===========================
+   M3 carousel shell
+   =========================== */
+
+.m3cWrap {
+  width: 100%;
+}
+
+.m3cHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.m3cTitle {
+  font-size: 1.1rem;
+  font-weight: 750;
+  letter-spacing: 0.2px;
+}
+
+.m3cHint {
+  opacity: 0.68;
+  font-size: 0.92rem;
+}
+
+.m3cStage {
+  position: relative;
+  width: 100%;
+  --m3-item-w: 300px;
+  --m3-item-w-active: 360px;
+  --m3-peek: 72px;
+}
+
+.m3cScroller {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--m3-item-w);
+  gap: 14px;
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: calc(50% - (var(--m3-item-w) / 2));
+  scroll-padding-right: calc(50% - (var(--m3-item-w) / 2));
+
+  padding: 8px calc(var(--m3-peek) + 42px) 18px;
+  border-radius: 16px;
+  outline: none;
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.92) 8%, rgba(0,0,0,0.92) 92%, transparent 100%);
+}
+
+.m3cScroller::-webkit-scrollbar {
+  display: none;
+}
+.m3cScroller {
+  scrollbar-width: none;
+}
+
+.m3cItem {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transition: transform 240ms ease, opacity 240ms ease, filter 240ms ease;
+  opacity: 0.62;
+  filter: saturate(0.88) brightness(0.95);
+  transform: scale(0.94);
+}
+
+.m3cItem.isActive {
+  transform: scale(1.06);
+  opacity: 1;
+  filter: saturate(1.12) brightness(1.02);
+}
+
+.m3cNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: inherit;
+}
+
+.m3cNavBtn:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+.m3cNavBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.m3cNavBtn--left {
+  left: 8px;
+}
+
+.m3cNavBtn--right {
+  right: 8px;
+}
+
+.m3cDots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.m3cDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+
+.m3cDot.isActive {
+  width: 16px;
+  background: rgba(125, 207, 182, 0.55);
+  border-color: rgba(125, 207, 182, 0.75);
+}
+
+.m3cScroller:focus-visible {
+  outline: 2px solid rgba(125, 207, 182, 0.45);
+  outline-offset: 4px;
+}
+
+@media (max-width: 560px) {
+  .m3cStage {
+    --m3-item-w: 280px;
+    --m3-item-w-active: 320px;
+    --m3-peek: 20px;
+  }
+  .m3cNavBtn {
+    display: none;
+  }
+  .m3cScroller {
+    padding: 8px var(--m3-peek) 14px;
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m3cItem {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Models page card polish */
+.pageStage--models .modelCard__face {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 18, 30, 0.78);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.pageStage--models .modelCard__front,
+.pageStage--models .modelCard__back {
+  color: rgba(235, 240, 252, 0.92);
+}
+
+.pageStage--models .modelCard__metric {
+  background: rgba(6, 10, 20, 0.5);
+}
+
+.pageStage--models .modelCard__imagePlaceholder {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+
+/* ===========================
+   Models page shell (sleek)
+   =========================== */
+
+.pageStage--models {
+  /* If you already have a stage background, keep it; this just tightens */
+}
+
+.modelsPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 22px 18px 34px;
+}
+
+.modelsHeaderRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.modelsHeaderRow h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.modelsHeaderHint {
+  font-size: 0.98rem;
+  opacity: 0.72;
+}
+
+/* ===========================
+   M3 carousel polish
+   =========================== */
+
+.m3cStage {
+  position: relative;
+  margin-top: 6px;
+}
+
+/* Edge fade mask: feels *premium* */
+.m3cScroller {
+  /* Keep your existing layout, then add the mask */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+}
+
+/* Tone down “disabled” look on neighbors */
+.m3cItem {
+  opacity: 0.86;
+  filter: saturate(0.98) contrast(0.98);
+  transform: scale(0.97);
+  transition: transform 200ms ease, opacity 200ms ease, filter 200ms ease;
+}
+
+.m3cItem.isActive {
+  opacity: 1;
+  filter: saturate(1) contrast(1);
+  transform: scale(1.03);
+}
+
+/* Minimal nav buttons */
+.m3cNavBtn {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.m3cNavBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ===========================
+   Model card: sharper + quieter
+   =========================== */
+
+.modelCard {
+  border-radius: 18px;
+}
+
+.modelCard__face {
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+/* Subtle “glass” but less foggy */
+.modelCard__front,
+.modelCard__back {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Typography */
+.modelCard__name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.modelCard__desc {
+  opacity: 0.9;
+}
+
+/* Badges: tighter + cleaner */
+.modelCard__badge,
+.modelCard__tag,
+.modelCard__tierPill {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Run tag: mono, smaller, ellipsize */
+.modelCard__tag--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.74rem;
+  opacity: 0.72;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Metric tiles: more contrast, less chunky */
+.modelCard__metric {
+  background: rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+}
+
+.modelCard__metricVal {
+  font-size: 1.02rem;
+}
+
+/* Hint row: quieter */
+.modelCard__bottomRow {
+  opacity: 0.68;
+}
+
+/* Hover: subtle lift (desktop) */
+@media (hover: hover) and (pointer: fine) {
+  .modelCard__front:hover,
+  .modelCard__back:hover {
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+    transform: translateY(-1px);
+  }
+}
+
+/* Tier borders: thinner + more elegant */
+.modelCard--gold .modelCard__face {
+  outline: 1.5px solid rgba(255, 215, 0, 0.60);
+}
+.modelCard--silver .modelCard__face {
+  outline: 1.5px solid rgba(192, 192, 192, 0.52);
+}
+.modelCard--bronze .modelCard__face {
+  outline: 1.5px solid rgba(205, 127, 50, 0.52);
+}
+.modelCard--blue .modelCard__face {
+  outline: 1.5px solid rgba(100, 170, 255, 0.42);
+}
+
+/* ===========================
+   Hard-lock: flip only on .isFlipped
+   =========================== */
+
+.modelCard {
+  perspective: 1400px;
+}
+
+.modelCard__inner {
+  position: relative;
+  width: 100%;
+  height: 520px;              /* bigger card height */
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transform: rotateY(0deg);   /* default */
+}
+
+/* ✅ ONLY this toggles the flip */
+.modelCard.isFlipped .modelCard__inner {
+  transform: rotateY(180deg);
+}
+
+/* Faces must be absolute + fill */
+.modelCard__face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Front face is default orientation */
+.modelCard__front {
+  transform: rotateY(0deg);
+}
+
+/* Back face rotates so it appears after inner flips */
+.modelCard__back {
+  transform: rotateY(180deg);
+}
+
+/* 🚫 Kill ANY hover-based flip if you accidentally added it earlier */
+.modelCard:hover .modelCard__inner {
+  transform: rotateY(0deg);
+}
+.modelCard.isFlipped:hover .modelCard__inner {
+  transform: rotateY(180deg);
+}
+
+/* Optional: keep hover lift, but do NOT touch rotate */
+@media (hover: hover) and (pointer: fine) {
+  .modelCard__front:hover,
+  .modelCard__back:hover {
+    transform: translateY(-1px);
+  }
+  /* Ensure hover lift doesn't override our face rotation */
+  .modelCard__front:hover { transform: translateY(-1px) rotateY(0deg); }
+  .modelCard__back:hover  { transform: translateY(-1px) rotateY(180deg); }
+}
+
+
+/* =========================================
+   MODEL FLIP — single source of truth
+   (paste at very bottom of CSS)
+   ========================================= */
+
+/* Bigger cards */
+.modelCard {
+  border-radius: 20px;
+  perspective: 1400px;
+}
+
+/* IMPORTANT: give the card a single authoritative height */
+.modelCard__inner {
+  position: relative;
+  width: 100%;
+  height: 560px; /* ✅ bigger */
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transform: rotateY(0deg);
+  will-change: transform;
+}
+
+/* Flip ONLY when state sets .isFlipped */
+.modelCard.isFlipped .modelCard__inner {
+  transform: rotateY(180deg);
+}
+
+/* Faces */
+.modelCard__face {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(14, 18, 30, 0.78);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+/* Front and back orientation */
+.modelCard__front {
+  transform: rotateY(0deg);
+}
+
+.modelCard__back {
+  transform: rotateY(180deg);
+}
+
+/* 🚫 kill any hover-based flip forever */
+.modelCard:hover .modelCard__inner {
+  transform: rotateY(0deg);
+}
+.modelCard.isFlipped:hover .modelCard__inner {
+  transform: rotateY(180deg);
+}
+
+/* ✅ premium hover lift WITHOUT touching rotateY (faces lift, not inner) */
+@media (hover: hover) and (pointer: fine) {
+  .modelCard:hover .modelCard__face {
+    transform: translateY(-2px);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Preserve face rotations while lifting */
+  .modelCard:hover .modelCard__front { transform: translateY(-2px) rotateY(0deg); }
+  .modelCard:hover .modelCard__back  { transform: translateY(-2px) rotateY(180deg); }
+}
+
+/* Make front/back padding breathe a bit more at bigger size */
+.modelCard__front,
+.modelCard__back {
+  padding: 16px;
+}
+
+/* Tighten metric tiles a bit so the bigger card feels intentional */
+.modelCard__metric {
+  padding: 12px;
+}
+.modelCard__metricVal {
+  font-size: 1.1rem;
+}
+
+.m3cStage {
+  --m3-item-w: 380px;
+  --m3-item-w-active: 460px;
+  --m3-peek: 96px;
+}
+
+
+/* ===========================
+   About Page — Neon pass
+   Scoped to .pageStage--about
+   =========================== */
+
+.pageStage--about {
+  /* Tune these in one place */
+  --neon-a: 0, 178, 202;  /* teal/cyan */
+  --neon-b: 125, 207, 182;/* mint */
+  --sheet-bg: rgba(10, 16, 28, 0.72);
+  --sheet-border: rgba(255, 255, 255, 0.08);
+  --sheet-border-strong: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.72);
+  --muter: rgba(255, 255, 255, 0.58);
+
+  color: var(--text);
+}
+
+/* Background: add a subtle "aurora" wash so it feels like the map header */
+.pageStage--about .aboutBg {
+  position: relative;
+  min-height: 100vh;
+  background-image: var(--about-bg-url);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+/* Existing overlay gets upgraded: vignette + aurora + top-header blend */
+.pageStage--about .aboutOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  /* Your original blur/dim + an aurora gradient layer */
+  background:
+    radial-gradient(1200px 600px at 30% 15%,
+      rgba(var(--neon-a), 0.14),
+      transparent 60%),
+    radial-gradient(900px 500px at 75% 25%,
+      rgba(var(--neon-b), 0.10),
+      transparent 55%),
+    linear-gradient(to bottom,
+      rgba(7, 20, 55, 0.78),
+      rgba(6, 10, 18, 0.72) 35%,
+      rgba(3, 6, 12, 0.84)),
+    radial-gradient(1200px 800px at 50% 65%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.55) 82%);
+
+  backdrop-filter: blur(10px) saturate(1.1);
+}
+
+/* Content container */
+.pageStage--about .aboutContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: clamp(18px, 2.2vw, 28px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The main sheet: add subtle neon edge + soft glow */
+.pageStage--about .aboutSheet {
+  width: min(980px, calc(100vw - 28px));
+  border-radius: 18px;
+  background: var(--sheet-bg);
+  border: 1px solid var(--sheet-border);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.35);
+
+  /* Neon edge tint */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Neon rim highlight (very controlled) */
+.pageStage--about .aboutSheet::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  pointer-events: none;
+
+  background: linear-gradient(
+    135deg,
+    rgba(var(--neon-a), 0.30),
+    rgba(var(--neon-b), 0.18),
+    transparent 55%
+  );
+
+  filter: blur(14px);
+  opacity: 0.65;
+}
+
+
+
+/* Section headings: add an underline glow accent */
+.pageStage--about .aboutSection h2 {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.pageStage--about .aboutSection h2::after {
+  content: "";
+  display: block;
+  margin-top: 10px;
+  width: 72px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(var(--neon-a), 0.85);
+  box-shadow:
+    0 0 12px rgba(var(--neon-a), 0.55),
+    0 0 26px rgba(var(--neon-b), 0.25);
+  opacity: 0.85;
+}
+
+/* Pills: glow on hover + subtle active vibe */
+.pageStage--about .aboutPill {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.86);
+  transition: transform 120ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.pageStage--about .aboutPill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--neon-a), 0.55);
+  box-shadow:
+    0 0 0 2px rgba(var(--neon-a), 0.18),
+    0 8px 22px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(var(--neon-a), 0.30);
+}
+
+/* Dividers: swap the flat line for a neon hairline */
+.pageStage--about .aboutDivider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    rgba(var(--neon-a), 0.25),
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+  box-shadow: 0 0 18px rgba(var(--neon-a), 0.16);
+}
+
+/* Grid table: add subtle glow on container edges */
+.pageStage--about .aboutGridTable {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.18) inset,
+    0 0 22px rgba(var(--neon-a), 0.10);
+}
+
+/* Table header: more “instrument panel” */
+.pageStage--about .aboutGridHead {
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+/* Details/summary: glow on focus/hover so it feels interactive */
+.pageStage--about .aboutSummary {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  padding: 10px 12px;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.pageStage--about .aboutDetails[open] .aboutSummary,
+.pageStage--about .aboutSummary:hover,
+.pageStage--about .aboutSummary:focus-visible {
+  border-color: rgba(var(--neon-a), 0.55);
+  box-shadow:
+    0 0 0 3px rgba(var(--neon-a), 0.16),
+    0 0 22px rgba(var(--neon-a), 0.28);
+  outline: none;
+}
+
+/* Responsible use callout: make it a neon-amber hybrid (warning but still OrcaCast) */
+.pageStage--about .aboutCallout {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 199, 64, 0.22);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 199, 64, 0.12),
+    rgba(255, 199, 64, 0.06),
+    rgba(255, 255, 255, 0.03)
+  );
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset,
+    0 0 28px rgba(255, 199, 64, 0.10),
+    0 0 18px rgba(var(--neon-a), 0.08);
+}
+
+.pageStage--about .aboutCalloutIcon {
+  color: rgba(255, 199, 64, 0.92);
+  text-shadow: 0 0 16px rgba(255, 199, 64, 0.24);
+}
+
+/* Photo credit: make it feel like a subtle map toast */
+.pageStage--about .aboutPhotoCredit {
+  width: min(980px, calc(100vw - 28px));
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 16, 28, 0.42);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(var(--neon-a), 0.08);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Optional: improve overall text contrast */
+.pageStage--about .aboutSubtle {
+  color: var(--muted);
+}
+.pageStage--about .aboutBullets {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+/* =========================================
+   About Page — Neon Boost Patch (override)
+   Paste AFTER your current about neon CSS
+   ========================================= */
+
+.pageStage--about {
+  /* Slightly brighter neon channels */
+  --neon-a: 0, 198, 255;   /* brighter cyan */
+  --neon-b: 110, 255, 220;/* brighter mint */
+}
+
+/* Make the aurora wash show up more */
+.pageStage--about .aboutOverlay {
+  background:
+    radial-gradient(1200px 650px at 28% 14%,
+      rgba(var(--neon-a), 0.22),
+      transparent 62%),
+    radial-gradient(900px 520px at 78% 22%,
+      rgba(var(--neon-b), 0.16),
+      transparent 58%),
+    linear-gradient(to bottom,
+      rgba(7, 20, 55, 0.74),
+      rgba(6, 10, 18, 0.68) 35%,
+      rgba(3, 6, 12, 0.84)),
+    radial-gradient(1200px 800px at 50% 65%,
+      transparent 42%,
+      rgba(0, 0, 0, 0.55) 84%);
+}
+
+/* Stronger neon rim + a visible edge line */
+.pageStage--about .aboutSheet {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.60),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 34px rgba(var(--neon-a), 0.10); /* new: ambient cyan glow */
+}
+
+/* Neon aura (more present) */
+.pageStage--about .aboutSheet::before {
+  opacity: 0.92;                 /* was ~0.65 */
+  filter: blur(12px);            /* tighter glow reads brighter */
+  background: radial-gradient(
+      900px 420px at 18% 10%,
+      rgba(var(--neon-a), 0.40),
+      transparent 60%
+    ),
+    radial-gradient(
+      760px 360px at 86% 18%,
+      rgba(var(--neon-b), 0.28),
+      transparent 62%
+    );
+}
+
+
+
+/* Make H2 underline feel “electric” */
+.pageStage--about .aboutSection h2::after {
+  width: 84px;
+  height: 2px;
+  opacity: 1;
+  box-shadow:
+    0 0 14px rgba(var(--neon-a), 0.65),
+    0 0 42px rgba(var(--neon-b), 0.28);
+}
+
+/* Give headings the faint neon text bloom */
+.pageStage--about .aboutSection h2 {
+  text-shadow:
+    0 0 18px rgba(var(--neon-a), 0.12);
+}
+
+/* Pills: make the default state slightly neon (not only hover) */
+.pageStage--about .aboutPill {
+  border-color: rgba(var(--neon-a), 0.20);
+  box-shadow: 0 0 14px rgba(var(--neon-a), 0.10);
+}
+.pageStage--about .aboutPill:hover {
+  box-shadow:
+    0 0 0 2px rgba(var(--neon-a), 0.22),
+    0 10px 26px rgba(0, 0, 0, 0.38),
+    0 0 28px rgba(var(--neon-a), 0.38);
+}
+
+/* Divider: brighter center streak */
+.pageStage--about .aboutDivider {
+  box-shadow: 0 0 22px rgba(var(--neon-a), 0.22);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    rgba(var(--neon-a), 0.42),
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+}
+
+/* Table container: slightly more glow so it doesn’t feel “dead” */
+.pageStage--about .aboutGridTable {
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.18) inset,
+    0 0 30px rgba(var(--neon-a), 0.14);
+}
+
+/* Photo credit toast: give it the same neon ambience */
+.pageStage--about .aboutPhotoCredit {
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.35),
+    0 0 28px rgba(var(--neon-a), 0.12);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pageStage--about .aboutSheet::before {
+    animation: aboutAurora 10s ease-in-out infinite alternate;
+  }
+
+  @keyframes aboutAurora {
+    from { transform: translate3d(-6px, -4px, 0) scale(1.02); }
+    to   { transform: translate3d(8px, 6px, 0) scale(1.06); }
+  }
+}
+
+
+.pageStage--about .aboutSheet {
+  position: relative;
+}
+
+.pageStage--about .aboutSheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  pointer-events: none;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--neon-a), 0.18),
+    rgba(var(--neon-b), 0.10),
+    transparent
+  );
+
+  filter: blur(6px);
+}
+
+.pageStage--about .aboutSheet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(var(--neon-a), 0.22),
+      rgba(var(--neon-b), 0.12),
+      transparent 140px
+    ),
+    linear-gradient(
+      135deg,
+      rgba(var(--neon-a), 0.22),
+      rgba(var(--neon-b), 0.12),
+      transparent 58%
+    );
+
+  opacity: 0.75;
+}
+
+
+.pageStage--about .aboutSection:first-child h2 {
+  font-size: clamp(22px, 2.2vw, 26px);
+  letter-spacing: -0.01em;
+}
+
+.pageStage--about .aboutSection:first-child {
+  position: relative;
+}
+
+.pageStage--about .aboutSection:first-child h2 {
+  text-shadow:
+    0 0 22px rgba(var(--neon-a), 0.22);
+}
+
+.pageStage--about .aboutCallout {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset,
+    0 18px 48px rgba(0, 0, 0, 0.55),
+    0 0 22px rgba(var(--neon-a), 0.10);
+}
+
+/* =========================================
+   Models Page — OrcaCast Instrument Gallery
+   Scoped to .pageStage--models
+   ========================================= */
+
+.pageStage--models {
+  /* Core palette */
+  --neon-a: 0, 198, 255;   /* cyan */
+  --neon-b: 110, 255, 220;/* mint */
+  --bg-deep: rgba(6, 10, 18, 1);
+
+  /* Glass */
+  --glass: rgba(10, 16, 28, 0.62);
+  --glass-2: rgba(10, 16, 28, 0.72);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.72);
+  --muter: rgba(255, 255, 255, 0.58);
+
+  min-height: 100vh;
+  width: 100vw;
+  background: var(--bg-deep);
+  position: relative;
+  overflow: hidden;
+  color: var(--text);
+}
+
+/* Aurora wash + vignette (this is the “About page lighting” equivalent) */
+.pageStage--models::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    radial-gradient(1100px 520px at 35% 10%,
+      rgba(var(--neon-a), 0.18),
+      transparent 62%),
+    radial-gradient(900px 460px at 70% 20%,
+      rgba(var(--neon-b), 0.12),
+      transparent 60%),
+    linear-gradient(to bottom,
+      rgba(7, 20, 55, 0.55),
+      rgba(6, 10, 18, 0.10) 40%,
+      rgba(6, 10, 18, 0.65)),
+    radial-gradient(1200px 800px at 50% 70%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.62) 84%);
+
+  filter: saturate(1.05);
+}
+
+/* Ensure page content sits above */
+.pageStage--models .modelsPage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: clamp(16px, 2vw, 24px);
+}
+
+/* Header row like a panel header */
+.pageStage--models .modelsHeaderRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+
+  width: min(1200px, calc(100vw - 32px));
+  margin: 0 auto 14px auto;
+}
+
+.pageStage--models .modelsHeaderRow h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 18px rgba(var(--neon-a), 0.10);
+  position: relative;
+}
+
+/* Electric underline like About */
+.pageStage--models .modelsHeaderRow h2::after {
+  content: "";
+  display: block;
+  width: 78px;
+  height: 2px;
+  border-radius: 999px;
+  margin-top: 10px;
+  background: rgba(var(--neon-a), 0.85);
+  box-shadow:
+    0 0 14px rgba(var(--neon-a), 0.55),
+    0 0 42px rgba(var(--neon-b), 0.22);
+}
+
+.pageStage--models .modelsHeaderHint {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 520px;
+}
+
+/* Loading / error states */
+.pageStage--models .modelsState {
+  width: min(1200px, calc(100vw - 32px));
+  margin: 10px auto 0 auto;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(10px);
+  color: var(--muted);
+}
+.pageStage--models .modelsState--error {
+  border-color: rgba(255, 199, 64, 0.30);
+  box-shadow: 0 0 22px rgba(255, 199, 64, 0.12);
+}
+
+/* =========================================
+   Carousel stage styling
+   (Adjust selectors to match M3Carousel)
+   ========================================= */
+
+/* Wrap the carousel in a “rail” container that feels like the map UI */
+.pageStage--models .m3Carousel,
+.pageStage--models .M3Carousel,
+.pageStage--models .carouselWrap {
+  width: min(1200px, calc(100vw - 32px));
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Edge fades: make them dark/vignette, not white haze */
+.pageStage--models .m3Carousel::before,
+.pageStage--models .m3Carousel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 140px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.pageStage--models .m3Carousel::before {
+  left: -4px;
+  background: linear-gradient(to right,
+    rgba(6,10,18,0.95),
+    rgba(6,10,18,0.55),
+    transparent
+  );
+}
+
+.pageStage--models .m3Carousel::after {
+  right: -4px;
+  background: linear-gradient(to left,
+    rgba(6,10,18,0.95),
+    rgba(6,10,18,0.55),
+    transparent
+  );
+}
+
+/* Optional: a rail backdrop behind the scrolling cards */
+.pageStage--models .m3CarouselRail,
+.pageStage--models .m3Carousel__rail,
+.pageStage--models .m3CarouselTrack {
+  border-radius: 18px;
+  padding: 14px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 18px 60px rgba(0,0,0,0.55),
+    0 0 32px rgba(var(--neon-a), 0.08);
+  backdrop-filter: blur(10px);
+}
+
+/* =========================================
+   Model cards — unify with About “glass + neon”
+   ========================================= */
+
+.pageStage--models .modelCard {
+  /* Make cards feel like glass instruments */
+  border-radius: 18px;
+  background: var(--glass-2);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  overflow: hidden;
+  position: relative;
+  transform: translateZ(0);
+}
+
+/* Soft internal sheen */
+.pageStage--models .modelCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+    rgba(255,255,255,0.10),
+    transparent 140px
+  );
+  opacity: 0.55;
+}
+
+/* Neon rim by tier — controlled */
+.pageStage--models .modelCard--gold {
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 199, 64, 0.22) inset,
+    0 0 26px rgba(255, 199, 64, 0.14);
+  border-color: rgba(255, 199, 64, 0.28);
+}
+
+.pageStage--models .modelCard--silver {
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(210, 220, 235, 0.18) inset,
+    0 0 24px rgba(210, 220, 235, 0.10);
+  border-color: rgba(210, 220, 235, 0.22);
+}
+
+.pageStage--models .modelCard--bronze {
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(205, 140, 90, 0.18) inset,
+    0 0 24px rgba(205, 140, 90, 0.10);
+  border-color: rgba(205, 140, 90, 0.22);
+}
+
+.pageStage--models .modelCard--blue {
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(var(--neon-a), 0.16) inset,
+    0 0 26px rgba(var(--neon-a), 0.12);
+  border-color: rgba(var(--neon-a), 0.22);
+}
+
+/* Card content text tones */
+.pageStage--models .modelCard__name { color: var(--text); }
+.pageStage--models .modelCard__desc { color: var(--muted); }
+.pageStage--models .modelCard__hint { color: var(--muter); }
+
+/* Tier pill: make it feel like your UI pills */
+.pageStage--models .modelCard__tierPill {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 18px rgba(var(--neon-a), 0.06);
+}
+
+/* Tags/badges: subtle neon hover */
+.pageStage--models .modelCard__tag,
+.pageStage--models .modelCard__badge {
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.78);
+}
+
+/* Metric tiles: make them “mini panels” */
+.pageStage--models .modelCard__metric {
+  background: rgba(0,0,0,0.26);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow: 0 0 24px rgba(var(--neon-a), 0.05);
+}
+
+.pageStage--models .modelCard__metricLabel { color: rgba(255,255,255,0.70); }
+.pageStage--models .modelCard__metricVal {
+  color: rgba(255,255,255,0.94);
+  text-shadow: 0 0 16px rgba(var(--neon-a), 0.08);
+}
+
+/* Image placeholders shouldn't look like dead grey slabs */
+.pageStage--models .modelCard__imagePlaceholder {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    radial-gradient(600px 220px at 30% 30%,
+      rgba(var(--neon-a), 0.14),
+      transparent 60%),
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.06),
+      rgba(255,255,255,0.03));
+}
+
+/* Flip button face should feel tappable */
+.pageStage--models .modelCard__face.modelCard__front {
+  cursor: pointer;
+}
+
+/* =========================================
+   Active/hover emphasis (carousel focus)
+   ========================================= */
+
+/* If M3Carousel adds a class for active item, hook it here.
+   Otherwise, hover gets you 80% of the effect. */
+.pageStage--models .modelCard:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 26px 80px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(var(--neon-a), 0.12) inset,
+    0 0 34px rgba(var(--neon-a), 0.16);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pageStage--models .modelCard {
+    transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+}
+
+
+.pageStage--models .m3Item.isActive .modelCard {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow:
+    0 34px 110px rgba(0,0,0,0.70),
+    0 0 0 1px rgba(var(--neon-a), 0.18) inset,
+    0 0 46px rgba(var(--neon-a), 0.20);
+}
+
+/* Offscreen cards become basically free */
+.pageStage--models .modelCard {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px 640px; /* reserve size so layout doesn't jump */
+  contain: layout paint style;
+  will-change: transform;
+}
+
+.pageStage--models .modelCard {
+  border-width: 5px;
+}
+
+.pageStage--models .modelCard__metric {
+  border-width: 5px;
+}
+
+.m3cScroller {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory; /* if you use snap */
+  contain: layout paint;
+}
+
+.m3cItem {
+  scroll-snap-align: center;
+}
+
+.modelCard {
+  content-visibility: auto;
+  contain: layout paint style;
+}
+
+.m3cItem {
+  transition: width 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+.m3cItem.isActive {
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   ORCACAST – MODELS PAGE THEME PATCH
+   Modern scandi + apple glass + neon orca
+   ========================================= */
+
+.pageStage--models {
+  /* Pull from your app's ocean palette; tweak if you already have vars */
+  --orca-navy: #071a33;
+  --orca-ink: #0a0f1a;
+  --orca-glass: rgba(14, 22, 34, 0.62);
+  --orca-glass-2: rgba(12, 18, 28, 0.78);
+  --orca-border: rgba(255, 255, 255, 0.11);
+  --orca-border-strong: rgba(255, 255, 255, 0.18);
+  --orca-text: rgba(255, 255, 255, 0.92);
+  --orca-muted: rgba(255, 255, 255, 0.72);
+
+  /* neon accents */
+  --orca-cyan: 0, 178, 202; /* #00B2CA */
+  --orca-mint: 125, 207, 182; /* #7DCFB6 */
+  --orca-blue: 43, 108, 176; /* #2B6CB0 */
+  --orca-gold: 255, 199, 64;
+  --orca-silver: 210, 220, 235;
+  --orca-bronze: 205, 140, 90;
+
+  /* A soft vignette like the map pages */
+  background: radial-gradient(
+      1000px 620px at 50% 20%,
+      rgba(var(--orca-cyan), 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      1200px 700px at 15% 60%,
+      rgba(var(--orca-blue), 0.12),
+      transparent 55%
+    );
+}
+
+/* -------- Carousel stage polish -------- */
+
+.pageStage--models .m3cStage {
+  position: relative;
+}
+
+/* Subtle “light spill” behind the carousel like the map header glow */
+.pageStage--models .m3cStage::before {
+  content: "";
+  position: absolute;
+  inset: -24px -24px -24px -24px;
+  pointer-events: none;
+  background:
+    radial-gradient(700px 420px at 40% 55%, rgba(var(--orca-cyan), 0.14), transparent 60%),
+    radial-gradient(800px 520px at 60% 40%, rgba(var(--orca-mint), 0.10), transparent 60%);
+  filter: blur(6px);
+  opacity: 0.9;
+}
+
+/* Keep arrows from feeling “floating random” */
+.pageStage--models .m3cNavBtn {
+  border: 1.5px solid rgba(255,255,255,0.14);
+  background: rgba(10, 16, 26, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.pageStage--models .m3cNavBtn:hover:not(:disabled) {
+  border-color: rgba(var(--orca-cyan), 0.35);
+  box-shadow:
+    0 10px 35px rgba(0,0,0,0.28),
+    0 0 0 4px rgba(var(--orca-cyan), 0.10);
+}
+
+/* -------- Card: glass + neon edge -------- */
+
+.pageStage--models .modelCard {
+  border-radius: 22px;
+  border: 2px solid var(--orca-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  box-shadow:
+    0 18px 60px rgba(0,0,0,0.42),
+    0 1px 0 rgba(255,255,255,0.06) inset;
+
+  /* This is the “instrument panel glass” */
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+
+  /* smoother motion */
+  transform: translateZ(0);
+}
+
+/* Add a subtle neon rim via pseudo-element (safer than huge box-shadows) */
+.pageStage--models .modelCard::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 22px;
+  pointer-events: none;
+  opacity: 0.0;
+  transition: opacity 180ms ease;
+  background:
+    radial-gradient(420px 260px at 25% 15%, rgba(var(--orca-cyan), 0.28), transparent 55%),
+    radial-gradient(520px 340px at 75% 85%, rgba(var(--orca-mint), 0.20), transparent 58%);
+  filter: blur(10px);
+}
+
+/* Hover = gentle aura; Active = a touch more */
+.pageStage--models .m3cItem:hover .modelCard::before {
+  opacity: 0.55;
+}
+.pageStage--models .m3cItem.isActive .modelCard::before {
+  opacity: 0.75;
+}
+
+/* Make the inner content feel crisp */
+.pageStage--models .modelCard__inner {
+  border-radius: 22px;
+  background: var(--orca-glass);
+  color: var(--orca-text);
+}
+
+/* Reduce “mud” – more Apple, less gamer UI */
+.pageStage--models .modelCard__name {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.pageStage--models .modelCard__desc,
+.pageStage--models .modelCard__longDesc {
+  color: var(--orca-muted);
+  line-height: 1.35;
+}
+
+/* The “hint” line: make it more subtle */
+.pageStage--models .modelCard__hint {
+  opacity: 0.65;
+}
+
+/* -------- Tags / badges: pill glow like map controls -------- */
+
+.pageStage--models .modelCard__tag,
+.pageStage--models .modelCard__badge {
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.82);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pageStage--models .modelCard__tag:hover,
+.pageStage--models .modelCard__badge:hover {
+  border-color: rgba(var(--orca-cyan), 0.28);
+  box-shadow: 0 0 0 4px rgba(var(--orca-cyan), 0.10);
+}
+
+/* -------- Metric tiles: tighter, higher-contrast, “instrument” -------- */
+
+.pageStage--models .modelCard__metric {
+  border: 2px solid rgba(255,255,255,0.10);
+  background: rgba(8, 12, 20, 0.35);
+  border-radius: 14px;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.22),
+    0 1px 0 rgba(255,255,255,0.06) inset;
+}
+
+.pageStage--models .modelCard__metricLabel {
+  color: rgba(255,255,255,0.72);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.pageStage--models .modelCard__metricVal {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* -------- Tier treatments: LED-like, not cartoon -------- */
+
+.pageStage--models .modelCard__tierPill {
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+
+/* Subtle tier edge glow */
+.pageStage--models .modelCard--gold {
+  border-color: rgba(var(--orca-gold), 0.38);
+}
+.pageStage--models .modelCard--silver {
+  border-color: rgba(var(--orca-silver), 0.28);
+}
+.pageStage--models .modelCard--bronze {
+  border-color: rgba(var(--orca-bronze), 0.28);
+}
+.pageStage--models .modelCard--blue {
+  border-color: rgba(var(--orca-cyan), 0.26);
+}
+
+/* Tier pill tint */
+.pageStage--models .modelCard--gold .modelCard__tierPill {
+  border-color: rgba(var(--orca-gold), 0.55);
+  box-shadow: 0 0 0 4px rgba(var(--orca-gold), 0.10);
+}
+.pageStage--models .modelCard--silver .modelCard__tierPill {
+  border-color: rgba(var(--orca-silver), 0.50);
+  box-shadow: 0 0 0 4px rgba(var(--orca-silver), 0.08);
+}
+.pageStage--models .modelCard--bronze .modelCard__tierPill {
+  border-color: rgba(var(--orca-bronze), 0.50);
+  box-shadow: 0 0 0 4px rgba(var(--orca-bronze), 0.08);
+}
+.pageStage--models .modelCard--blue .modelCard__tierPill {
+  border-color: rgba(var(--orca-cyan), 0.52);
+  box-shadow: 0 0 0 4px rgba(var(--orca-cyan), 0.10);
+}
+
+/* -------- Back face: keep same glass, avoid “flat panel” -------- */
+
+.pageStage--models .modelCard__back {
+  background: var(--orca-glass-2);
+}
+
+/* -------- Light mode friendliness --------
+   If you have a body class for theme, swap this selector accordingly.
+*/
+body:not(.dark) .pageStage--models .modelCard__inner {
+  background: rgba(12, 16, 26, 0.52); /* still dark glass; matches your map's light mode navy chrome */
+}
+body:not(.dark) .pageStage--models .modelCard__desc,
+body:not(.dark) .pageStage--models .modelCard__longDesc {
+  color: rgba(255,255,255,0.78);
+}
+
+.mapLoading {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  color: rgba(234, 242, 255, 0.78);
 }

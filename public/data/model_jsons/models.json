@@ -1,0 +1,78 @@
+[
+  {
+    "id": "orcacast_vphase2_composite",
+    "name": "OrcaCast vPhase2 (composite)",
+    "short_desc": "Weekly relative sighting likelihood across the selected grid.",
+    "long_desc": "Composite ranker trained on baseline forecast signals and temporal structure. Optimized for top-k discovery (not calibrated probabilities). Best overall on recent evaluation runs.",
+    "tier": "gold",
+    "category": "current",
+    "update_cadence": "weekly",
+    "run_id": "SRKW_r4_W_19700101_20241231_v_full",
+    "badges": ["Composite", "Weekly", "H3 r4"],
+    "metrics": {
+      "precision_at_k": 0.446429,
+      "recall_at_k": 0.303704,
+      "ndcg_at_k": 0.694444,
+      "lift_at_k": 77.444444
+    },
+    "front_image_url": "/images/models/orcacast_vphase2_thumb.png",
+    "back_image_url": "/images/models/orcacast_vphase2_confmat.png",
+    "performance_path": "/performance"
+  },
+  {
+    "id": "spatiotemporal_rf",
+    "name": "Spatiotemporal RF",
+    "short_desc": "Non-linear model capturing spatial + temporal interactions.",
+    "long_desc": "Random Forest with spatiotemporal feature blocks (lags, rolling, neighbor aggregates). Strong recall in active seasons; can over-expand in sparse weeks.",
+    "tier": "silver",
+    "category": "candidate",
+    "update_cadence": "monthly",
+    "run_id": "SRKW_r4_W_19700101_20241231_rf_st_v1",
+    "badges": ["Candidate", "Non-linear", "H3 r4"],
+    "metrics": {
+      "precision_at_k": 0.392857,
+      "recall_at_k": 0.257209,
+      "ndcg_at_k": 0.611111,
+      "lift_at_k": 65.588294
+    },
+    "front_image_url": "/images/models/rf_st_thumb.png",
+    "performance_path": "/performance"
+  },
+  {
+    "id": "neighbor_climatology",
+    "name": "Neighbor climatology",
+    "short_desc": "Baseline smoothing sightings into nearby hexes.",
+    "long_desc": "Spatial smoothing baseline. Surprisingly competitive for ranking because it captures local persistence without overfitting. Useful sanity check.",
+    "tier": "blue",
+    "category": "baseline",
+    "update_cadence": "quarterly",
+    "run_id": "SRKW_r4_W_19700101_20241231_baselines_v1",
+    "badges": ["Baseline", "Spatial", "Fast"],
+    "metrics": {
+      "precision_at_k": 0.375,
+      "recall_at_k": 0.257209,
+      "ndcg_at_k": 0.583333,
+      "lift_at_k": 65.588294
+    },
+    "front_image_url": "/images/models/neighbor_climo_thumb.png",
+    "performance_path": "/performance"
+  },
+  {
+    "id": "exponential_smoothing",
+    "name": "Exponential smoothing",
+    "short_desc": "Temporal baseline that projects recent activity forward.",
+    "long_desc": "Univariate smoothing on per-cell activity. Great for capturing momentum, weak when spatial spread matters. Good baseline for time-only behavior.",
+    "tier": "bronze",
+    "category": "baseline",
+    "update_cadence": "quarterly",
+    "run_id": "SRKW_r4_W_19700101_20241231_baselines_v1",
+    "badges": ["Baseline", "Temporal", "Fast"],
+    "metrics": {
+      "precision_at_k": 0.303571,
+      "recall_at_k": 0.122751,
+      "ndcg_at_k": 0.472222,
+      "lift_at_k": 31.301587
+    },
+    "performance_path": "/performance"
+  }
+]
