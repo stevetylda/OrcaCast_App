@@ -47,3 +47,7 @@ Attribution:
 Info modal content:
 - Edit the “About / Learn More” copy in `src/components/InfoModal.tsx`.
 - The info button that opens the modal is in `src/components/AppHeader.tsx`.
+
+
+Cool Links: 
+https://www.uinkits.com/components/chart-ui-element
