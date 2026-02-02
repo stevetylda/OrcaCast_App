@@ -1114,6 +1114,26 @@ export function ForecastMap({
   const lastWeekDataRef = useRef<Record<string, FeatureCollection | null>>({});
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
+  const DEBUG_MAP =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    ((window as { __ORCACAST_DEBUG_MAP?: boolean }).__ORCACAST_DEBUG_MAP === true ||
+      window.localStorage?.getItem("orcacast.debug.map") === "true");
+
+  const logMapDebug = (label: string) => {
+    if (!DEBUG_MAP) return;
+    const el = containerRef.current;
+    if (!el) {
+      // eslint-disable-next-line no-console
+      console.info("[MapDebug]", label, { container: "missing" });
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const hasCanvas = !!el.querySelector("canvas");
+    const styleLoaded = mapRef.current?.isStyleLoaded();
+    // eslint-disable-next-line no-console
+    console.info("[MapDebug]", label, { rect, hasCanvas, styleLoaded });
+  };
 
   useEffect(() => {
     styleUrlRef.current = styleUrl;
@@ -1173,6 +1193,8 @@ export function ForecastMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+
+    logMapDebug("before-init");
 
     // Some MapLibre options exist at runtime but aren't present in the published TS types.
     type MapOptionsPatched = maplibregl.MapOptions & {
@@ -1240,16 +1262,49 @@ export function ForecastMap({
     canvas.addEventListener("webglcontextrestored", onContextRestored, false);
 
     map.once("load", () => {
+      map.resize();
+      logMapDebug("load");
       setMapReady(true);
     });
 
     mapRef.current = map;
+    if (import.meta.env.DEV && typeof window !== "undefined") {
+      (window as { __ORCACAST_MAP?: MapLibreMap }).__ORCACAST_MAP = map;
+    }
+    logMapDebug("after-init");
+
+    // Lazy-loaded CSS + flex/grid layouts can report 0px initially; schedule a few resizes.
+    const raf = window.requestAnimationFrame(() => map.resize());
+    const t1 = window.setTimeout(() => map.resize(), 50);
+    const t2 = window.setTimeout(() => map.resize(), 250);
+    const t3 = window.setTimeout(() => {
+      if (!DEBUG_MAP) return;
+      // eslint-disable-next-line no-console
+      console.info("[MapDebug] style status", {
+        styleLoaded: map.isStyleLoaded(),
+        styleName: map.getStyle()?.name ?? null,
+      });
+    }, 1000);
+
+    if (DEBUG_MAP) {
+      map.once("styledata", () => logMapDebug("styledata"));
+      map.once("sourcedata", () => logMapDebug("sourcedata"));
+      map.once("render", () => logMapDebug("render"));
+    }
 
     const deckOverlay = new MapboxOverlay({ interleaved: true, layers: [] });
     map.addControl(deckOverlay);
     deckOverlayRef.current = deckOverlay;
 
     return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      if (import.meta.env.DEV && typeof window !== "undefined") {
+        const win = window as { __ORCACAST_MAP?: MapLibreMap };
+        if (win.__ORCACAST_MAP === map) delete win.__ORCACAST_MAP;
+      }
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       if (deckOverlayRef.current) {
@@ -1832,7 +1887,7 @@ export function ForecastMap({
   }, [showKdeContours, kdeBands, legendSpec]);
 
   return (
-    <>
+    <div className="mapStage">
       <div ref={containerRef} className="map" />
       {legendSpec && (
         <div className="map__cornerRightBottom">
@@ -1882,7 +1937,7 @@ export function ForecastMap({
           <span>{kdeWarning}</span>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

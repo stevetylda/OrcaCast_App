@@ -3,13 +3,13 @@ import { AppHeader } from "../components/AppHeader";
 import { AppFooter } from "../components/AppFooter";
 import { ToolDrawer } from "../components/ToolDrawer";
 
-// import { ForecastMap } from "../components/ForecastMap";
+import { ForecastMap } from "../components/ForecastMap";
 // import { InfoModal } from "../components/InfoModal";
 // import { TimeseriesModal } from "../components/modals/TimeseriesModal";
 
-const ForecastMap = lazy(() =>
-  import("../components/ForecastMap").then((m) => ({ default: m.ForecastMap }))
-);
+// const ForecastMap = lazy(() =>
+//   import("../components/ForecastMap").then((m) => ({ default: m.ForecastMap }))
+// );
 
 const InfoModal = lazy(() =>
   import("../components/InfoModal").then((m) => ({ default: m.InfoModal }))
@@ -134,7 +134,8 @@ export function MapPage() {
       />
 
       <main className="app__main">
-        {/* <ForecastMap
+        {/* <Suspense fallback={<div className="mapStage mapLoading">Loading map…</div>}> */}
+        <ForecastMap
           darkMode={darkMode}
           resolution={resolution}
           showLastWeek={showLastWeek}
@@ -144,20 +145,8 @@ export function MapPage() {
           timeseriesOpen={timeseriesOpen}
           forecastPath={forecastPath}
           fallbackForecastPath={latestForecastPath}
-        /> */}
-        <Suspense fallback={<div className="mapLoading">Loading map…</div>}>
-          <ForecastMap
-            darkMode={darkMode}
-            resolution={resolution}
-            showLastWeek={showLastWeek}
-            lastWeekMode={lastWeekMode}
-            selectedWeek={currentWeek}
-            selectedWeekYear={currentWeekYear}
-            timeseriesOpen={timeseriesOpen}
-            forecastPath={forecastPath}
-            fallbackForecastPath={latestForecastPath}
-          />
-        </Suspense>
+        />
+        {/* </Suspense> */}
 
 
         <ToolDrawer
