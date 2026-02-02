@@ -1,4 +1,6 @@
 import type { H3Resolution } from "../config/dataPaths";
+import type { Period } from "../data/periods";
+import { ForecastPeriodPill } from "./ForecastPeriodPill";
 import { H3ResolutionPill } from "./controls/H3ResolutionPill";
 
 type Resolution = H3Resolution;
@@ -6,7 +8,9 @@ type Resolution = H3Resolution;
 type Props = {
   title: string;
   subtitle: string;
-  forecastPeriodText: string;
+  forecastPeriods: Period[];
+  forecastIndex: number;
+  onForecastIndexChange: (idx: number) => void;
   resolution: Resolution;
   onResolutionChange: (v: Resolution) => void;
   darkMode: boolean;
@@ -18,7 +22,9 @@ type Props = {
 export function AppHeader({
   title,
   subtitle,
-  forecastPeriodText,
+  forecastPeriods,
+  forecastIndex,
+  onForecastIndexChange,
   resolution,
   onResolutionChange,
   darkMode,
@@ -41,10 +47,12 @@ export function AppHeader({
       </div>
 
       <div className="header__right">
-        <div className="periodChip" aria-label={`Forecast Period ${forecastPeriodText}`}>
-          <span className="periodChip__label">Forecast Period:</span>
-          <span className="periodChip__value">{forecastPeriodText}</span>
-        </div>
+        <ForecastPeriodPill
+          periods={forecastPeriods}
+          selectedIndex={forecastIndex}
+          onChangeIndex={onForecastIndexChange}
+          disabled={forecastPeriods.length === 0}
+        />
 
         <H3ResolutionPill
           value={resolution === "H4" ? 4 : resolution === "H5" ? 5 : 6}

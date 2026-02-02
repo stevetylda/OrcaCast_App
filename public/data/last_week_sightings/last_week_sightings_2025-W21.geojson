@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "last_week_sightings_2025-W21",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "DATETIME": "2025-05-12T02:12:03", "LATITUDE": 48.52516, "LONGITUDE": -122.72499, "WEEK": 20, "YEAR": 2025 }, "geometry": { "type": "Point", "coordinates": [ -122.72499, 48.52516 ] } }
+]
+}

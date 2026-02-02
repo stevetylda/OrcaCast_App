@@ -15,21 +15,36 @@ type Props = {
 
 /**
  * Purple → pink palette (older decades darker; recent decades brighter).
- */
+//  */
+// const PALETTE: Record<number, string> = {
+//   1980: "#5B2A86", // deep purple
+//   1990: "#6D28D9", // violet
+//   2000: "#A855F7", // purple-pink
+//   2010: "#EC4899", // hot pink
+//   2020: "#F9A8D4", // soft pink
+// };
 const PALETTE: Record<number, string> = {
-  1980: "#5B2A86", // deep purple
-  1990: "#6D28D9", // violet
-  2000: "#A855F7", // purple-pink
-  2010: "#EC4899", // hot pink
-  2020: "#F9A8D4", // soft pink
+  1980: "#22C55E", // green
+  1990: "#06B6D4", // cyan
+  2000: "#3B82F6", // blue
+  2010: "#A855F7", // violet
+  2020: "#F472B6", // pink
 };
+// const PALETTE: Record<number, string> = {
+//   1980: "#60A5FA", // light blue
+//   1990: "#34D399", // mint
+//   2000: "#FBBF24", // amber
+//   2010: "#F472B6", // pink
+//   2020: "#C4B5FD", // lavender
+// };
+
 
 const MARKER_COLOR = "#F59E0B"; // orange-amber
 
 // Area fill/stroke styling
-const FILL_ALPHA = 0.22;
+const FILL_ALPHA = 0.32;
 const STROKE_ALPHA = 0.6;
-const STROKE_WIDTH = 1.25;
+const STROKE_WIDTH = 2;
 
 type Margin = { top: number; right: number; bottom: number; left: number };
 

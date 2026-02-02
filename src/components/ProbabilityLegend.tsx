@@ -1,4 +1,4 @@
-import type { HeatScale } from "../map/colorScale";
+import { ZERO_COLOR, type HeatScale } from "../map/colorScale";
 
 
 type Props = {
@@ -16,7 +16,7 @@ export function ProbabilityLegend({ scale }: Props) {
       </div>
       <div className="legend__list">
         <div className="legend__row">
-          <span className="legend__swatch legend__swatch--empty" />
+          <span className="legend__swatch" style={{ background: ZERO_COLOR }} />
           <div className="legend__label">{labels[0]}</div>
         </div>
 

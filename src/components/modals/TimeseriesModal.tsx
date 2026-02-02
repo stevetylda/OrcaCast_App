@@ -21,6 +21,7 @@ type Props = {
   darkMode: boolean;
   currentWeek: number;
   forecastPeriodLabel: string;
+  forecastPath?: string;
   resolution: H3Resolution;
   ecotype?: string;
 };
@@ -31,6 +32,7 @@ export function TimeseriesModal({
   darkMode,
   currentWeek,
   forecastPeriodLabel,
+  forecastPath,
   resolution,
   ecotype = "SRKW",
 }: Props) {
@@ -96,7 +98,7 @@ export function TimeseriesModal({
     setForecastWeek(null);
     const loadForecastWeek = async () => {
       try {
-        const path = FORECAST_PATH_LATEST_WEEKLY[resolution];
+        const path = forecastPath ?? FORECAST_PATH_LATEST_WEEKLY[resolution];
         const url = new URL(path, window.location.origin).toString();
         const res = await fetch(url, { cache: "force-cache" });
         if (!res.ok) return;

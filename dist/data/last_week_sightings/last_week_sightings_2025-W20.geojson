@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "last_week_sightings_2025-W20",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "DATETIME": "2025-05-10T01:45:00", "LATITUDE": 47.7853, "LONGITUDE": -122.42672, "WEEK": 19, "YEAR": 2025 }, "geometry": { "type": "Point", "coordinates": [ -122.42672, 47.7853 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2025-05-12T02:12:03", "LATITUDE": 48.52516, "LONGITUDE": -122.72499, "WEEK": 20, "YEAR": 2025 }, "geometry": { "type": "Point", "coordinates": [ -122.72499, 48.52516 ] } }
+]
+}
