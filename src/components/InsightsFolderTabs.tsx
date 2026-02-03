@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
 import { ComingSoonWedge } from "./wedges/ComingSoonWedge";
 import { ContextSignatureRadarWedge } from "./wedges/ContextSignatureRadarWedge";
 import { DayOfWeekHolidaysWedge } from "./wedges/DayOfWeekHolidaysWedge";
@@ -77,7 +77,7 @@ const wedgeDefinitions: WedgeDefinition[] = [
   },
 ];
 
-const wedgePanels: Record<string, JSX.Element> = {
+const wedgePanels: Record<string, ReactElement> = {
   seasonality: <SeasonalityWedge />,
   persistence: <SpatialPersistenceWedge />,
   dow_holidays: <DayOfWeekHolidaysWedge />,
