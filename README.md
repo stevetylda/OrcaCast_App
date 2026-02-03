@@ -51,3 +51,6 @@ Info modal content:
 
 Cool Links: 
 https://www.uinkits.com/components/chart-ui-element
+https://www.framer.com/marketplace/components/aura-night-sky/
+https://www.framer.com/marketplace/components/ff-map/
+https://www.framer.com/marketplace/components/animated-gradient-bg/
