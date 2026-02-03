@@ -2,46 +2,62 @@
   background: #05080f;
   color: var(--panel-text);
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.pageStage--models .page {
+  background: transparent;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.pageStage--models .page__content,
+.pageStage--models .page__content--fullBleed {
+  background: transparent;
 }
 
 .modelsPageRoot {
   position: relative;
-  min-height: 100%;
+  min-height: 100vh;
   overflow: hidden;
 }
 
 .modelsPageBg {
   z-index: 0;
+  position: fixed;
+  inset: 0;
 }
 
 .modelsPageContent {
   position: relative;
   z-index: 2;
-  padding: clamp(24px, 4vw, 48px) 0 clamp(90px, 10vw, 160px);
+  padding: clamp(24px, 4vw, 48px) 0 24px;
 }
 
 .modelsPageContainer {
-  width: min(1280px, calc(100vw - 32px));
-  margin-left: clamp(16px, 5vw, 72px);
-  margin-right: auto;
-  padding-right: clamp(12px, 4vw, 56px);
+  width: min(1360px, calc(100vw - 24px));
+  margin: 0 auto;
+  padding: 0 clamp(8px, 2vw, 28px);
   display: flex;
   flex-direction: column;
-  gap: clamp(18px, 3vw, 32px);
+  gap: clamp(10px, 2.4vw, 22px);
 }
 
 .modelsHeader {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 0 clamp(8px, 2vw, 24px);
 }
 
 .modelsHeader__eyebrow {
   margin: 0;
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: rgba(234, 242, 255, 0.72);
+  letter-spacing: 0.24em;
+  color: rgba(230, 238, 252, 0.78);
+  font-weight: 650;
 }
 
 .modelsHeader h1 {
@@ -52,30 +68,28 @@
 
 .modelsHeader p {
   margin: 0;
-  color: var(--panel-text-muted);
+  color: rgba(200, 210, 228, 0.62);
   max-width: 60ch;
+  font-weight: 500;
 }
 
 .igBg {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: #05080f;
+  background: #050b16;
 }
 
 .igBg::before {
   content: "";
   position: absolute;
-  inset: -25%;
+  inset: 0;
   background:
-    radial-gradient(640px 520px at var(--gx, 50%) var(--gy, 35%), rgba(25, 240, 215, 0.32), transparent 60%),
-    radial-gradient(620px 520px at var(--g2x, 18%) var(--g2y, 75%), rgba(0, 194, 255, 0.28), transparent 62%),
-    radial-gradient(520px 520px at var(--g3x, 78%) var(--g3y, 20%), rgba(148, 120, 255, 0.22), transparent 60%),
-    radial-gradient(520px 520px at 85% 82%, rgba(255, 170, 120, 0.12), transparent 65%);
-  filter: blur(var(--ig-blur, 80px));
-  opacity: var(--ig-opacity, 0.9);
+    radial-gradient(420px 360px at 28% 38%, rgba(0, 194, 255, 0.18), transparent 70%),
+    radial-gradient(480px 420px at 72% 48%, rgba(0, 255, 210, 0.14), transparent 70%);
+  filter: blur(80px);
+  opacity: 0.45;
   transform: translateZ(0);
-  transition: opacity 0.2s ease;
 }
 
 .igBg::after {
@@ -83,9 +97,16 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 30% 0%, rgba(4, 6, 12, 0), rgba(4, 6, 12, 0.55) 70%),
-    radial-gradient(circle at 70% 100%, rgba(3, 5, 9, 0), rgba(3, 5, 9, 0.7) 72%),
-    linear-gradient(180deg, rgba(4, 6, 10, 0.2), rgba(2, 4, 8, 0.8));
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    radial-gradient(circle at 40% 20%, rgba(6, 12, 24, 0.6), transparent 60%),
+    radial-gradient(circle at 70% 90%, rgba(4, 8, 18, 0.6), transparent 65%);
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -99,19 +120,24 @@
 .modelsCarousel {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: clamp(280px, 86vw, 420px);
+  grid-auto-columns: clamp(224px, 68.8vw, 336px);
   gap: clamp(16px, 3vw, 28px);
   overflow-x: auto;
-  padding: 12px 12px 28px;
+  overflow-y: hidden;
+  padding: 12px clamp(8px, 2vw, 24px) 28px;
   scroll-snap-type: x mandatory;
-  scroll-padding-left: 12px;
-  scroll-padding-right: 12px;
+  scroll-padding-left: clamp(8px, 2vw, 24px);
+  scroll-padding-right: clamp(8px, 2vw, 24px);
   -webkit-overflow-scrolling: touch;
+  align-items: stretch;
+  scrollbar-width: none;
+  position: relative;
 }
 
 .modelsCarousel__item {
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  height: 100%;
 }
 
 .modelsCarousel__spacer {
@@ -119,7 +145,7 @@
 }
 
 .modelsCarousel::-webkit-scrollbar {
-  height: 8px;
+  height: 0;
 }
 
 .modelsCarousel::-webkit-scrollbar-track {
@@ -132,18 +158,135 @@
   border-radius: 999px;
 }
 
+.modelsCarousel::-webkit-scrollbar,
+.modelsCarousel::-webkit-scrollbar-thumb,
+.modelsCarousel::-webkit-scrollbar-track {
+  display: none;
+}
+
+
+@media (min-width: 1100px) {
+  .modelsCarousel {
+    grid-auto-columns: calc((100% - clamp(16px, 3vw, 28px) * 2) / 3 * 0.8);
+  }
+}
+
+@media (min-width: 1100px) {
+  .modelsCarousel__spacer {
+    width: clamp(12px, 2vw, 28px);
+  }
+}
+
 .modelCardNeo {
   position: relative;
   border-radius: 22px;
   padding: 4px;
-  background: conic-gradient(
-    from 180deg,
-    rgba(25, 240, 215, 0.5),
-    rgba(0, 194, 255, 0.7),
-    rgba(110, 255, 220, 0.45),
-    rgba(25, 240, 215, 0.5)
+  --card-accent: rgba(120, 210, 255, 0.75);
+  --family-border-gradient: linear-gradient(135deg, rgba(120, 210, 255, 0.55), rgba(120, 210, 255, 0.3));
+  --hero-gradient: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--card-accent) 78%, rgba(8, 12, 24, 0.35)),
+    color-mix(in srgb, var(--card-accent) 52%, rgba(8, 12, 24, 0.45)) 55%,
+    rgba(8, 12, 24, 0.6) 100%
   );
-  box-shadow: 0 0 24px rgba(25, 240, 215, 0.25), 0 20px 60px rgba(0, 0, 0, 0.45);
+  --hero-glow-a: color-mix(in srgb, var(--card-accent) 85%, rgba(0, 255, 255, 0.9));
+  --hero-glow-b: color-mix(in srgb, var(--card-accent) 80%, rgba(200, 120, 255, 0.9));
+  --hero-glow-c: rgba(0, 180, 255, 0.25);
+  background: rgba(6, 10, 20, 0.7);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--card-accent) 18%, transparent),
+    0 12px 30px rgba(0, 0, 0, 0.48);
+  height: 100%;
+  perspective: 1200px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+  overflow: visible;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.modelCardNeo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--family-border-gradient);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.modelCardNeo:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--card-accent) 35%, transparent),
+    0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.modelCardNeo:hover::before {
+  opacity: 0.7;
+}
+
+.modelCardNeo.isDragging {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 0 18px rgba(25, 240, 215, 0.38), 0 22px 60px rgba(0, 0, 0, 0.6);
+  cursor: grabbing;
+}
+
+.modelCardNeo--sparkleGold,
+.modelCardNeo--sparkleSilver,
+.modelCardNeo--sparkleBronze,
+.modelCardNeo--sparkleBlue {
+  --sparkle-core: rgba(255, 255, 255, 0.8);
+  --sparkle-edge: rgba(255, 255, 255, 0.25);
+}
+
+.modelCardNeo--sparkleGold {
+  --sparkle-main: rgba(255, 214, 102, 0.85);
+  --sparkle-glow: rgba(255, 214, 102, 0.55);
+}
+
+.modelCardNeo--sparkleSilver {
+  --sparkle-main: rgba(210, 230, 255, 0.85);
+  --sparkle-glow: rgba(200, 220, 255, 0.5);
+}
+
+.modelCardNeo--sparkleBronze {
+  --sparkle-main: rgba(228, 160, 98, 0.85);
+  --sparkle-glow: rgba(228, 160, 98, 0.55);
+}
+
+.modelCardNeo--sparkleBlue {
+  --sparkle-main: rgba(120, 180, 255, 0.9);
+  --sparkle-glow: rgba(80, 140, 255, 0.6);
+}
+
+.modelCardNeo--sparkleGold::before,
+.modelCardNeo--sparkleSilver::before,
+.modelCardNeo--sparkleBronze::before,
+.modelCardNeo--sparkleBlue::before {
+  content: none;
+}
+
+.modelCardNeo:not(.modelCardNeo--sparkleGold):not(.modelCardNeo--sparkleSilver):not(.modelCardNeo--sparkleBronze) {
+  --sparkle-main: rgba(120, 180, 255, 0.9);
+  --sparkle-glow: rgba(80, 140, 255, 0.6);
+}
+
+.modelCardNeo:not(.modelCardNeo--sparkleGold):not(.modelCardNeo--sparkleSilver):not(.modelCardNeo--sparkleBronze)::before {
+  content: none;
+}
+
+.modelCardNeo--sparkleGold::after,
+.modelCardNeo--sparkleSilver::after,
+.modelCardNeo--sparkleBronze::after,
+.modelCardNeo--sparkleBlue::after {
+  content: none;
 }
 
 .modelCardNeo::after {
@@ -152,58 +295,179 @@
   inset: -8px;
   border-radius: inherit;
   background: radial-gradient(circle at top, rgba(0, 194, 255, 0.22), transparent 60%);
-  filter: blur(18px);
-  opacity: 0.7;
+  filter: none;
+  opacity: 0.4;
   pointer-events: none;
 }
 
 .modelCardNeo.isSelected {
-  box-shadow: 0 0 30px rgba(0, 194, 255, 0.4), 0 24px 70px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--card-accent) 60%, transparent),
+    0 0 60px color-mix(in srgb, var(--card-accent) 35%, transparent),
+    0 22px 60px rgba(0, 0, 0, 0.55);
+}
+
+.modelCardNeo.isSelected::before {
+  opacity: 1;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--card-accent) 70%, transparent));
+}
+
+.modelCardNeo--family-baseline {
+  --card-accent: rgba(120, 160, 255, 0.85);
+  --family-border: rgba(120, 150, 255, 0.78);
+  --family-border-gradient: linear-gradient(135deg, rgba(70, 140, 255, 0.75), rgba(160, 110, 255, 0.75));
+  --hero-gradient: linear-gradient(140deg, rgba(64, 130, 255, 0.78), rgba(140, 90, 255, 0.72) 55%, rgba(8, 12, 24, 0.7) 100%);
+  --hero-glow-a: rgba(80, 160, 255, 0.8);
+  --hero-glow-b: rgba(170, 120, 255, 0.75);
+  --hero-glow-c: rgba(40, 120, 255, 0.35);
+}
+
+.modelCardNeo--family-composite {
+  --card-accent: rgba(80, 230, 220, 0.85);
+  --family-border: rgba(90, 210, 230, 0.78);
+  --family-border-gradient: linear-gradient(135deg, rgba(40, 220, 200, 0.75), rgba(60, 140, 255, 0.75));
+  --hero-gradient: linear-gradient(140deg, rgba(40, 210, 200, 0.78), rgba(50, 130, 255, 0.72) 55%, rgba(8, 12, 24, 0.7) 100%);
+  --hero-glow-a: rgba(40, 220, 210, 0.8);
+  --hero-glow-b: rgba(80, 150, 255, 0.7);
+  --hero-glow-c: rgba(0, 190, 255, 0.32);
+}
+
+.modelCardNeo--family-hybrid {
+  --card-accent: rgba(190, 160, 255, 0.85);
+  --family-border: rgba(190, 160, 255, 0.8);
+  --family-border-gradient: linear-gradient(135deg, rgba(150, 120, 255, 0.75), rgba(210, 150, 255, 0.75));
+  --hero-gradient: linear-gradient(140deg, rgba(140, 110, 255, 0.78), rgba(180, 140, 255, 0.72) 55%, rgba(8, 12, 24, 0.7) 100%);
+  --hero-glow-a: rgba(130, 150, 255, 0.78);
+  --hero-glow-b: rgba(200, 140, 255, 0.75);
+  --hero-glow-c: rgba(120, 120, 255, 0.32);
 }
 
 .modelCardNeo__inner {
   position: relative;
   z-index: 1;
   border-radius: 18px;
-  background: #0b1124;
+  background: rgba(6, 10, 20, 0.7);
   padding: 18px;
   min-height: 420px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
   color: var(--panel-text);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--family-border, rgba(255, 255, 255, 0.2)) 90%, rgba(255, 255, 255, 0.12)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 14px color-mix(in srgb, var(--family-border, rgba(120, 210, 255, 0.55)) 35%, transparent);
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
 }
 
 .modelCardNeo__inner::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 40%);
-  opacity: 0;
+  inset: 1px 1px auto 1px;
+  height: 10px;
+  border-radius: 16px 16px 12px 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
+  pointer-events: none;
+  opacity: 0.7;
   transition: opacity 0.2s ease;
+}
+
+.modelCardNeo__inner::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, transparent, var(--card-accent), transparent) top/100% 6px no-repeat;
+  opacity: 0.6;
   pointer-events: none;
 }
 
+.modelCardNeo__face {
+  backface-visibility: hidden;
+}
+
+.modelCardNeo__face--front {
+  transform: rotateY(0deg);
+}
+
+.modelCardNeo__face--back {
+  position: absolute;
+  inset: 4px;
+  border-radius: 16px;
+  transform: rotateY(180deg);
+  background: rgba(7, 12, 24, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.modelCardNeo.isFlipped .modelCardNeo__face--front {
+  transform: rotateY(-180deg);
+}
+
+.modelCardNeo.isFlipped .modelCardNeo__face--back {
+  transform: rotateY(0deg);
+}
+
+.modelCardNeo__backHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.modelCardNeo__blurb {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(234, 242, 255, 0.82);
+  text-shadow: 0 1px 6px rgba(4, 8, 16, 0.35);
+}
+
+.modelCardNeo__backMeta {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: rgba(234, 242, 255, 0.7);
+}
+
+.modelCardNeo__backHint {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: rgba(234, 242, 255, 0.6);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .modelCardNeo:hover .modelCardNeo__inner::before {
+  opacity: 0.95;
+}
+
+.modelCardNeo.isSelected .modelCardNeo__inner::before {
   opacity: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--card-accent) 40%, transparent));
 }
 
 .modelCardNeo__header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  min-height: 64px;
 }
 
 .modelCardNeo__name {
   font-size: 1.1rem;
   font-weight: 700;
+  text-shadow: 0 1px 8px rgba(4, 8, 16, 0.45);
+  color: rgba(244, 248, 255, 0.98);
 }
 
 .modelCardNeo__family {
   font-size: 0.85rem;
-  color: var(--panel-text-muted);
+  color: rgba(190, 200, 220, 0.6);
+  font-weight: 500;
+  text-shadow: 0 1px 8px rgba(4, 8, 16, 0.35);
 }
 
 .modelCardNeo__tags {
@@ -211,43 +475,127 @@
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
+  min-height: 28px;
 }
 
 .modelCardNeo__tag {
   font-size: 0.7rem;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(234, 242, 255, 0.82);
-  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 55%, rgba(255, 255, 255, 0.14));
+  color: rgba(234, 242, 255, 0.92);
+  background: rgba(8, 12, 24, 0.5);
+  font-weight: 600;
 }
 
 .modelCardNeo__hero {
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid color-mix(in srgb, var(--card-accent) 35%, rgba(255, 255, 255, 0.14));
+  background:
+    radial-gradient(160px 140px at 12% 18%, var(--hero-glow-a), transparent 72%),
+    radial-gradient(220px 160px at 88% 28%, var(--hero-glow-b), transparent 78%),
+    radial-gradient(240px 180px at 50% 120%, var(--hero-glow-c), transparent 70%),
+    var(--hero-gradient);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 18px color-mix(in srgb, var(--card-accent) 40%, transparent),
+    0 0 36px color-mix(in srgb, var(--card-accent) 25%, transparent);
+  position: relative;
+  overflow: hidden;
+  min-height: 108px;
+}
+
+.modelCardNeo__heroLabel,
+.modelCardNeo__heroValue,
+.modelCardNeo__heroHint {
+  color: rgba(248, 252, 255, 0.98);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 12px rgba(6, 10, 20, 0.8);
+}
+
+.modelCardNeo__heroHint {
+  color: rgba(234, 244, 255, 0.95);
+}
+
+.modelCardNeo__hero::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  width: 44%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.modelCardNeo__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.05) 0,
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.25;
+  pointer-events: none;
 }
 
 .modelCardNeo__heroLabel {
   font-size: 0.85rem;
-  color: rgba(234, 242, 255, 0.7);
+  color: rgba(226, 236, 255, 0.88);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 6px rgba(4, 8, 16, 0.35);
+  position: relative;
+}
+
+.modelCardNeo__heroLabel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--card-accent), transparent 70%);
+  opacity: 0.6;
 }
 
 .modelCardNeo__heroValue {
   font-size: clamp(28px, 4vw, 36px);
   font-weight: 800;
   margin-top: 4px;
+  text-shadow: 0 2px 10px rgba(4, 8, 16, 0.5);
+  position: relative;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.modelCardNeo__heroValue::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--card-accent), transparent 70%);
+  opacity: 0.7;
 }
 
 .modelCardNeo__heroHint {
   font-size: 0.8rem;
-  color: rgba(234, 242, 255, 0.65);
+  color: rgba(214, 226, 248, 0.74);
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 6px rgba(4, 8, 16, 0.35);
 }
 
 .modelCardNeo__rows {
   display: grid;
   gap: 8px;
+  min-height: 176px;
 }
 
 .modelCardNeo__row {
@@ -255,10 +603,17 @@
   justify-content: space-between;
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 16, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
   font-size: 0.85rem;
-  color: rgba(234, 242, 255, 0.85);
+  color: rgba(226, 236, 252, 0.9);
+  font-weight: 500;
+  text-shadow: 0 1px 6px rgba(4, 8, 16, 0.35);
+}
+
+.modelCardNeo__row span:last-child {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .modelCardNeo__footer {
@@ -275,27 +630,48 @@
   padding: 8px 12px;
   border-radius: 999px;
   font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 .modelCardNeo__compareBtn.isSelected {
-  background: rgba(0, 194, 255, 0.2);
-  border-color: rgba(0, 194, 255, 0.4);
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.5), rgba(120, 120, 255, 0.55));
+  border-color: rgba(160, 220, 255, 0.85);
+  color: rgba(248, 252, 255, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(120, 200, 255, 0.45),
+    0 0 16px rgba(0, 210, 255, 0.5),
+    0 0 28px rgba(120, 140, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
 }
 
 .modelCardNeo__dragHandle {
-  border: 1px dashed rgba(255, 255, 255, 0.28);
-  background: rgba(8, 12, 24, 0.6);
-  color: rgba(234, 242, 255, 0.9);
-  width: 36px;
-  height: 36px;
+  border: none;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.7);
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   border-radius: 12px;
-  font-size: 18px;
-  cursor: grab;
+  font-size: 20px;
+  line-height: 1;
+  cursor: inherit;
   touch-action: none;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .modelCardNeo__dragHandle:active {
   cursor: grabbing;
+}
+
+.modelCardNeo__dragHandle:hover,
+.modelCardNeo__dragHandle:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.85);
 }
 
 .modelCardNeo__ribbon {
@@ -330,24 +706,73 @@
   position: sticky;
   bottom: 12px;
   z-index: 5;
+  padding: 0 clamp(8px, 2vw, 24px);
 }
 
 .compareTray {
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(10, 16, 32, 0.88);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(25, 240, 215, 0.22);
+  background: rgba(8, 16, 32, 0.78);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 36px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(10px);
+  position: relative;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .compareTray.isDragActive {
-  border-color: rgba(0, 194, 255, 0.4);
-  box-shadow: 0 0 0 1px rgba(0, 194, 255, 0.3), 0 24px 60px rgba(0, 0, 0, 0.55);
+  border-color: rgba(0, 194, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(0, 194, 255, 0.35), 0 24px 70px rgba(0, 0, 0, 0.6);
 }
 
 .compareTray.isDragOver {
   background: rgba(0, 194, 255, 0.12);
+}
+
+.compareTray::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 14px;
+  border: 1px dashed rgba(0, 194, 255, 0.25);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.compareTray--empty::before {
+  border-color: rgba(0, 194, 255, 0.35);
+  opacity: 0.6;
+}
+
+.compareTray--empty::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: radial-gradient(circle at 30% 30%, rgba(0, 194, 255, 0.22), transparent 65%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.compareTray.isDragActive::before {
+  border-color: rgba(0, 194, 255, 0.55);
+  opacity: 0.9;
+  animation: compareDash 1.6s linear infinite;
+}
+
+.compareTray.isDragActive::after {
+  background: radial-gradient(circle at 50% 50%, rgba(0, 194, 255, 0.28), transparent 70%);
+  opacity: 0.95;
+}
+
+@keyframes compareDash {
+  to {
+    stroke-dashoffset: -12;
+  }
 }
 
 .compareTray__header {
@@ -365,7 +790,14 @@
 
 .compareTray__hint {
   font-size: 0.8rem;
-  color: rgba(234, 242, 255, 0.7);
+  color: rgba(198, 210, 230, 0.6);
+  font-weight: 500;
+}
+
+.compareTray__hint.isDragActive {
+  font-size: 0.92rem;
+  color: rgba(234, 252, 255, 0.95);
+  font-weight: 700;
 }
 
 .compareTray__actions {
@@ -376,19 +808,55 @@
 .compareTray__btn {
   border-radius: 999px;
   padding: 8px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 194, 255, 0.18);
-  color: var(--panel-text);
+  border: 1px solid rgba(0, 194, 255, 0.55);
+  background: rgba(0, 194, 255, 0.28);
+  color: rgba(240, 250, 255, 0.98);
   font-weight: 600;
+  box-shadow: 0 0 12px rgba(0, 194, 255, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.compareTray__btn--active {
+  box-shadow: 0 0 18px rgba(0, 194, 255, 0.45), 0 0 32px rgba(0, 194, 255, 0.2);
+}
+
+.compareTray__btn--pulse {
+  animation: comparePulse 1.6s ease-in-out infinite;
 }
 
 .compareTray__btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: none;
 }
 
 .compareTray__btn--ghost {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.compareTray__btn:not(:disabled):hover,
+.compareTray__btn:not(:disabled):focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(0, 194, 255, 0.4);
+  border-color: rgba(0, 194, 255, 0.7);
+}
+
+@keyframes comparePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(0, 194, 255, 0.45), 0 0 28px rgba(0, 194, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(0, 214, 255, 0.7), 0 0 52px rgba(0, 214, 255, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compareTray__btn--pulse {
+    animation: none;
+  }
 }
 
 .compareTray__message {
@@ -410,9 +878,28 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 20, 36, 0.72);
+  border: 1px solid rgba(60, 220, 220, 0.35);
+  box-shadow: 0 0 12px rgba(0, 194, 255, 0.2);
   font-size: 0.78rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.compareTray__pill::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(40, 220, 200, 0.9), rgba(60, 140, 255, 0.9));
+  box-shadow: 0 0 10px rgba(0, 194, 255, 0.6);
+}
+
+.compareTray__pill {
+  padding-left: 14px;
 }
 
 .compareTray__pillRemove {
@@ -428,8 +915,30 @@
   font-size: 0.82rem;
 }
 
-.modelsCompareModal {
-  max-width: min(1100px, 92vw);
+.modal.modelsCompareModal {
+  --compare-card-width: 280px;
+  --compare-rail-width: 36px;
+  --compare-gap: 16px;
+  --compare-pad-x: 12px;
+  width: min(
+    calc(
+      (var(--compare-cols, 3) * var(--compare-card-width)) +
+      ((var(--compare-cols, 3) - 1) * var(--compare-gap)) +
+      var(--compare-rail-width) +
+      var(--compare-gap) +
+      (var(--compare-pad-x) * 2)
+    ),
+    96vw
+  );
+  max-width: 96vw;
+  position: relative;
+  overflow: hidden;
+  padding: 18px var(--compare-pad-x) 20px !important;
+  box-sizing: border-box;
+}
+
+.modelsCompareModal .modal__body {
+  padding-right: 0;
 }
 
 .modelsCompareModal__notice {
@@ -443,8 +952,131 @@
 
 .modelsCompareGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(var(--compare-cols, 3), var(--compare-card-width)) var(--compare-rail-width);
+  gap: var(--compare-gap);
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  justify-content: start;
+}
+
+.modelsCompareAddRail {
+  position: relative;
+  width: var(--compare-rail-width);
+  border-radius: 18px;
+  border: 1px solid rgba(120, 190, 255, 0.35);
+  background: rgba(10, 16, 32, 0.65);
+  color: rgba(234, 242, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  min-height: 100%;
+  align-self: stretch;
+  margin-right: var(--compare-gap);
+  box-shadow: inset 0 0 0 1px rgba(120, 190, 255, 0.12);
+  box-shadow: 0 0 0 rgba(120, 190, 255, 0.2);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.modelsCompareAddRail:hover,
+.modelsCompareAddRail:focus-visible {
+  border-color: rgba(120, 190, 255, 0.45);
+  box-shadow: 0 0 18px rgba(120, 190, 255, 0.35);
+  background: rgba(12, 20, 40, 0.6);
+}
+
+.modelsCompareCard--teal .modelsCompareCard__name {
+  color: rgba(120, 235, 220, 0.95);
+}
+
+.modelsCompareCard--gold .modelsCompareCard__name {
+  color: rgba(245, 220, 140, 0.95);
+}
+
+.modelsCompareCard--purple .modelsCompareCard__name {
+  color: rgba(190, 160, 255, 0.95);
+}
+
+.modelsCompareCard--blue .modelsCompareCard__name {
+  color: rgba(140, 190, 255, 0.95);
+}
+
+.modelsCompareAddRail:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.modelsCompareAddPanel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 260px;
+  border-radius: 16px;
+  border: 1px solid rgba(120, 190, 255, 0.25);
+  background: rgba(8, 12, 24, 0.75);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateX(110%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  z-index: 4;
+}
+
+.modelsCompareAddPanel.isOpen {
+  transform: translateX(0%);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modelsCompareAddPanel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modelsCompareAddPanel__title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.modelsCompareAddPanel__close {
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(234, 242, 255, 0.85);
+  border-radius: 10px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.modelsCompareAddPanel__list {
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.modelsCompareAddPanel__item {
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(234, 242, 255, 0.9);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.modelsCompareAddPanel__empty {
+  font-size: 0.85rem;
+  color: rgba(234, 242, 255, 0.7);
 }
 
 .modelsCompareCard {
@@ -455,6 +1087,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 100%;
 }
 
 .modelsCompareCard__header {
@@ -467,6 +1100,7 @@
 .modelsCompareCard__name {
   font-weight: 700;
   font-size: 1rem;
+  color: rgba(244, 248, 255, 0.98);
 }
 
 .modelsCompareCard__tags {
@@ -481,7 +1115,8 @@
   padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(234, 242, 255, 0.8);
+  color: rgba(226, 236, 252, 0.9);
+  font-weight: 600;
 }
 
 .modelsCompareCard__remove {
@@ -493,19 +1128,29 @@
   font-size: 0.75rem;
 }
 
+.modelsCompareCard__footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+
 .modelsCompareCard__heroLabel {
   font-size: 0.8rem;
-  color: rgba(234, 242, 255, 0.7);
+  color: rgba(214, 224, 244, 0.75);
+  font-weight: 600;
 }
 
 .modelsCompareCard__heroValue {
   font-size: 1.4rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .modelsCompareCard__heroHint {
   font-size: 0.75rem;
-  color: rgba(234, 242, 255, 0.6);
+  color: rgba(196, 208, 228, 0.55);
+  font-weight: 500;
 }
 
 .modelsCompareCard__rows {
@@ -522,6 +1167,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.2);
   font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.modelsCompareCard__row span:last-child {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .modelsCompareCard__row em {
