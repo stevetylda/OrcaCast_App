@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ANALYSIS_ITEMS,
   ANALYSIS_TABS,
@@ -8,9 +8,9 @@ import {
 } from "../analysisRegistry";
 import { AnalysisDetail } from "./AnalysisDetail";
 import { AnalysisRail } from "./AnalysisRail";
-import { AnalysisTabs } from "./AnalysisTabs";
-
-const REPORTED_DISCLAIMER = "Reported sightings ≠ real-time locations.";
+import { FolderTabs } from "./FolderTabs";
+import { LensBadge } from "./LensBadge";
+import { navigateToAnalysis } from "../utils/navigateToAnalysis";
 
 const overviewStories = [
   {
@@ -57,6 +57,7 @@ const getDefaultSelection = (itemsByTab: Record<string, AnalysisItem[]>) => {
 };
 
 export function AnalysisShell() {
+  const detailRef = useRef<HTMLElement>(null);
   const itemsByTab = useMemo(() => {
     return ANALYSIS_ITEMS.reduce<Record<string, AnalysisItem[]>>((acc, item) => {
       if (!acc[item.tab]) {
@@ -71,6 +72,7 @@ export function AnalysisShell() {
   const [activeTab, setActiveTab] = useState<AnalysisTabId>("overview");
   const [selectedByTab, setSelectedByTab] = useState<Record<string, string | null>>(defaultSelection);
   const [railOpen, setRailOpen] = useState(true);
+  const [pulsedItemId, setPulsedItemId] = useState<string | null>(null);
 
   const activeItems = activeTab === "overview" ? [] : itemsByTab[activeTab] ?? [];
   const selectedItemId = activeTab === "overview" ? null : selectedByTab[activeTab] ?? null;
@@ -95,28 +97,39 @@ export function AnalysisShell() {
     }
     setSelectedByTab((prev) => ({ ...prev, [item.tab]: item.id }));
     setRailOpen(false);
+    setPulsedItemId(item.id);
+    setTimeout(() => setPulsedItemId(null), 900);
   };
 
   const handleOverviewLink = (tabId: AnalysisTabId, itemId: string) => {
-    setActiveTab(tabId);
-    setSelectedByTab((prev) => ({ ...prev, [tabId]: itemId }));
-    setRailOpen(false);
+    navigateToAnalysis({
+      tabId,
+      itemId,
+      setActiveTab,
+      setSelectedByTab,
+      setRailOpen,
+      detailRef,
+      onPulse: (pulseId) => {
+        setPulsedItemId(pulseId);
+        setTimeout(() => setPulsedItemId(null), 900);
+      },
+    });
   };
 
   return (
     <div className="analysisShell">
       <header className="analysisHeader">
-        <div>
+        <div className="analysisHeader__copy">
           <h2>Insights & Analysis</h2>
-          <p>
+          <p className="analysisHeader__subtitle">
             Structured diagnostics that summarize reported sighting patterns, proxy signals, and
             relationship checks in one place.
           </p>
         </div>
-        <span className="analysisHeader__disclaimer">{REPORTED_DISCLAIMER}</span>
+        <LensBadge variant="header" />
       </header>
 
-      <AnalysisTabs tabs={ANALYSIS_TABS} activeTabId={activeTab} onSelect={handleTabSelect} />
+      <FolderTabs tabs={ANALYSIS_TABS} activeTabId={activeTab} onSelect={handleTabSelect} />
 
       {activeTab === "overview" ? (
         <section className="analysisOverview">
@@ -140,7 +153,10 @@ export function AnalysisShell() {
                       className="analysisOverviewCard__link"
                       onClick={() => handleOverviewLink(link.tab, link.item)}
                     >
-                      {ANALYSIS_TAB_LABELS[link.tab]} · {link.label}
+                      <span>{ANALYSIS_TAB_LABELS[link.tab]} · {link.label}</span>
+                      <span className="material-symbols-rounded" aria-hidden="true">
+                        arrow_forward
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -150,7 +166,7 @@ export function AnalysisShell() {
           <div className="analysisOverview__note">
             <p>
               How to read this page: these analyses describe reported sightings and related proxy
-              signals, not ground-truth animal locations. {REPORTED_DISCLAIMER}
+              signals, not ground-truth animal locations.
             </p>
           </div>
         </section>
@@ -160,10 +176,15 @@ export function AnalysisShell() {
             items={activeItems}
             selectedId={selectedItemId}
             isOpen={railOpen}
+            pulsedItemId={pulsedItemId}
             onSelect={handleItemSelect}
             onClose={() => setRailOpen(false)}
           />
-          <AnalysisDetail selectedItem={selectedItem} onBackToRail={() => setRailOpen(true)} />
+          <AnalysisDetail
+            selectedItem={selectedItem}
+            onBackToRail={() => setRailOpen(true)}
+            detailRef={detailRef}
+          />
         </section>
       )}
     </div>

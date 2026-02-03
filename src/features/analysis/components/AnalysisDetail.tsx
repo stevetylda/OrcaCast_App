@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { AnalysisItem } from "../analysisRegistry";
 import { getAnalysisDetailContent } from "../analysisContent";
 import { AnalysisDetailTemplate } from "./AnalysisDetailTemplate";
@@ -11,12 +12,13 @@ const EMPTY_COPY = {
 type Props = {
   selectedItem: AnalysisItem | null;
   onBackToRail: () => void;
+  detailRef: RefObject<HTMLElement>;
 };
 
-export function AnalysisDetail({ selectedItem, onBackToRail }: Props) {
+export function AnalysisDetail({ selectedItem, onBackToRail, detailRef }: Props) {
   if (!selectedItem) {
     return (
-      <section className="analysisDetail">
+      <section className="analysisDetail" ref={detailRef}>
         <header className="analysisDetail__mobileHeader">
           <button type="button" className="analysisDetail__back" onClick={onBackToRail}>
             <span className="material-symbols-rounded" aria-hidden="true">
@@ -37,7 +39,7 @@ export function AnalysisDetail({ selectedItem, onBackToRail }: Props) {
 
   if (!content) {
     return (
-      <section className="analysisDetail">
+      <section className="analysisDetail" ref={detailRef}>
         <header className="analysisDetail__mobileHeader">
           <button type="button" className="analysisDetail__back" onClick={onBackToRail}>
             <span className="material-symbols-rounded" aria-hidden="true">
@@ -55,7 +57,7 @@ export function AnalysisDetail({ selectedItem, onBackToRail }: Props) {
   }
 
   return (
-    <section className="analysisDetail">
+    <section className="analysisDetail" ref={detailRef}>
       <header className="analysisDetail__mobileHeader">
         <button type="button" className="analysisDetail__back" onClick={onBackToRail}>
           <span className="material-symbols-rounded" aria-hidden="true">
