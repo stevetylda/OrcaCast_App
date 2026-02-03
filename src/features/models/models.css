@@ -1,19 +1,47 @@
 .pageStage--models {
-  background:
-    radial-gradient(1200px 620px at 60% -10%, rgba(25, 240, 215, 0.12), transparent 60%),
-    radial-gradient(900px 520px at 15% 20%, rgba(0, 194, 255, 0.16), transparent 58%),
-    #0b0f1a;
+  background: #05080f;
   color: var(--panel-text);
   min-height: 100vh;
 }
 
-.modelsPage {
-  width: min(1200px, calc(100vw - 32px));
-  margin: 0 auto;
-  padding: clamp(18px, 3vw, 32px) 0 clamp(80px, 8vw, 140px);
+.modelsPageRoot {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.modelsPageBg {
+  z-index: 0;
+}
+
+.modelsPageContent {
+  position: relative;
+  z-index: 2;
+  padding: clamp(24px, 4vw, 48px) 0 clamp(90px, 10vw, 160px);
+}
+
+.modelsPageContainer {
+  width: min(1280px, calc(100vw - 32px));
+  margin-left: clamp(16px, 5vw, 72px);
+  margin-right: auto;
+  padding-right: clamp(12px, 4vw, 56px);
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 3vw, 28px);
+  gap: clamp(18px, 3vw, 32px);
+}
+
+.modelsHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modelsHeader__eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(234, 242, 255, 0.72);
 }
 
 .modelsHeader h1 {
@@ -26,6 +54,39 @@
   margin: 0;
   color: var(--panel-text-muted);
   max-width: 60ch;
+}
+
+.igBg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #05080f;
+}
+
+.igBg::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(640px 520px at var(--gx, 50%) var(--gy, 35%), rgba(25, 240, 215, 0.32), transparent 60%),
+    radial-gradient(620px 520px at var(--g2x, 18%) var(--g2y, 75%), rgba(0, 194, 255, 0.28), transparent 62%),
+    radial-gradient(520px 520px at var(--g3x, 78%) var(--g3y, 20%), rgba(148, 120, 255, 0.22), transparent 60%),
+    radial-gradient(520px 520px at 85% 82%, rgba(255, 170, 120, 0.12), transparent 65%);
+  filter: blur(var(--ig-blur, 80px));
+  opacity: var(--ig-opacity, 0.9);
+  transform: translateZ(0);
+  transition: opacity 0.2s ease;
+}
+
+.igBg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(4, 6, 12, 0), rgba(4, 6, 12, 0.55) 70%),
+    radial-gradient(circle at 70% 100%, rgba(3, 5, 9, 0), rgba(3, 5, 9, 0.7) 72%),
+    linear-gradient(180deg, rgba(4, 6, 10, 0.2), rgba(2, 4, 8, 0.8));
+  pointer-events: none;
 }
 
 .modelsCarouselShell {
@@ -470,7 +531,18 @@
   font-size: 0.72rem;
 }
 
+@media (max-width: 1100px) {
+  .modelsPageContainer {
+    margin: 0 auto;
+    padding-right: 0;
+  }
+}
+
 @media (max-width: 720px) {
+  .modelsPageContent {
+    padding-top: clamp(20px, 6vw, 32px);
+  }
+
   .modelsCarousel {
     grid-auto-columns: clamp(260px, 88vw, 360px);
   }
