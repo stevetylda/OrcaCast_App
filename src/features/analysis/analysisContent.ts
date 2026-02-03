@@ -9,9 +9,17 @@ export type AnalysisDetailContent = {
   caveats: string[];
   visuals: AnalysisVisualType[];
   footer: string;
+  coverage: string;
+  freshness: string;
+  sources: string;
 };
 
 const DEFAULT_FOOTER = "Data used: reported sightings + proxy layers · Coverage: rolling 90 days · Freshness: weekly";
+const DEFAULT_META = {
+  coverage: "Rolling 90 days",
+  freshness: "Weekly",
+  sources: "Orca Network · Acartia",
+};
 
 export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
   seasonality: {
@@ -25,6 +33,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Seasonality reflects reported observations, not direct animal locations."],
     visuals: ["timeseries", "heatmap"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   hotspots: {
     whatItShows: "Repeatable clusters of high report density and how persistent they are week-to-week.",
@@ -37,6 +46,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Hotspots can reflect observation effort rather than true distribution."],
     visuals: ["map", "timeseries"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   gap_analysis: {
     whatItShows: "Areas and weeks with low reporting coverage relative to historical baselines.",
@@ -49,6 +59,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Gaps may reflect missing effort data rather than absence of sightings."],
     visuals: ["heatmap", "map"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   lag_structure: {
     whatItShows: "How quickly reported sighting intensity decays after peaks and how long signals persist.",
@@ -61,6 +72,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Lag structure does not imply causality; it summarizes correlation over time."],
     visuals: ["lag", "timeseries"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   effort_proxy: {
     whatItShows: "Observer effort proxy surfaces and how they co-vary with reported sightings.",
@@ -73,6 +85,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Effort proxies are partial and may miss informal reporting."],
     visuals: ["map", "heatmap"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   accessibility_bias: {
     whatItShows: "Accessibility weighting and how it shapes reported coverage.",
@@ -85,6 +98,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Accessibility is a proxy; it cannot capture all observer behaviors."],
     visuals: ["map", "timeseries"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   calendar_effects: {
     whatItShows: "Weekly and holiday cycles in reporting intensity.",
@@ -97,6 +111,7 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Calendar effects are specific to reporter behavior, not animal movement."],
     visuals: ["timeseries", "heatmap"],
     footer: DEFAULT_FOOTER,
+    ...DEFAULT_META,
   },
   comovement: {
     whatItShows: "Co-movement between sightings and candidate drivers (correlation, not causation).",
@@ -109,6 +124,9 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Co-movement does not confirm causal drivers."],
     visuals: ["timeseries", "lag"],
     footer: "Data used: reported sightings + proxy layers · Coverage: rolling 90 days · Freshness: weekly · Label: correlation only",
+    coverage: "Rolling 90 days",
+    freshness: "Weekly",
+    sources: "Orca Network · Acartia · NOAA",
   },
   lag_detective: {
     whatItShows: "Lead/lag tests across signals to surface plausible delays.",
@@ -121,6 +139,9 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Lag relationships are sensitive to sampling cadence."],
     visuals: ["lag", "timeseries"],
     footer: "Data used: reported sightings + proxy layers · Coverage: rolling 90 days · Freshness: weekly · Label: correlation only",
+    coverage: "Rolling 90 days",
+    freshness: "Weekly",
+    sources: "Orca Network · Acartia · NOAA",
   },
   confounding_alerts: {
     whatItShows: "Confounding checks that flag overlapping covariates and bias risks.",
@@ -133,6 +154,9 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Alerts indicate correlation overlap, not a definitive confound."],
     visuals: ["heatmap", "timeseries"],
     footer: "Data used: reported sightings + proxy layers · Coverage: rolling 90 days · Freshness: weekly · Label: correlation only",
+    coverage: "Rolling 90 days",
+    freshness: "Weekly",
+    sources: "Orca Network · Acartia · NOAA",
   },
   regional_relationship_map: {
     whatItShows: "Regional variation in co-movement between sightings and drivers.",
@@ -145,6 +169,9 @@ export const ANALYSIS_DETAIL_CONTENT: Record<string, AnalysisDetailContent> = {
     caveats: ["Regional signals depend on reporting density."],
     visuals: ["map", "heatmap"],
     footer: "Data used: reported sightings + proxy layers · Coverage: rolling 90 days · Freshness: weekly · Label: correlation only",
+    coverage: "Rolling 90 days",
+    freshness: "Weekly",
+    sources: "Orca Network · Acartia · NOAA",
   },
 };
 
