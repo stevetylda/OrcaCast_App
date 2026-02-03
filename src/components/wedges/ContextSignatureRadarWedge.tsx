@@ -35,7 +35,7 @@ export function ContextSignatureRadarWedge() {
               />
             ))}
             <polygon className="wedge__radar" points={radarPoints} />
-            {radarValues.map((value, index) => {
+            {radarValues.map((_, index) => {
               const angle = (Math.PI * 2 * index) / radarValues.length - Math.PI / 2;
               const x = 50 + Math.cos(angle) * 45;
               const y = 50 + Math.sin(angle) * 45;
