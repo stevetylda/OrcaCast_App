@@ -75,10 +75,11 @@ export function SideDrawer({ open, onClose }: Props) {
 
   const items: NavItem[] = [
     { label: "Map", path: "/", icon: "map_search" },
-    { label: "About", path: "/about", icon: "info" },
     { label: "Models", path: "/models", icon: "map_search" }, // replace if you pick another
+    { label: "Insights / Analysis", path: "/insights", icon: "insights" },
     // { label: "Performance", path: "/performance", icon: "analytics" },
     { label: "Data", path: "/data", icon: "data_table" },
+    { label: "About", path: "/about", icon: "info" },
   ];
 
   if (!open) return null;
