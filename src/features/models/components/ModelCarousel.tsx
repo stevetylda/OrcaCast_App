@@ -80,7 +80,12 @@ export function ModelCarousel({ models }: Props) {
     setModalOpen(false);
   };
 
-  const handlePointerDown = (id: string) => (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerDown =
+    (id: string) => (event: React.PointerEvent<HTMLElement>) => {
+      const target = event.target as Element | null;
+      if (target && target.closest("button, a, input, textarea, select, [data-no-drag]")) {
+        return;
+      }
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     dragStateRef.current = {
@@ -91,7 +96,7 @@ export function ModelCarousel({ models }: Props) {
     };
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState.id) return;
     const dx = event.clientX - dragState.startX;
@@ -117,11 +122,13 @@ export function ModelCarousel({ models }: Props) {
     }
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState.id) return;
 
     if (dragState.dragging && trayRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
       const rect = trayRef.current.getBoundingClientRect();
       const over =
         event.clientX >= rect.left &&
@@ -139,7 +146,7 @@ export function ModelCarousel({ models }: Props) {
     setIsDragOver(false);
   };
 
-  const handlePointerCancel = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerCancel = (event: React.PointerEvent<HTMLElement>) => {
     event.stopPropagation();
     dragStateRef.current = { id: null, startX: 0, startY: 0, dragging: false };
     setDraggingId(null);
@@ -156,7 +163,8 @@ export function ModelCarousel({ models }: Props) {
               model={model}
               selected={selectedIds.includes(model.id)}
               onToggleCompare={toggleCompare}
-              dragHandleProps={{
+              isDragging={draggingId === model.id}
+              dragProps={{
                 onPointerDown: handlePointerDown(model.id),
                 onPointerMove: handlePointerMove,
                 onPointerUp: handlePointerUp,
@@ -192,7 +200,15 @@ export function ModelCarousel({ models }: Props) {
         />
       </div>
 
-      <CompareModal open={modalOpen} models={selectedModels} onClose={closeCompare} onRemove={removeModel} />
+      <CompareModal
+        open={modalOpen}
+        models={selectedModels}
+        allModels={models}
+        selectedIds={selectedIds}
+        onAdd={addModel}
+        onClose={closeCompare}
+        onRemove={removeModel}
+      />
     </div>
   );
 }

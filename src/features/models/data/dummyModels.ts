@@ -14,6 +14,7 @@ export type ModelInfo = {
   tags: string[];
   hero: { label: string; value: string; hint?: string };
   rows: ModelRow[];
+  blurb: string;
   ribbon?: string;
 };
 
@@ -60,6 +61,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "18 months",
       h3_res: "H5",
     }),
+    blurb:
+      "Neighborhood climatology baseline trained on the last 18 months of seasonal patterns. It blends spatially adjacent cells with a rolling seasonal prior to smooth sparse signals.",
   },
   {
     id: "composite-linear-logit",
@@ -77,7 +80,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "24 months",
       h3_res: "H5",
     }),
-    ribbon: "Best precision",
+    blurb:
+      "Composite logit trained on a 24‑month feature window with calibrated priors for cold‑start regions. Uses linear embeddings plus domain features to stabilize early precision.",
   },
   {
     id: "exp-smoothing",
@@ -95,6 +99,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "12 months",
       h3_res: "H4",
     }),
+    blurb:
+      "Classic exponential smoothing trained on 12 months of weekly signals. Emphasizes stability and trend continuity for short horizons.",
   },
   {
     id: "rolling-mean-w13",
@@ -112,6 +118,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "13 weeks",
       h3_res: "H4",
     }),
+    blurb:
+      "13‑week rolling mean baseline trained on recent windowed averages. Good for short‑term trend smoothing with minimal lag.",
   },
   {
     id: "xgboost-meta-v2",
@@ -129,7 +137,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "36 months",
       h3_res: "H6",
     }),
-    ribbon: "Best NDCG",
+    blurb:
+      "Hybrid stack with XGBoost meta‑learner trained across 36 months. Combines temporal, spatial, and event features for top‑line ranking performance.",
   },
   {
     id: "bayesian-hybrid",
@@ -147,6 +156,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "30 months",
       h3_res: "H5",
     }),
+    blurb:
+      "Bayesian ensemble trained on 30 months of history with uncertainty‑aware blending. Balances lift and recall for stable deployments.",
   },
   {
     id: "spatial-lag-ensemble",
@@ -164,6 +175,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "20 months",
       h3_res: "H6",
     }),
+    blurb:
+      "Ensemble with spatial‑lag features trained across 20 months. Optimized for coverage across adjacent cells and continuity of spatial patterns.",
   },
   {
     id: "kalman-surge",
@@ -181,6 +194,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "9 months",
       h3_res: "H5",
     }),
+    blurb:
+      "Kalman filter variant trained on daily signals for event spikes. Focuses on rapid recovery after surges with minimal lag.",
   },
   {
     id: "graphwave-forecast",
@@ -198,6 +213,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "28 months",
       h3_res: "H6",
     }),
+    blurb:
+      "Graph‑aware hybrid trained on 28 months with spatial network embeddings. Captures adjacency ripple effects for higher lift.",
   },
   {
     id: "seasonal-diffusion",
@@ -215,6 +232,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "15 months",
       h3_res: "H5",
     }),
+    blurb:
+      "Diffusion baseline trained on 15 months of seasonal transitions. Smooths mid‑season volatility while preserving directional shifts.",
   },
   {
     id: "h3-cluster-gmm",
@@ -232,6 +251,8 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "18 months",
       h3_res: "H4",
     }),
+    blurb:
+      "Gaussian mixture model trained on 18 months of clustered H3 behavior. Prioritizes stability across cluster boundaries.",
   },
   {
     id: "meta-ensemble-v4",
@@ -249,6 +270,7 @@ export const DUMMY_MODELS: ModelInfo[] = [
       train_window: "40 months",
       h3_res: "H6",
     }),
-    ribbon: "Best lift",
+    blurb:
+      "Meta ensemble trained across 40 months with diversified base learners. Optimized for consistent precision at top ranks.",
   },
 ];

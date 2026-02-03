@@ -17,11 +17,25 @@ export function DataPage() {
 
   return (
     <PageShell title="Data">
-      <section className="pageSection">
+      <section className="pageSection dataSection">
         <h2>Sources</h2>
-        <div className="pageGrid">
-          <div className="pageCard">
-            <div className="pageCard__title">Basemap</div>
+        <div className="dataSourcesGrid">
+          <div className="pageCard dataCard">
+            <div className="pageCard__title dataCard__title">Basemap</div>
+            <div className="dataMeta">
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">Coverage</span>
+                <span className="dataMeta__value">Varies by provider</span>
+              </div>
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">Update cadence</span>
+                <span className="dataMeta__value">Rolling / provider defined</span>
+              </div>
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">License</span>
+                <span className="dataMeta__value">See attribution links</span>
+              </div>
+            </div>
             <ul className="pageList">
               {basemapSources.map((source) => (
                 <li key={source}>
@@ -42,8 +56,22 @@ export function DataPage() {
             </ul>
           </div>
 
-          <div className="pageCard">
-            <div className="pageCard__title">Sightings</div>
+          <div className="pageCard dataCard">
+            <div className="pageCard__title dataCard__title">Sightings</div>
+            <div className="dataMeta">
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">Coverage</span>
+                <span className="dataMeta__value">Varies by source</span>
+              </div>
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">Update cadence</span>
+                <span className="dataMeta__value">Weekly / monthly (source dependent)</span>
+              </div>
+              <div className="dataMeta__row">
+                <span className="dataMeta__label">License</span>
+                <span className="dataMeta__value">See attribution links</span>
+              </div>
+            </div>
             <ul className="pageList">
               {sightingSources.map((source) => (
                 <li key={source}>
@@ -66,12 +94,34 @@ export function DataPage() {
         </div>
       </section>
 
-      <section className="pageSection">
-        <h2>Coverage + bias notes</h2>
-        <ul>
-          <li>Spatial coverage is denser near popular viewing corridors.</li>
-          <li>Seasonality and reporting effort can skew apparent hotspots.</li>
-          <li>Future work will include effort-normalized baselines.</li>
+      <section className="pageSection dataSection">
+        <h2>Coverage snapshot</h2>
+        <div className="dataStatsRow" role="list">
+          <div className="dataStat" role="listitem">
+            <div className="dataStat__label">Records</div>
+            <div className="dataStat__value">Multi-source</div>
+          </div>
+          <div className="dataStat" role="listitem">
+            <div className="dataStat__label">Date range</div>
+            <div className="dataStat__value">Varies by source</div>
+          </div>
+          <div className="dataStat" role="listitem">
+            <div className="dataStat__label">Regions covered</div>
+            <div className="dataStat__value">Pacific Northwest (WA / BC)</div>
+          </div>
+          <div className="dataStat" role="listitem">
+            <div className="dataStat__label">Species</div>
+            <div className="dataStat__value">SRKW / Bigg's supported</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pageSection dataSection">
+        <h2>Bias notes</h2>
+        <ul className="dataBiasList">
+          <li>Expect higher density near shore and population centers.</li>
+          <li>Reporting effort varies by season and weather.</li>
+          <li>Forecast is about reports, not presence.</li>
         </ul>
       </section>
     </PageShell>

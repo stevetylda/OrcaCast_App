@@ -7,23 +7,55 @@ type Props = {
 };
 
 export function AppFooter({ modelVersion, modelId, onModelChange }: Props) {
+  const modelOptions = [
+    { value: "best", label: "Best" },
+    { value: "composite_linear_logit", label: "Composite Linear Logit" },
+    { value: "spatiotemporal_rf", label: "Spatiotemporal RF" },
+    { value: "neighbor_climatology", label: "Neighbor Climatology" },
+  ];
+
+  const activeModel =
+    modelOptions.find((option) => option.value === modelId) ?? modelOptions[0];
+
+  const handleModelSelect = (value: string, target: HTMLElement) => {
+    onModelChange(value);
+    const details = target.closest("details");
+    if (details) {
+      details.removeAttribute("open");
+    }
+  };
+
   return (
     <div className="footer">
       <div className="footer__left">
-        <select
-          className="select select--footer"
-          value={modelId}
-          onChange={(e) => onModelChange(e.target.value)}
-        >
-          <option value="best">Menu (Model Selection) — Best</option>
-          <option value="composite_linear_logit">Composite: Linear Logit</option>
-          <option value="spatiotemporal_rf">Spatiotemporal RF</option>
-          <option value="neighbor_climatology">Neighbor Climatology</option>
-        </select>
+        <div className="footer__combo" role="group" aria-label="Model controls">
+          <details className="footer__segment footer__segment--dropdown">
+            <summary className="footer__segmentSummary">
+              <span className="footer__segmentLabel">Model</span>
+              <span className="footer__segmentValue">{activeModel.label}</span>
+            </summary>
+            <div className="footer__menu" role="listbox" aria-label="Model">
+              {modelOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={
+                    option.value === modelId
+                      ? "footer__menuButton footer__menuButton--active"
+                      : "footer__menuButton"
+                  }
+                  onClick={(event) => handleModelSelect(option.value, event.currentTarget)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </details>
 
-        <div className="footer__chip">
-          <div className="footer__chipLabel">Model Version:</div>
-          <div className="footer__chipValue">{modelVersion}</div>
+          <div className="footer__segment footer__segment--static">
+            <span className="footer__segmentLabel">Version</span>
+            <span className="footer__segmentValue">{modelVersion}</span>
+          </div>
         </div>
       </div>
 

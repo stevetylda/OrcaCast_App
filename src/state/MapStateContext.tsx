@@ -31,7 +31,7 @@ const getSystemPrefersDark = () => {
 };
 
 export function MapStateProvider({ children }: { children: ReactNode }) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [resolution, setResolution] = useState<H3Resolution>("H4");
   const [modelId, setModelId] = useState("best");
   const [forecastIndex, setForecastIndex] = useState(-1);

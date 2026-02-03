@@ -1027,7 +1027,12 @@ import type { H3Resolution } from "../config/dataPaths";
 import { getKdeBandsPathForPeriod } from "../config/dataPaths";
 import { attachProbabilities, loadForecast, loadGrid } from "../data/forecastIO";
 import { buildKdeBandsCacheKey, loadKdeBandsGeojson } from "../data/kdeBandsIO";
-import { addGridOverlay, setGridVisibility, setHotspotVisibility } from "../map/gridOverlay";
+import {
+  addGridOverlay,
+  setGridBaseVisibility,
+  setGridVisibility,
+  setHotspotVisibility,
+} from "../map/gridOverlay";
 import {
   buildAutoColorExprFromValues,
   buildFillExprFromScale,
@@ -1094,6 +1099,7 @@ export function ForecastMap({
   const overlayRef = useRef<FeatureCollection | null>(null);
   const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
+  const shimmerThresholdRef = useRef<number | undefined>(undefined);
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
   const [legendOpen, setLegendOpen] = useState(true);
   const [hotspotsOnly, setHotspotsOnly] = useState(false);
@@ -1214,7 +1220,7 @@ export function ForecastMap({
 
     const map = new maplibregl.Map(mapOptions);
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 
     map.on("error", (e: { error?: unknown }) => {
       // eslint-disable-next-line no-console
@@ -1334,13 +1340,54 @@ export function ForecastMap({
       fillExprRef.current = fillExpr;
     }
 
-    addGridOverlay(map, overlayRef.current, fillExpr, threshold, hotspots);
+    addGridOverlay(map, overlayRef.current, fillExpr, threshold, hotspots, shimmerThresholdRef.current);
 
-    const showGrid = !showKdeContoursRef.current;
-    setGridVisibility(map, showGrid);
-    setHotspotVisibility(map, showGrid && hotspots);
+    if (showKdeContoursRef.current) {
+      setGridVisibility(map, false);
+    } else if (hotspots) {
+      setGridBaseVisibility(map, false);
+      setHotspotVisibility(map, true);
+    } else {
+      setGridVisibility(map, true);
+      setHotspotVisibility(map, false);
+    }
     moveLastWeekToTop(map);
   };
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    let rafId = 0;
+    let lastTick = 0;
+    const shimmerId = "grid-shimmer-fill";
+    const peakId = "grid-peak-shine";
+
+    const tick = (time: number) => {
+      if (time - lastTick > 120) {
+        lastTick = time;
+        const t = time / 1000;
+        const shimmerOpacity = 0.16 + 0.06 * Math.sin(t * 0.6);
+        const glowOpacity = 0.5 + 0.12 * Math.sin(t * 0.5 + 0.8);
+        const hideGrid = showKdeContoursRef.current || hotspotsOnlyRef.current;
+        if (map.getLayer(shimmerId)) {
+          map.setPaintProperty(shimmerId, "fill-opacity", hideGrid ? 0 : shimmerOpacity);
+          map.setPaintProperty(
+            shimmerId,
+            "fill-color",
+            `rgba(140,255,245,${0.28 + 0.08 * Math.sin(t * 0.35)})`
+          );
+        }
+        if (map.getLayer(peakId)) {
+          map.setPaintProperty(peakId, "line-opacity", hideGrid ? 0 : glowOpacity);
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [mapReady, resolution, forecastPath]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1522,9 +1569,16 @@ export function ForecastMap({
         const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE);
         const valueList = Object.values(values)
           .map((v) => Number(v))
-          .filter((v) => Number.isFinite(v));
+          .filter((v) => Number.isFinite(v) && v > 0)
+          .sort((a, b) => a - b);
 
         hotspotThresholdRef.current = valueList.length > 0 ? Math.max(...valueList) : undefined;
+        if (valueList.length > 0) {
+          const idx = Math.max(0, Math.floor(valueList.length * 0.95) - 1);
+          shimmerThresholdRef.current = valueList[idx];
+        } else {
+          shimmerThresholdRef.current = undefined;
+        }
         overlayRef.current = joined;
         fillExprRef.current = fillColorExpr as unknown as FillColorSpec;
 
@@ -1804,9 +1858,15 @@ export function ForecastMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    const showGrid = !showKdeContours;
-    setGridVisibility(map, showGrid);
-    setHotspotVisibility(map, showGrid && hotspotsOnly);
+    if (showKdeContours) {
+      setGridVisibility(map, false);
+    } else if (hotspotsOnly) {
+      setGridBaseVisibility(map, false);
+      setHotspotVisibility(map, true);
+    } else {
+      setGridVisibility(map, true);
+      setHotspotVisibility(map, false);
+    }
   }, [showKdeContours, hotspotsOnly, mapReady]);
 
   useEffect(() => {

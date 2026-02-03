@@ -52,11 +52,15 @@ export function PageShell({
         </div>
 
         <div className="pageHeader__right">
-          <Link className="backToMap" to="/" aria-label="Back to map">
-            <span className="material-symbols-rounded" aria-hidden="true">
-              arrow_back
+          <Link className="backToMap" to="/" aria-label="Back to map" title="Back to map">
+            <span className="backToMap__icon">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                map
+              </span>
+              <span className="material-symbols-rounded" aria-hidden="true">
+                subdirectory_arrow_left
+              </span>
             </span>
-            Back to map
           </Link>
         </div>
       </header>

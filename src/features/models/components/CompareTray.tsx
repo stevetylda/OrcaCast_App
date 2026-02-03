@@ -24,17 +24,20 @@ export function CompareTray({
   const count = selectedIds.length;
   const compareDisabled = count < 2;
 
+  const trayClassName = `compareTray ${count === 0 ? "compareTray--empty" : ""} ${
+    isDragActive ? "isDragActive" : ""
+  } ${isDragOver ? "isDragOver" : ""}`.trim();
+  const hintText = isDragActive ? "Drop to add to Compare" : "Drag models here or tap + Compare.";
+
   return (
     <section
-      className={`compareTray ${isDragActive ? "isDragActive" : ""} ${
-        isDragOver ? "isDragOver" : ""
-      }`}
+      className={trayClassName}
       aria-label="Compare tray"
     >
       <div className="compareTray__header">
         <div>
           <div className="compareTray__title">Compare ({count})</div>
-          <div className="compareTray__hint">Drag models here or tap + Compare.</div>
+          <div className={`compareTray__hint ${isDragActive ? "isDragActive" : ""}`}>{hintText}</div>
         </div>
         <div className="compareTray__actions">
           <button
@@ -47,7 +50,9 @@ export function CompareTray({
           </button>
           <button
             type="button"
-            className="compareTray__btn"
+            className={`compareTray__btn ${compareDisabled ? "" : "compareTray__btn--active"} ${
+              count >= 2 ? "compareTray__btn--pulse" : ""
+            }`}
             onClick={onOpenCompare}
             disabled={compareDisabled}
           >

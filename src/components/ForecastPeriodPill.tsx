@@ -88,10 +88,10 @@ export function ForecastPeriodPill({
     return () => window.clearTimeout(id);
   }, [isPlaying, playDir, periods.length, speed, onChangeIndex, selectedIndex]);
 
-  const currentLabel = useMemo(
-    () => periods[selectedIndex]?.label ?? "Forecast Period",
-    [periods, selectedIndex]
-  );
+  const currentLabel = useMemo(() => periods[selectedIndex]?.label ?? "Forecast", [
+    periods,
+    selectedIndex,
+  ]);
 
   const commitIndex = (idx: number) => {
     if (idx === selectedRef.current) return;
@@ -159,7 +159,7 @@ export function ForecastPeriodPill({
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span className="periodPill__label">Forecast Period</span>
+        <span className="periodPill__label">Forecast</span>
         <span className="periodPill__value">{currentLabel}</span>
         <span className="material-symbols-rounded periodPill__playIcon" aria-hidden="true">
           play_arrow
