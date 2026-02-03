@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { SideDrawer } from "./components/SideDrawer";
 import { AboutPage } from "./pages/AboutPage";
 import { DataPage } from "./pages/DataPage";
+import { InsightsPage } from "./pages/InsightsPage";
 import { MapPage } from "./pages/MapPage";
 import { ModelsPage } from "./pages/ModelsPage";
 // import { PerformancePage } from "./pages/PerformancePage";
@@ -20,6 +21,7 @@ function AppFrame() {
         <Route path="/" element={<MapPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/models" element={<ModelsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
         {/* <Route path="/performance" element={<PerformancePage />} /> */}
         <Route path="/data" element={<DataPage />} />
         <Route path="/settings" element={<SettingsPage />} />
