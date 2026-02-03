@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { AnalysisDetailContent } from "../analysisContent";
-
-const REPORTED_DISCLAIMER = "Reported sightings ≠ real-time locations.";
+import { DetailFooterStrip } from "./DetailFooterStrip";
 
 type Props = {
   title: string;
@@ -17,7 +16,6 @@ export function AnalysisDetailTemplate({ title, content, visualSlot }: Props) {
           <p className="analysisDetailTemplate__eyebrow">Analysis detail</p>
           <h3>{title}</h3>
         </div>
-        <span className="analysisDetailTemplate__disclaimer">{REPORTED_DISCLAIMER}</span>
       </header>
 
       <div className="analysisDetailTemplate__body">
@@ -55,7 +53,12 @@ export function AnalysisDetailTemplate({ title, content, visualSlot }: Props) {
       </div>
 
       <footer className="analysisDetailTemplate__footer">
-        <span>{content.footer}</span>
+        <DetailFooterStrip
+          coverage={content.coverage}
+          freshness={content.freshness}
+          sources={content.sources}
+        />
+        <span className="analysisDetailTemplate__footerNote">{content.footer}</span>
       </footer>
     </div>
   );

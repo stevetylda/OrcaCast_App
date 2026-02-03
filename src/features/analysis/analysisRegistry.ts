@@ -13,7 +13,8 @@ export type AnalysisItem = {
   tab: Exclude<AnalysisTabId, "overview">;
   title: string;
   subtitle?: string;
-  lensTag?: "signal" | "bias" | "proxy" | "health";
+  lensTag?: "signal" | "bias" | "proxy" | "relationship";
+  coverage?: "high" | "medium" | "low";
   status?: AnalysisItemStatus;
 };
 
@@ -63,6 +64,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Seasonality",
     subtitle: "Week-of-year structure and expected baselines",
     lensTag: "signal",
+    coverage: "high",
     status: "ready",
   },
   {
@@ -71,6 +73,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Hotspot Persistence",
     subtitle: "Where repeated reports cluster week-to-week",
     lensTag: "signal",
+    coverage: "high",
     status: "ready",
   },
   {
@@ -79,6 +82,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Coverage Gaps",
     subtitle: "Where reports are sparse or missing",
     lensTag: "bias",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -87,6 +91,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Lag Structure",
     subtitle: "How reported signals persist or decay",
     lensTag: "signal",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -95,6 +100,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Regime Shifts",
     subtitle: "Multi-year shifts in reporting dynamics",
     lensTag: "signal",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -103,6 +109,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Effort Proxy",
     subtitle: "Observer intensity, vessel density, and effort",
     lensTag: "bias",
+    coverage: "high",
     status: "ready",
   },
   {
@@ -111,6 +118,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Accessibility Bias",
     subtitle: "Ease-of-access weighting across coastline",
     lensTag: "bias",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -119,6 +127,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Calendar Effects",
     subtitle: "Weekend/holiday timing and reporting cycles",
     lensTag: "bias",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -127,6 +136,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Source Bias",
     subtitle: "Differences across reporter types",
     lensTag: "bias",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -135,6 +145,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "SST Anomalies",
     subtitle: "Sea-surface temperature departures",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -143,6 +154,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Upwelling Winds",
     subtitle: "Wind stress proxy for productivity",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -151,6 +163,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Salinity & Discharge",
     subtitle: "Freshwater discharge and plume signals",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -159,6 +172,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Marine Heatwave",
     subtitle: "Persistent thermal anomalies",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -167,6 +181,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Chinook Timing",
     subtitle: "Run timing vs reported sightings",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -175,6 +190,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Fishery Proxy",
     subtitle: "Fleet signals as prey access indicator",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -183,6 +199,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Seabird Proxy",
     subtitle: "Surface feeding as prey indicator",
     lensTag: "proxy",
+    coverage: "low",
     status: "coming_soon",
   },
   {
@@ -191,6 +208,7 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     title: "Co-movement Explorer",
     subtitle: "Shared rise/fall timing across signals",
     lensTag: "signal",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -198,7 +216,8 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     tab: "relationships",
     title: "Lag Detective",
     subtitle: "Lead/lag diagnostics across drivers",
-    lensTag: "signal",
+    lensTag: "relationship",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -206,7 +225,8 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     tab: "relationships",
     title: "Confounding Alerts",
     subtitle: "Correlation checks and bias flags",
-    lensTag: "health",
+    lensTag: "relationship",
+    coverage: "medium",
     status: "ready",
   },
   {
@@ -214,7 +234,8 @@ export const ANALYSIS_ITEMS: AnalysisItem[] = [
     tab: "relationships",
     title: "Regional Relationship Map",
     subtitle: "Spatially varying co-movement",
-    lensTag: "signal",
+    lensTag: "relationship",
+    coverage: "medium",
     status: "ready",
   },
 ];
