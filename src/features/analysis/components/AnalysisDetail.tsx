@@ -12,7 +12,7 @@ const EMPTY_COPY = {
 type Props = {
   selectedItem: AnalysisItem | null;
   onBackToRail: () => void;
-  detailRef: RefObject<HTMLElement>;
+  detailRef: RefObject<HTMLElement | null>;
 };
 
 export function AnalysisDetail({ selectedItem, onBackToRail, detailRef }: Props) {

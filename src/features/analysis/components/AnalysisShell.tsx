@@ -57,7 +57,7 @@ const getDefaultSelection = (itemsByTab: Record<string, AnalysisItem[]>) => {
 };
 
 export function AnalysisShell() {
-  const detailRef = useRef<HTMLElement>(null);
+  const detailRef = useRef<HTMLElement | null>(null);
   const itemsByTab = useMemo(() => {
     return ANALYSIS_ITEMS.reduce<Record<string, AnalysisItem[]>>((acc, item) => {
       if (!acc[item.tab]) {
