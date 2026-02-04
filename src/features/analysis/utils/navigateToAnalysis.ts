@@ -10,7 +10,7 @@ type NavigateArgs = {
   setActiveTab: (tabId: AnalysisTabId) => void;
   setSelectedByTab: Dispatch<SetStateAction<Record<string, string | null>>>;
   setRailOpen: (isOpen: boolean) => void;
-  detailRef: RefObject<HTMLElement>;
+  detailRef: RefObject<HTMLElement | null>;
   onPulse?: (itemId: string) => void;
 };
 
