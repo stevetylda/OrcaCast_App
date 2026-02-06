@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { AppHeader } from "../components/AppHeader";
 import { AppFooter } from "../components/AppFooter";
 import { ToolDrawer } from "../components/ToolDrawer";
+import { WelcomeModal } from "../components/WelcomeModal";
 
 import { ForecastMap } from "../components/ForecastMap";
 // import { InfoModal } from "../components/InfoModal";
@@ -30,6 +31,7 @@ import { loadPeriods } from "../data/periods";
 import type { Period } from "../data/periods";
 import { useMenu } from "../state/MenuContext";
 import { useMapState } from "../state/MapStateContext";
+import { startMapTour } from "../tour/startMapTour";
 
 type LastWeekMode = "none" | "previous" | "selected" | "both";
 type NonNoneLastWeekMode = Exclude<LastWeekMode, "none">;
@@ -54,10 +56,20 @@ export function MapPage() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [timeseriesOpen, setTimeseriesOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [poiOpen, setPoiOpen] = useState(false);
   const [periods, setPeriods] = useState<Period[]>([]);
 
   const modelVersion = useMemo(() => "vPhase2", []);
   const showLastWeek = lastWeekMode !== "none";
+
+  useEffect(() => {
+    const seen = localStorage.getItem("orcacast.welcome.seen");
+    if (!seen) {
+      setWelcomeOpen(true);
+      localStorage.setItem("orcacast.welcome.seen", "true");
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -140,6 +152,7 @@ export function MapPage() {
           resolution={resolution}
           showLastWeek={showLastWeek}
           lastWeekMode={lastWeekMode}
+          showPoi={poiOpen}
           selectedWeek={currentWeek}
           selectedWeekYear={currentWeekYear}
           timeseriesOpen={timeseriesOpen}
@@ -170,7 +183,7 @@ export function MapPage() {
           showLastWeek={showLastWeek}
           onToggleHistoric={() => alert("Historic presence toggle")}
           onOpenTimeseries={() => setTimeseriesOpen(true)}
-          onToggleParks={() => alert("Parks/POI toggle")}
+          onToggleParks={() => setPoiOpen((v) => !v)}
           onTogglePod={() => alert("Pod selector toggle")}
         />
 
@@ -180,7 +193,25 @@ export function MapPage() {
       </main>
 
       <Suspense fallback={<div className="modalLoading">Loading…</div>}>
-        {infoOpen && <InfoModal open={infoOpen} onClose={() => setInfoOpen(false)} />}
+        {welcomeOpen && (
+          <WelcomeModal
+            open={welcomeOpen}
+            onClose={() => setWelcomeOpen(false)}
+            onStartTour={() => startMapTour()}
+            onLearnMore={() => {
+              setWelcomeOpen(false);
+              setInfoOpen(true);
+            }}
+          />
+        )}
+
+        {infoOpen && (
+          <InfoModal
+            open={infoOpen}
+            onClose={() => setInfoOpen(false)}
+            onStartTour={() => startMapTour()}
+          />
+        )}
 
         {timeseriesOpen && (
           <TimeseriesModal

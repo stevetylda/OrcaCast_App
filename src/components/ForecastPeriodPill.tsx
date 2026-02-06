@@ -8,6 +8,7 @@ type Props = {
   selectedIndex: number;
   onChangeIndex: (idx: number) => void;
   disabled?: boolean;
+  tourId?: string;
 };
 
 const SPEED_OPTIONS: Array<{ label: string; value: Speed }> = [
@@ -27,6 +28,7 @@ export function ForecastPeriodPill({
   selectedIndex,
   onChangeIndex,
   disabled = false,
+  tourId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -150,6 +152,7 @@ export function ForecastPeriodPill({
     <div
       ref={containerRef}
       className={`periodPill${open ? " periodPill--open" : ""}${disabled ? " periodPill--disabled" : ""}`}
+      data-tour={tourId}
     >
       <button
         type="button"

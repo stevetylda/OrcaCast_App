@@ -15,13 +15,21 @@ function ToolButton({
   icon,
   label,
   onClick,
+  tourId,
 }: {
   icon: string;
   label: string;
   onClick: () => void;
+  tourId?: string;
 }) {
   return (
-    <button className="toolBtn" onClick={onClick} title={label} aria-label={label}>
+    <button
+      className="toolBtn"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      data-tour={tourId}
+    >
       <span className="material-symbols-rounded">{icon}</span>
     </button>
   );
@@ -62,7 +70,7 @@ export function MapToolbar({
   }, [lastWeekOpen]);
 
   return (
-    <div className={className ? `toolbar ${className}` : "toolbar"}>
+    <div className={className ? `toolbar ${className}` : "toolbar"} data-tour="toolbar">
       <div
         ref={lastWeekRef}
         className={`toolMenu${lastWeekOpen ? " toolMenu--open" : ""}`}
@@ -80,6 +88,7 @@ export function MapToolbar({
           onClick={() => setLastWeekOpen((v) => !v)}
           title="Add last week sightings"
           aria-label="Add last week sightings"
+          data-tour="history"
         >
           <span className="material-symbols-rounded">history</span>
         </button>
@@ -115,10 +124,30 @@ export function MapToolbar({
           </div>
         )}
       </div>
-      <ToolButton icon="timeline" label="Open timeseries" onClick={onOpenTimeseries} />
-      <ToolButton icon="pin_drop" label="Add parks + viewpoints" onClick={onToggleParks} />
-      <ToolButton icon="group" label="Pod selection (SRKW/Transient/Both)" onClick={onTogglePod} />
-      <ToolButton icon="manage_search" label="Historic presence in period" onClick={onToggleHistoric} />
+      <ToolButton
+        icon="timeline"
+        label="Open timeseries"
+        onClick={onOpenTimeseries}
+        tourId="timeseries"
+      />
+      <ToolButton
+        icon="pin_drop"
+        label="Add parks + viewpoints"
+        onClick={onToggleParks}
+        tourId="poi"
+      />
+      <ToolButton
+        icon="group"
+        label="Pod selection (SRKW/Transient/Both)"
+        onClick={onTogglePod}
+        tourId="pods"
+      />
+      <ToolButton
+        icon="manage_search"
+        label="Historic presence in period"
+        onClick={onToggleHistoric}
+        tourId="historic"
+      />
     </div>
   );
 }

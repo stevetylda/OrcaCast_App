@@ -29,7 +29,10 @@ export function AppFooter({ modelVersion, modelId, onModelChange }: Props) {
     <div className="footer">
       <div className="footer__left">
         <div className="footer__combo" role="group" aria-label="Model controls">
-          <details className="footer__segment footer__segment--dropdown">
+          <details
+            className="footer__segment footer__segment--dropdown"
+            data-tour="model-selector"
+          >
             <summary className="footer__segmentSummary">
               <span className="footer__segmentLabel">Model</span>
               <span className="footer__segmentValue">{activeModel.label}</span>

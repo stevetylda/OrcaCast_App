@@ -33,9 +33,14 @@ export function AppHeader({
   onOpenMenu,
 }: Props) {
   return (
-    <header className="header">
+    <header className="header" data-tour="top-bar">
       <div className="header__left">
-        <button className="iconBtn iconBtn--menu" onClick={onOpenMenu} aria-label="Menu">
+        <button
+          className="iconBtn iconBtn--menu"
+          onClick={onOpenMenu}
+          aria-label="Menu"
+          data-tour="menu"
+        >
           <span className="material-symbols-rounded">menu</span>
         </button>
 
@@ -52,6 +57,7 @@ export function AppHeader({
           selectedIndex={forecastIndex}
           onChangeIndex={onForecastIndexChange}
           disabled={forecastPeriods.length === 0}
+          tourId="forecast-period"
         />
 
         <H3ResolutionPill
@@ -59,6 +65,7 @@ export function AppHeader({
           onChange={(next) =>
             onResolutionChange(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
           }
+          tourId="resolution"
         />
 
         <button
@@ -66,13 +73,19 @@ export function AppHeader({
           onClick={onToggleDarkMode}
           aria-label="Toggle dark mode"
           title="Dark/Light Mode"
+          data-tour="theme-toggle"
         >
           <span className="material-symbols-rounded">
             {darkMode ? "light_mode" : "dark_mode"}
           </span>
         </button>
 
-        <button className="iconBtn" onClick={onOpenInfo} aria-label="Info">
+        <button
+          className="iconBtn"
+          onClick={onOpenInfo}
+          aria-label="Info"
+          data-tour="info"
+        >
           <span className="material-symbols-rounded">info</span>
         </button>
       </div>
