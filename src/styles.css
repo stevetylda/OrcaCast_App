@@ -62,20 +62,24 @@ body {
 }
 
 .poiMarker {
-  width: 34px;
-  height: 34px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   border: 1px solid rgba(25, 240, 215, 0.5);
   background: rgba(6, 16, 40, 0.9);
   color: #ffffff;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
 .poiMarker .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 13px;
+  line-height: 1;
+  display: block;
+  transform: translateY(0.5px);
 }
 
 .poiPopup {
@@ -1002,7 +1006,9 @@ body {
 }
 
 .toolMenu__option--active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(25, 240, 215, 0.18);
+  border-color: rgba(25, 240, 215, 0.6);
+  color: rgba(0, 255, 240, 0.95);
 }
 
 .toolMenu__option--prev {

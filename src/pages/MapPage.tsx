@@ -57,7 +57,11 @@ export function MapPage() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [timeseriesOpen, setTimeseriesOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
-  const [poiOpen, setPoiOpen] = useState(false);
+  const [poiFilters, setPoiFilters] = useState({
+    Park: true,
+    Marina: true,
+    Ferry: true,
+  });
   const [periods, setPeriods] = useState<Period[]>([]);
 
   const modelVersion = useMemo(() => "vPhase2", []);
@@ -152,7 +156,7 @@ export function MapPage() {
           resolution={resolution}
           showLastWeek={showLastWeek}
           lastWeekMode={lastWeekMode}
-          showPoi={poiOpen}
+          poiFilters={poiFilters}
           selectedWeek={currentWeek}
           selectedWeekYear={currentWeekYear}
           timeseriesOpen={timeseriesOpen}
@@ -183,7 +187,16 @@ export function MapPage() {
           showLastWeek={showLastWeek}
           onToggleHistoric={() => alert("Historic presence toggle")}
           onOpenTimeseries={() => setTimeseriesOpen(true)}
-          onToggleParks={() => setPoiOpen((v) => !v)}
+          poiFilters={poiFilters}
+          onTogglePoiAll={() =>
+            setPoiFilters((prev) => {
+              const allOn = prev.Park && prev.Marina && prev.Ferry;
+              return { Park: !allOn, Marina: !allOn, Ferry: !allOn };
+            })
+          }
+          onTogglePoiType={(type) =>
+            setPoiFilters((prev) => ({ ...prev, [type]: !prev[type] }))
+          }
           onTogglePod={() => alert("Pod selector toggle")}
         />
 

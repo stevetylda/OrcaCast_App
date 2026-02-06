@@ -1052,7 +1052,7 @@ type Props = {
   resolution: H3Resolution;
   showLastWeek: boolean;
   lastWeekMode: LastWeekMode;
-  showPoi: boolean;
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   selectedWeek: number;
   selectedWeekYear: number;
   timeseriesOpen: boolean;
@@ -1088,7 +1088,7 @@ export function ForecastMap({
   resolution,
   showLastWeek,
   lastWeekMode,
-  showPoi,
+  poiFilters,
   selectedWeek,
   selectedWeekYear,
   timeseriesOpen,
@@ -1166,6 +1166,7 @@ export function ForecastMap({
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
+    const showPoi = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
     if (!showPoi) {
       poiMarkersRef.current.forEach((marker) => marker.remove());
       poiMarkersRef.current = [];
@@ -1198,7 +1199,12 @@ export function ForecastMap({
           Ferry: "directions_boat",
         };
 
-        const markers = items.map((poi) => {
+        const markers = items
+          .filter((poi) => {
+            const key = poi.type as keyof typeof poiFilters;
+            return poiFilters[key] ?? false;
+          })
+          .map((poi) => {
           const el = document.createElement("button");
           el.type = "button";
           el.className = "poiMarker";
@@ -1228,7 +1234,7 @@ export function ForecastMap({
     return () => {
       cancelled = true;
     };
-  }, [showPoi, mapReady]);
+  }, [poiFilters, mapReady]);
 
   useEffect(() => {
     hotspotsOnlyRef.current = hotspotsOnly;

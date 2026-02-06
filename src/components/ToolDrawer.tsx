@@ -9,7 +9,9 @@ type Props = {
   showLastWeek: boolean;
   onToggleHistoric: () => void;
   onOpenTimeseries: () => void;
-  onToggleParks: () => void;
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
+  onTogglePoiAll: () => void;
+  onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
   onTogglePod: () => void;
 };
 
@@ -22,7 +24,9 @@ export function ToolDrawer({
   showLastWeek,
   onToggleHistoric,
   onOpenTimeseries,
-  onToggleParks,
+  poiFilters,
+  onTogglePoiAll,
+  onTogglePoiType,
   onTogglePod,
 }: Props) {
   return (
@@ -47,7 +51,9 @@ export function ToolDrawer({
               showLastWeek={showLastWeek}
               onToggleHistoric={onToggleHistoric}
               onOpenTimeseries={onOpenTimeseries}
-              onToggleParks={onToggleParks}
+              poiFilters={poiFilters}
+              onTogglePoiAll={onTogglePoiAll}
+              onTogglePoiType={onTogglePoiType}
               onTogglePod={onTogglePod}
             />
           </div>
