@@ -6,7 +6,9 @@ type Props = {
   showLastWeek: boolean;
   onToggleHistoric: () => void;
   onOpenTimeseries: () => void;
-  onToggleParks: () => void;
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
+  onTogglePoiAll: () => void;
+  onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
   onTogglePod: () => void;
   className?: string;
 };
@@ -41,14 +43,19 @@ export function MapToolbar({
   showLastWeek,
   onToggleHistoric,
   onOpenTimeseries,
-  onToggleParks,
+  poiFilters,
+  onTogglePoiAll,
+  onTogglePoiType,
   onTogglePod,
   className,
 }: Props) {
   const lastWeekRef = useRef<HTMLDivElement | null>(null);
+  const poiRef = useRef<HTMLDivElement | null>(null);
   const [lastWeekOpen, setLastWeekOpen] = useState(false);
+  const [poiOpen, setPoiOpen] = useState(false);
   const hasPrevious = lastWeekMode === "previous" || lastWeekMode === "both";
   const hasSelected = lastWeekMode === "selected" || lastWeekMode === "both";
+  const poiActive = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
 
   useEffect(() => {
     if (!lastWeekOpen) return;
@@ -68,6 +75,25 @@ export function MapToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [lastWeekOpen]);
+
+  useEffect(() => {
+    if (!poiOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!poiRef.current) return;
+      if (poiRef.current.contains(event.target as Node)) return;
+      setPoiOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setPoiOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [poiOpen]);
 
   return (
     <div className={className ? `toolbar ${className}` : "toolbar"} data-tour="toolbar">
@@ -130,12 +156,48 @@ export function MapToolbar({
         onClick={onOpenTimeseries}
         tourId="timeseries"
       />
-      <ToolButton
-        icon="pin_drop"
-        label="Add parks + viewpoints"
-        onClick={onToggleParks}
-        tourId="poi"
-      />
+      <div ref={poiRef} className={`toolMenu${poiOpen ? " toolMenu--open" : ""}`}>
+        <button
+          className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}
+          onClick={() => {
+            onTogglePoiAll();
+            setPoiOpen(true);
+          }}
+          title="POI filters"
+          aria-label="POI filters"
+          data-tour="poi"
+        >
+          <span className="material-symbols-rounded">pin_drop</span>
+        </button>
+        {poiOpen && (
+          <div className="toolMenu__popover" role="menu" aria-label="Points of interest">
+            <button
+              className={`toolMenu__option${poiFilters.Park ? " toolMenu__option--active" : ""}`}
+              onClick={() => onTogglePoiType("Park")}
+              title="Parks"
+              aria-label="Parks"
+            >
+              <span className="material-symbols-rounded">park</span>
+            </button>
+            <button
+              className={`toolMenu__option${poiFilters.Marina ? " toolMenu__option--active" : ""}`}
+              onClick={() => onTogglePoiType("Marina")}
+              title="Marinas"
+              aria-label="Marinas"
+            >
+              <span className="material-symbols-rounded">sailing</span>
+            </button>
+            <button
+              className={`toolMenu__option${poiFilters.Ferry ? " toolMenu__option--active" : ""}`}
+              onClick={() => onTogglePoiType("Ferry")}
+              title="Ferries"
+              aria-label="Ferries"
+            >
+              <span className="material-symbols-rounded">directions_boat</span>
+            </button>
+          </div>
+        )}
+      </div>
       <ToolButton
         icon="group"
         label="Pod selection (SRKW/Transient/Both)"
