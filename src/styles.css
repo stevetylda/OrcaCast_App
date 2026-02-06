@@ -67,7 +67,7 @@ body {
   border-radius: 999px;
   border: 1px solid rgba(25, 240, 215, 0.5);
   background: rgba(6, 16, 40, 0.9);
-  color: rgba(0, 255, 240, 0.9);
+  color: #ffffff;
   display: grid;
   place-items: center;
   cursor: pointer;
