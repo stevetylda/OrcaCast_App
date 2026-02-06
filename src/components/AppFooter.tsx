@@ -3,19 +3,15 @@ import { AttributionHover } from "./AttributionHover";
 type Props = {
   modelVersion: string;
   modelId: string;
+  modelOptions: Array<{ value: string; label: string }>;
   onModelChange: (v: string) => void;
 };
 
-export function AppFooter({ modelVersion, modelId, onModelChange }: Props) {
-  const modelOptions = [
-    { value: "best", label: "Best" },
-    { value: "composite_linear_logit", label: "Composite Linear Logit" },
-    { value: "spatiotemporal_rf", label: "Spatiotemporal RF" },
-    { value: "neighbor_climatology", label: "Neighbor Climatology" },
-  ];
-
+export function AppFooter({ modelVersion, modelId, modelOptions, onModelChange }: Props) {
   const activeModel =
     modelOptions.find((option) => option.value === modelId) ?? modelOptions[0];
+  const hasOptions = modelOptions.length > 0;
+  const activeLabel = activeModel?.label ?? "Model";
 
   const handleModelSelect = (value: string, target: HTMLElement) => {
     onModelChange(value);
@@ -35,24 +31,26 @@ export function AppFooter({ modelVersion, modelId, onModelChange }: Props) {
           >
             <summary className="footer__segmentSummary">
               <span className="footer__segmentLabel">Model</span>
-              <span className="footer__segmentValue">{activeModel.label}</span>
+              <span className="footer__segmentValue">{activeLabel}</span>
             </summary>
-            <div className="footer__menu" role="listbox" aria-label="Model">
-              {modelOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={
-                    option.value === modelId
-                      ? "footer__menuButton footer__menuButton--active"
-                      : "footer__menuButton"
-                  }
-                  onClick={(event) => handleModelSelect(option.value, event.currentTarget)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            {hasOptions && (
+              <div className="footer__menu" role="listbox" aria-label="Model">
+                {modelOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={
+                      option.value === modelId
+                        ? "footer__menuButton footer__menuButton--active"
+                        : "footer__menuButton"
+                    }
+                    onClick={(event) => handleModelSelect(option.value, event.currentTarget)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </details>
 
           <div className="footer__segment footer__segment--static">

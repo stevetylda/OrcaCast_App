@@ -68,17 +68,64 @@ export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollect
   return data;
 }
 
+type ForecastPayloadRaw = {
+  target_start?: string;
+  target_end?: string;
+  values?: Record<string, number>;
+  model?: string;
+  models?: Array<{ id?: string; model?: string; values: Record<string, number> }>;
+  valuesByModel?: Record<string, Record<string, number>>;
+};
+
+function resolveModelValues(raw: ForecastPayloadRaw, modelId?: string) {
+  if (raw.models && raw.models.length > 0) {
+    if (modelId) {
+      const match = raw.models.find((entry) => entry.id === modelId || entry.model === modelId);
+      if (match) return match.values;
+    }
+    return raw.models[0].values;
+  }
+  if (raw.valuesByModel) {
+    if (modelId && raw.valuesByModel[modelId]) return raw.valuesByModel[modelId];
+    const firstKey = Object.keys(raw.valuesByModel)[0];
+    if (firstKey) return raw.valuesByModel[firstKey];
+  }
+  return raw.values ?? {};
+}
+
 export async function loadForecast(
   resolution: H3Resolution,
-  opts: { kind?: "latest" | "explicit"; explicitPath?: string } = {}
+  opts: { kind?: "latest" | "explicit"; explicitPath?: string; modelId?: string } = {}
 ): Promise<ForecastPayload> {
   const url = getForecastPath(resolution, opts);
-  const cacheKey = `${resolution}|${url}`;
+  const cacheKey = `${resolution}|${url}|${opts.modelId ?? ""}`;
   const cached = forecastCache.get(cacheKey);
   if (cached) return cached;
-  const data = await fetchJson<ForecastPayload>(url);
+  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  const values = resolveModelValues(raw, opts.modelId);
+  const data: ForecastPayload = {
+    target_start: raw.target_start,
+    target_end: raw.target_end,
+    values,
+  };
   forecastCache.set(cacheKey, data);
   return data;
+}
+
+export async function loadForecastModelIds(
+  resolution: H3Resolution,
+  opts: { kind?: "latest" | "explicit"; explicitPath?: string } = {}
+): Promise<string[]> {
+  const url = getForecastPath(resolution, opts);
+  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  if (raw.models && raw.models.length > 0) {
+    return raw.models
+      .map((entry) => entry.id ?? entry.model)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+  if (raw.valuesByModel) return Object.keys(raw.valuesByModel);
+  if (raw.model) return [raw.model];
+  return [];
 }
 
 export function attachProbabilities(
