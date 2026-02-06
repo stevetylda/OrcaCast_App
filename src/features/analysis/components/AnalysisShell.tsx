@@ -2,51 +2,23 @@ import { useMemo, useRef, useState } from "react";
 import {
   ANALYSIS_ITEMS,
   ANALYSIS_TABS,
-  ANALYSIS_TAB_LABELS,
   type AnalysisItem,
   type AnalysisTabId,
 } from "../analysisRegistry";
 import { AnalysisDetail } from "./AnalysisDetail";
 import { AnalysisRail } from "./AnalysisRail";
-import { FolderTabs } from "./FolderTabs";
 import { LensBadge } from "./LensBadge";
 import { navigateToAnalysis } from "../utils/navigateToAnalysis";
-
-const overviewStories = [
-  {
-    title: "What changed vs last week?",
-    body: "Sightings concentrated more tightly around the central corridor, while fringe reports faded.",
-    links: [
-      { tab: "sightings" as const, item: "hotspots", label: "See hotspot persistence" },
-      { tab: "sightings" as const, item: "lag_structure", label: "Check lag structure" },
-    ],
-  },
-  {
-    title: "Most confident areas",
-    body: "Core nearshore zones show consistent reporting and lower variance week-to-week.",
-    links: [
-      { tab: "sightings" as const, item: "seasonality", label: "Seasonality baseline" },
-      { tab: "sightings" as const, item: "gap_analysis", label: "Coverage gaps" },
-    ],
-  },
-  {
-    title: "Most uncertain areas",
-    body: "Offshore areas remain under-sampled with sparse effort data. Confidence is limited.",
-    links: [
-      { tab: "humans" as const, item: "effort_proxy", label: "Effort proxy" },
-      { tab: "humans" as const, item: "accessibility_bias", label: "Accessibility bias" },
-    ],
-  },
-  {
-    title: "Top plausible drivers",
-    body: "Calendar effects and observation effort are the dominant near-term drivers this week.",
-    links: [
-      { tab: "humans" as const, item: "calendar_effects", label: "Calendar effects" },
-      { tab: "humans" as const, item: "effort_proxy", label: "Effort proxy" },
-      { tab: "relationships" as const, item: "lag_detective", label: "Lag detective" },
-    ],
-  },
-];
+import {
+  getInsightsStoryModel,
+  TIME_WINDOW_LABELS,
+  type StoryAction,
+  type TimeWindow,
+} from "../../../mock/insightsStoryMock";
+import { Sparkline } from "../../../components/insights/Sparkline";
+import { InfoTip } from "../../../components/insights/InfoTip";
+import { FolderTabs } from "../../../components/insights/FolderTabs";
+import { ActionPill } from "../../../components/insights/ActionPill";
 
 const getDefaultSelection = (itemsByTab: Record<string, AnalysisItem[]>) => {
   return Object.keys(itemsByTab).reduce<Record<string, string | null>>((acc, tabId) => {
@@ -73,10 +45,34 @@ export function AnalysisShell() {
   const [selectedByTab, setSelectedByTab] = useState<Record<string, string | null>>(defaultSelection);
   const [railOpen, setRailOpen] = useState(true);
   const [pulsedItemId, setPulsedItemId] = useState<string | null>(null);
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("week");
+
+  const storyModel = useMemo(() => getInsightsStoryModel(timeWindow), [timeWindow]);
 
   const activeItems = activeTab === "overview" ? [] : itemsByTab[activeTab] ?? [];
   const selectedItemId = activeTab === "overview" ? null : selectedByTab[activeTab] ?? null;
   const selectedItem = activeItems.find((item) => item.id === selectedItemId) ?? null;
+  const getActionCategory = (tabId: AnalysisTabId) => {
+    switch (tabId) {
+      case "sightings":
+        return "Sightings";
+      case "humans":
+        return "Humans";
+      case "environment":
+        return "Environment";
+      case "prey":
+        return "Prey";
+      case "relationships":
+        return "Relationships";
+      default:
+        return "Overview";
+    }
+  };
+  const splitActions = (actions: StoryAction[]) => {
+    const primary = actions.find((action) => action.kind === "primary") ?? actions[0];
+    const secondary = actions.filter((action) => action !== primary);
+    return { primary, secondary };
+  };
 
   const handleTabSelect = (tabId: AnalysisTabId) => {
     setActiveTab(tabId);
@@ -118,75 +114,220 @@ export function AnalysisShell() {
 
   return (
     <div className="analysisShell">
-      <header className="analysisHeader">
-        <div className="analysisHeader__copy">
-          <h2>Insights & Analysis</h2>
-          <p className="analysisHeader__subtitle">
-            Structured diagnostics that summarize reported sighting patterns, proxy signals, and
-            relationship checks in one place.
-          </p>
-        </div>
-        <LensBadge variant="header" />
-      </header>
+      <div className="analysisPanel">
+        <FolderTabs tabs={ANALYSIS_TABS} activeTabId={activeTab} onSelect={handleTabSelect} />
 
-      <FolderTabs tabs={ANALYSIS_TABS} activeTabId={activeTab} onSelect={handleTabSelect} />
-
-      {activeTab === "overview" ? (
-        <section className="analysisOverview">
-          <div className="analysisOverview__intro">
-            <h3>This Week&apos;s Story</h3>
-            <p>
-              A high-level synthesis of what changed, where we&apos;re confident, and what deserves
-              deeper investigation.
-            </p>
-          </div>
-          <div className="analysisOverview__cards">
-            {overviewStories.map((story) => (
-              <article key={story.title} className="analysisOverviewCard">
-                <h4>{story.title}</h4>
-                <p>{story.body}</p>
-                <div className="analysisOverviewCard__links">
-                  {story.links.map((link) => (
-                    <button
-                      key={link.label}
-                      type="button"
-                      className="analysisOverviewCard__link"
-                      onClick={() => handleOverviewLink(link.tab, link.item)}
-                    >
-                      <span>{ANALYSIS_TAB_LABELS[link.tab]} · {link.label}</span>
-                      <span className="material-symbols-rounded" aria-hidden="true">
-                        arrow_forward
-                      </span>
-                    </button>
-                  ))}
+        {activeTab === "overview" ? (
+          <section
+            className="analysisOverview"
+            id="analysis-panel-overview"
+            role="tabpanel"
+            aria-labelledby="analysis-tab-overview"
+          >
+            <header className="analysisControls">
+              <div className="analysisControls__left">
+                <h3>Weekly briefing</h3>
+                <p>Quick synthesis of shifts, confidence signals, and plausible drivers.</p>
+              </div>
+              <div className="analysisControls__right">
+                <LensBadge variant="header" label={storyModel.lensLabel} />
+                <div className="analysisControls__meta">
+                  <div className="analysisControls__time">
+                    {(["week", "4w", "12w"] as TimeWindow[]).map((window) => (
+                      <button
+                        key={window}
+                        type="button"
+                        className={
+                          window === timeWindow
+                            ? "analysisControls__timeBtn analysisControls__timeBtn--active"
+                            : "analysisControls__timeBtn"
+                        }
+                        onClick={() => setTimeWindow(window)}
+                        aria-pressed={window === timeWindow}
+                      >
+                        {TIME_WINDOW_LABELS[window]}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="analysisControls__updated">Updated: {storyModel.lastUpdated}</span>
                 </div>
-              </article>
-            ))}
-          </div>
-          <div className="analysisOverview__note">
-            <p>
-              How to read this page: these analyses describe reported sightings and related proxy
-              signals, not ground-truth animal locations.
-            </p>
-          </div>
-        </section>
-      ) : (
-        <section className="analysisLayout">
-          <AnalysisRail
-            items={activeItems}
-            selectedId={selectedItemId}
-            isOpen={railOpen}
-            pulsedItemId={pulsedItemId}
-            onSelect={handleItemSelect}
-            onClose={() => setRailOpen(false)}
-          />
-          <AnalysisDetail
-            selectedItem={selectedItem}
-            onBackToRail={() => setRailOpen(true)}
-            detailRef={detailRef}
-          />
-        </section>
-      )}
+              </div>
+            </header>
+            <div className="analysisOverview__grid">
+              <div className="analysisOverview__cards">
+                {storyModel.storyCards.map((story) => {
+                  const { primary, secondary } = splitActions(story.actions);
+                  return (
+                    <article key={story.id} className="analysisOverviewCard">
+                      <div className="analysisOverviewCard__header">
+                        <h4>{story.title}</h4>
+                        {story.infoTip ? (
+                          <InfoTip
+                            label={`${story.title} details`}
+                            title={story.title}
+                            body={story.infoTip}
+                          />
+                        ) : null}
+                      </div>
+                      <p>{story.body}</p>
+                      {story.metricHint ? (
+                        <div className="analysisOverviewCard__meta">{story.metricHint}</div>
+                      ) : null}
+                      {primary ? (
+                        <button
+                          key={primary.label}
+                          type="button"
+                          className="analysisOverviewCard__link analysisOverviewCard__link--primary"
+                          onClick={() => handleOverviewLink(primary.to.tab, primary.to.item)}
+                          title={primary.label}
+                        >
+                          <ActionPill
+                            category={getActionCategory(primary.to.tab)}
+                            label={primary.label}
+                          />
+                          <span className="material-symbols-rounded" aria-hidden="true">
+                            arrow_forward
+                          </span>
+                        </button>
+                      ) : null}
+                      {secondary.length > 0 ? (
+                        <div className="analysisOverviewCard__secondary">
+                          {secondary.map((link) => (
+                            <button
+                              key={link.label}
+                              type="button"
+                              className="analysisOverviewCard__textLink"
+                              onClick={() => handleOverviewLink(link.to.tab, link.to.item)}
+                              title={link.label}
+                            >
+                              <span className="analysisOverviewCard__textTag">
+                                {getActionCategory(link.to.tab)}
+                              </span>
+                              <span className="analysisOverviewCard__textLabel">{link.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="analysisOverview__hero">
+                <div className="analysisHero">
+                  <div className="analysisHero__header">
+                    <div>
+                      <p className="analysisHero__eyebrow">Diagnostics</p>
+                      <div className="analysisHero__titleRow">
+                        <h4>Weekly activity signal</h4>
+                        <InfoTip
+                          label="Weekly activity signal details"
+                          title="Weekly activity signal"
+                          body="Summary of movement in reported activity for the selected window. It reflects reporting patterns, not verified presence."
+                        />
+                      </div>
+                    </div>
+                    <span className="analysisHero__badge">
+                      {storyModel.heroMetrics[0]?.value ?? "0%"}
+                    </span>
+                  </div>
+                  <div className="analysisHero__metrics">
+                    {storyModel.heroMetrics.map((metric) => (
+                      <div key={metric.label} className="analysisHeroMetric">
+                        <span className="analysisHeroMetric__label">{metric.label}</span>
+                        <span className="analysisHeroMetric__value">{metric.value}</span>
+                        {metric.delta ? (
+                          <span className="analysisHeroMetric__delta">{metric.delta}</span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="analysisHero__visual">
+                    <div className="analysisHero__spark">
+                      <div className="analysisHero__tileHeader">
+                        <span>Trend signal</span>
+                        <InfoTip
+                          label="Trend signal details"
+                          title="Trend signal"
+                          body="A compact view of recent activity movement (relative change), not absolute counts."
+                        />
+                      </div>
+                      <Sparkline
+                        data={storyModel.sightingsSeries}
+                        height={56}
+                        strokeWidth={2.5}
+                        ariaLabel="Sightings trend sparkline"
+                      />
+                      <div className="analysisHero__sparkMeta">
+                        <span>+8% vs prior window</span>
+                      </div>
+                    </div>
+                    <div className="analysisHero__secondary">
+                      <div className="analysisHero__tileHeader">
+                        <span>Coverage vs sightings</span>
+                        <InfoTip
+                          label="Coverage vs sightings details"
+                          title="Coverage vs sightings"
+                          body="Checks whether reporting coverage changes could explain sighting shifts."
+                        />
+                      </div>
+                      <Sparkline
+                        data={storyModel.coverageSeries ?? storyModel.sightingsSeries}
+                        height={48}
+                        strokeWidth={2}
+                        ariaLabel="Coverage trend sparkline"
+                      />
+                      <span className="analysisHero__secondaryHint">Proxy coverage stability</span>
+                    </div>
+                  </div>
+                  <div className="analysisHero__map">
+                    <div className="analysisHero__tileHeader">
+                      <span>Hotspot mini-map</span>
+                      <InfoTip
+                        label="Hotspot mini-map details"
+                        title="Hotspot mini-map"
+                        body="Thumbnail preview of hotspot persistence proxies. Open Sightings and Hotspots for full diagnostics."
+                      />
+                    </div>
+                    <div className="analysisMap">
+                      <div className="analysisMap__glow" />
+                      <div className="analysisMap__route" />
+                      <div className="analysisMap__dot" />
+                      <div className="analysisMap__dot analysisMap__dot--secondary" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="analysisOverview__note">
+              <p>
+                These analyses describe reported sightings and proxy signals, not confirmed animal
+                locations.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <section
+            className="analysisLayout"
+            id={`analysis-panel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`analysis-tab-${activeTab}`}
+          >
+            <AnalysisRail
+              items={activeItems}
+              selectedId={selectedItemId}
+              isOpen={railOpen}
+              pulsedItemId={pulsedItemId}
+              onSelect={handleItemSelect}
+              onClose={() => setRailOpen(false)}
+            />
+            <AnalysisDetail
+              selectedItem={selectedItem}
+              onBackToRail={() => setRailOpen(true)}
+              detailRef={detailRef}
+            />
+          </section>
+        )}
+      </div>
     </div>
   );
 }

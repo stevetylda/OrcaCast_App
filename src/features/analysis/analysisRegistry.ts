@@ -27,7 +27,7 @@ export type AnalysisTab = {
 export const ANALYSIS_TABS: AnalysisTab[] = [
   {
     id: "overview",
-    label: "Overview",
+    label: "At a Glance",
     description: "Synthesis landing and weekly signals",
   },
   {
