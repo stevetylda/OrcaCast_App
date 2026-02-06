@@ -1,5 +1,4 @@
 import { useEffect, useId } from "react";
-import { attribution } from "../config/attribution";
 
 type Props = {
   open: boolean;
@@ -9,7 +8,6 @@ type Props = {
 
 export function InfoModal({ open, onClose, onStartTour }: Props) {
   const titleId = useId();
-  const sourcesCount = attribution.sources?.length ?? 0;
 
   // Escape closes modal (tiny UX win)
   useEffect(() => {
