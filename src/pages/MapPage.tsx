@@ -28,6 +28,7 @@ import {
   forecastPeriodToIsoWeekYear,
 } from "../core/time/forecastPeriodToIsoWeek";
 import { loadPeriods } from "../data/periods";
+import { loadForecastModelIds } from "../data/forecastIO";
 import type { Period } from "../data/periods";
 import { useMenu } from "../state/MenuContext";
 import { useMapState } from "../state/MapStateContext";
@@ -58,10 +59,11 @@ export function MapPage() {
   const [timeseriesOpen, setTimeseriesOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [poiFilters, setPoiFilters] = useState({
-    Park: true,
-    Marina: true,
-    Ferry: true,
+    Park: false,
+    Marina: false,
+    Ferry: false,
   });
+  const [modelOptions, setModelOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [periods, setPeriods] = useState<Period[]>([]);
 
   const modelVersion = useMemo(() => "vPhase2", []);
@@ -123,6 +125,53 @@ export function MapPage() {
     return getForecastPathForPeriod(resolution, latest.fileId);
   }, [periods, resolution]);
 
+  useEffect(() => {
+    let active = true;
+
+    const toLabel = (value: string) =>
+      value
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+
+    const loadModels = async () => {
+      try {
+        let ids: string[] = [];
+        if (forecastPath) {
+          ids = await loadForecastModelIds(resolution, {
+            kind: "explicit",
+            explicitPath: forecastPath,
+          });
+        }
+        if (ids.length === 0 && latestForecastPath) {
+          ids = await loadForecastModelIds(resolution, {
+            kind: "explicit",
+            explicitPath: latestForecastPath,
+          });
+        }
+        if (!active) return;
+        const unique = Array.from(new Set(ids));
+        const options = unique.map((id) => ({ value: id, label: toLabel(id) }));
+        setModelOptions(options);
+
+        if (options.length > 0) {
+          const hasCurrent = options.some((opt) => opt.value === modelId);
+          if (!hasCurrent) {
+            const best = options.find((opt) => opt.value === appConfig.bestModelId);
+            setModelId(best?.value ?? options[0].value);
+          }
+        }
+      } catch {
+        if (!active) return;
+        setModelOptions([]);
+      }
+    };
+
+    loadModels();
+    return () => {
+      active = false;
+    };
+  }, [forecastPath, latestForecastPath, resolution, modelId, setModelId]);
+
   const currentWeek = useMemo(
     () => selectedForecast?.stat_week ?? forecastPeriodToIsoWeek(appConfig.forecastPeriod),
     [selectedForecast]
@@ -157,6 +206,7 @@ export function MapPage() {
           showLastWeek={showLastWeek}
           lastWeekMode={lastWeekMode}
           poiFilters={poiFilters}
+          modelId={modelId}
           selectedWeek={currentWeek}
           selectedWeekYear={currentWeekYear}
           timeseriesOpen={timeseriesOpen}
@@ -201,7 +251,12 @@ export function MapPage() {
         />
 
         <div className="app__footer">
-          <AppFooter modelVersion={modelVersion} modelId={modelId} onModelChange={setModelId} />
+          <AppFooter
+            modelVersion={modelVersion}
+            modelId={modelId}
+            modelOptions={modelOptions}
+            onModelChange={setModelId}
+          />
         </div>
       </main>
 

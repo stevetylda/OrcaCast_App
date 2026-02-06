@@ -8,6 +8,7 @@ export const appConfig: {
   kdeBandsFolder: string;
   kdeBandsAreaMinKm2: number;
   kdeBandsHoleMinKm2: number;
+  bestModelId: string;
 } = {
   forecastPeriod: {
     mode: "range",
@@ -18,6 +19,7 @@ export const appConfig: {
   kdeBandsFolder: "forecasts/latest/weekly_blurred",
   kdeBandsAreaMinKm2: 2.0,
   kdeBandsHoleMinKm2: 1.0,
+  bestModelId: "best",
 };
 
 export function formatForecastPeriod(period: ForecastPeriodConfig): string {

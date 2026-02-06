@@ -1053,6 +1053,7 @@ type Props = {
   showLastWeek: boolean;
   lastWeekMode: LastWeekMode;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
+  modelId: string;
   selectedWeek: number;
   selectedWeekYear: number;
   timeseriesOpen: boolean;
@@ -1089,6 +1090,7 @@ export function ForecastMap({
   showLastWeek,
   lastWeekMode,
   poiFilters,
+  modelId,
   selectedWeek,
   selectedWeekYear,
   timeseriesOpen,
@@ -1631,18 +1633,30 @@ export function ForecastMap({
           let forecast;
           if (forecastPath) {
             try {
-              forecast = await loadForecast(resolution, { kind: "explicit", explicitPath: forecastPath });
+              forecast = await loadForecast(resolution, {
+                kind: "explicit",
+                explicitPath: forecastPath,
+                modelId,
+              });
             } catch (err) {
               if (fallbackForecastPath && fallbackForecastPath !== forecastPath) {
                 // eslint-disable-next-line no-console
                 console.warn("[Forecast] explicit path failed, falling back to latest period", err);
-                forecast = await loadForecast(resolution, { kind: "explicit", explicitPath: fallbackForecastPath });
+                forecast = await loadForecast(resolution, {
+                  kind: "explicit",
+                  explicitPath: fallbackForecastPath,
+                  modelId,
+                });
               } else {
                 throw err;
               }
             }
           } else if (fallbackForecastPath) {
-            forecast = await loadForecast(resolution, { kind: "explicit", explicitPath: fallbackForecastPath });
+            forecast = await loadForecast(resolution, {
+              kind: "explicit",
+              explicitPath: fallbackForecastPath,
+              modelId,
+            });
           }
           values = forecast?.values ?? {};
         } catch (err) {
@@ -1700,7 +1714,7 @@ export function ForecastMap({
     return () => {
       cancelled = true;
     };
-  }, [resolution, mapReady, forecastPath]);
+  }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId]);
 
   useEffect(() => {
     const map = mapRef.current;

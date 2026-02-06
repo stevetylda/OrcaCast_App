@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { H3Resolution } from "../config/dataPaths";
+import { appConfig } from "../config/appConfig";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -33,7 +34,7 @@ const getSystemPrefersDark = () => {
 export function MapStateProvider({ children }: { children: ReactNode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [resolution, setResolution] = useState<H3Resolution>("H4");
-  const [modelId, setModelId] = useState("best");
+  const [modelId, setModelId] = useState(appConfig.bestModelId);
   const [forecastIndex, setForecastIndex] = useState(-1);
   const [lastWeekMode, setLastWeekMode] = useState<
     "none" | "previous" | "selected" | "both"
