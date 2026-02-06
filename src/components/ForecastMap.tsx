@@ -1052,6 +1052,7 @@ type Props = {
   resolution: H3Resolution;
   showLastWeek: boolean;
   lastWeekMode: LastWeekMode;
+  showPoi: boolean;
   selectedWeek: number;
   selectedWeekYear: number;
   timeseriesOpen: boolean;
@@ -1087,6 +1088,7 @@ export function ForecastMap({
   resolution,
   showLastWeek,
   lastWeekMode,
+  showPoi,
   selectedWeek,
   selectedWeekYear,
   timeseriesOpen,
@@ -1109,6 +1111,17 @@ export function ForecastMap({
   const [mapReady, setMapReady] = useState(false);
 
   const legendSpecRef = useRef<HeatScale | null>(null);
+  const poiMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const poiLoadedRef = useRef(false);
+  const poiDataRef = useRef<
+    | Array<{
+        type: string;
+        name: string;
+        latitude: number;
+        longitude: number;
+      }>
+    | null
+  >(null);
   const hotspotsOnlyRef = useRef(false);
   const showKdeContoursRef = useRef(false);
   const showLastWeekRef = useRef(false);
@@ -1148,6 +1161,74 @@ export function ForecastMap({
   useEffect(() => {
     legendSpecRef.current = legendSpec;
   }, [legendSpec]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (!showPoi) {
+      poiMarkersRef.current.forEach((marker) => marker.remove());
+      poiMarkersRef.current = [];
+      return;
+    }
+
+    const loadPoi = async () => {
+      if (poiLoadedRef.current && poiDataRef.current) return poiDataRef.current;
+      const response = await fetch("/data/places_of_interest.json");
+      if (!response.ok) throw new Error("Failed to load POI data");
+      const payload = (await response.json()) as {
+        items?: Array<{ type: string; name: string; latitude: number; longitude: number }>;
+      };
+      poiLoadedRef.current = true;
+      poiDataRef.current = payload.items ?? [];
+      return poiDataRef.current;
+    };
+
+    let cancelled = false;
+
+    loadPoi()
+      .then((items) => {
+        if (cancelled || !map) return;
+        poiMarkersRef.current.forEach((marker) => marker.remove());
+        poiMarkersRef.current = [];
+
+        const iconMap: Record<string, string> = {
+          Park: "park",
+          Marina: "sailing",
+          Ferry: "directions_boat",
+        };
+
+        const markers = items.map((poi) => {
+          const el = document.createElement("button");
+          el.type = "button";
+          el.className = "poiMarker";
+          el.setAttribute("aria-label", poi.name);
+          const icon = iconMap[poi.type] ?? "directions_boat";
+          el.innerHTML = `<span class=\"material-symbols-rounded\">${icon}</span>`;
+
+          const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: true }).setHTML(
+            `<div class=\"poiPopup\">` +
+              `<div class=\"poiPopup__title\">${poi.name}</div>` +
+              `<div class=\"poiPopup__meta\">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div>` +
+              `</div>`
+          );
+
+          return new maplibregl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat([poi.longitude, poi.latitude])
+            .setPopup(popup)
+            .addTo(map);
+        });
+
+        poiMarkersRef.current = markers;
+      })
+      .catch(() => {
+        if (cancelled) return;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showPoi, mapReady]);
 
   useEffect(() => {
     hotspotsOnlyRef.current = hotspotsOnly;
@@ -1948,9 +2029,9 @@ export function ForecastMap({
 
   return (
     <div className="mapStage">
-      <div ref={containerRef} className="map" />
+      <div ref={containerRef} className="map" data-tour="map-canvas" />
       {legendSpec && (
-        <div className="map__cornerRightBottom">
+        <div className="map__cornerRightBottom" data-tour="legend-controls">
           <button
             className={
               showKdeContours
@@ -1959,6 +2040,7 @@ export function ForecastMap({
             }
             onClick={() => setShowKdeContours((v) => !v)}
             aria-label="Blurred (precomputed)"
+            data-tour="kde"
           >
             <span className="material-symbols-rounded">blur_on</span>
           </button>
@@ -1976,6 +2058,7 @@ export function ForecastMap({
               })
             }
             aria-label="Toggle hotspots"
+            data-tour="hotspots"
           >
             <span className="material-symbols-rounded">local_fire_department</span>
           </button>
@@ -1983,6 +2066,7 @@ export function ForecastMap({
             className="iconBtn legendClusterBtn"
             onClick={() => setLegendOpen((v) => !v)}
             aria-label={legendOpen ? "Hide legend" : "Show legend"}
+            data-tour="legend-toggle"
           >
             <span className="material-symbols-rounded">legend_toggle</span>
           </button>

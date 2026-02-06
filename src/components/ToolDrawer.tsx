@@ -27,7 +27,12 @@ export function ToolDrawer({
 }: Props) {
   return (
     <div className="toolDrawer">
-      <button className="iconBtn toolDrawer__toggle" onClick={onToggle} aria-label="Tools">
+      <button
+        className="iconBtn toolDrawer__toggle"
+        onClick={onToggle}
+        aria-label="Tools"
+        data-tour="tools"
+      >
         <span className="material-symbols-rounded">settings</span>
       </button>
 

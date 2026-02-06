@@ -10,7 +10,7 @@ export function ProbabilityLegend({ scale }: Props) {
   const nonZeroLabels = labels.slice(1);
 
   return (
-    <div className="legend" aria-label="Probability legend">
+    <div className="legend" aria-label="Probability legend" data-tour="legend">
       <div className="legend__header">
         <div className="legend__title">Sighting Heat</div>
       </div>

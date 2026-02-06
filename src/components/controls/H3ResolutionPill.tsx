@@ -36,9 +36,16 @@ type Props = {
   onChange: (next: H3Res) => void;
   disabled?: boolean;
   compact?: boolean;
+  tourId?: string;
 };
 
-export function H3ResolutionPill({ value, onChange, disabled = false, compact = true }: Props) {
+export function H3ResolutionPill({
+  value,
+  onChange,
+  disabled = false,
+  compact = true,
+  tourId,
+}: Props) {
   const activeIndex = useMemo(
     () => Math.max(0, OPTIONS.findIndex((opt) => opt.res === value)),
     [value]
@@ -49,6 +56,7 @@ export function H3ResolutionPill({ value, onChange, disabled = false, compact = 
   return (
     <div
       className={`h3menu${compact ? " h3menu--compact" : ""}${disabled ? " h3menu--disabled" : ""}`}
+      data-tour={tourId}
     >
       <button
         type="button"
