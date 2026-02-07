@@ -1150,6 +1150,7 @@ type Props = {
   hotspotsEnabled: boolean;
   hotspotMode: "modeled" | "custom";
   hotspotPercentile: number;
+  hotspotModeledCount: number | null;
   onHotspotsEnabledChange: (next: boolean) => void;
   onGridCellCount?: (count: number) => void;
   forecastPath?: string;
@@ -1193,6 +1194,7 @@ export function ForecastMap({
   hotspotsEnabled,
   hotspotMode,
   hotspotPercentile,
+  hotspotModeledCount,
   onHotspotsEnabledChange,
   onGridCellCount,
   forecastPath,
@@ -1205,6 +1207,7 @@ export function ForecastMap({
   const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
   const modeledHotspotThresholdRef = useRef<number | undefined>(undefined);
+  const modeledHotspotCountRef = useRef<number | null>(hotspotModeledCount);
   const valuesByCellRef = useRef<Record<string, number>>({});
   const sortedValuesDescRef = useRef<number[]>([]);
   const totalCellsRef = useRef(0);
@@ -1230,6 +1233,7 @@ export function ForecastMap({
   >(null);
   const hotspotsOnlyRef = useRef(false);
   const showKdeContoursRef = useRef(false);
+  const hasForecastLegend = legendSpec !== null;
   const showLastWeekRef = useRef(false);
   const lastWeekKeyRef = useRef<string | null>(null);
   const lastWeekModeRef = useRef<LastWeekMode>(lastWeekMode);
@@ -1277,7 +1281,16 @@ export function ForecastMap({
 
   const resolveHotspotThreshold = () => {
     const modeled = modeledHotspotThresholdRef.current ?? hotspotThresholdRef.current;
-    if (hotspotMode !== "custom") return modeled;
+    if (hotspotMode !== "custom") {
+      const values = sortedValuesDescRef.current;
+      const modeledCount = modeledHotspotCountRef.current;
+      if (values.length > 0 && modeledCount !== null && Number.isFinite(modeledCount) && modeledCount > 0) {
+        const count = Math.max(1, Math.round(modeledCount));
+        const idx = Math.max(0, Math.min(values.length - 1, count - 1));
+        return values[idx] ?? modeled;
+      }
+      return modeled;
+    }
     const values = sortedValuesDescRef.current;
     const total = totalCellsRef.current;
     if (values.length === 0 || total === 0) return modeled;
@@ -1396,12 +1409,16 @@ export function ForecastMap({
     resolutionRef.current = resolution;
   }, [resolution]);
 
+  useEffect(() => {
+    modeledHotspotCountRef.current = hotspotModeledCount;
+  }, [hotspotModeledCount]);
+
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     renderForecastLayer(map);
-  }, [hotspotMode, hotspotPercentile, hotspotsEnabled, mapReady]);
+  }, [hotspotMode, hotspotPercentile, hotspotModeledCount, hotspotsEnabled, mapReady]);
 
   useEffect(() => {
     selectedWeekRef.current = selectedWeek;
@@ -2231,6 +2248,11 @@ export function ForecastMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    if (!hasForecastLegend) {
+      setGridVisibility(map, true);
+      setHotspotVisibility(map, false);
+      return;
+    }
     if (showKdeContours) {
       setGridVisibility(map, false);
     } else if (hotspotsEnabled) {
@@ -2240,7 +2262,13 @@ export function ForecastMap({
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [showKdeContours, hotspotsEnabled, mapReady]);
+  }, [showKdeContours, hotspotsEnabled, mapReady, hasForecastLegend]);
+
+  useEffect(() => {
+    if (hasForecastLegend) return;
+    if (showKdeContours) setShowKdeContours(false);
+    if (hotspotsEnabled) onHotspotsEnabledChange(false);
+  }, [hasForecastLegend, showKdeContours, hotspotsEnabled, onHotspotsEnabledChange]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -2322,59 +2350,60 @@ export function ForecastMap({
   return (
     <div className="mapStage">
       <div ref={containerRef} className="map" data-tour="map-canvas" />
-      {legendSpec && (
-        <div className="map__cornerRightBottom" data-tour="legend-controls">
+      <div className="map__cornerRightBottom" data-tour="legend-controls">
+        <button
+          className={
+            showKdeContours
+              ? `iconBtn legendClusterBtn legendKde legendKde--active${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
+              : `iconBtn legendClusterBtn legendKde${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
+          }
+          onClick={() => setShowKdeContours((v) => !v)}
+          aria-label="Blurred (precomputed)"
+          data-tour="kde"
+          disabled={!hasForecastLegend}
+        >
+          <span className="material-symbols-rounded">blur_on</span>
+        </button>
+        <div className="legendClusterItem">
+          {/* {hotspotsOnly && hotspotCount !== null && (
+            <div
+              className={`map__hotspotCount${
+                hotspotToastVisible ? " map__hotspotCount--visible" : ""
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              Hotspots: {hotspotCount.toLocaleString()} cells
+            </div>
+          )} */}
           <button
             className={
-              showKdeContours
-                ? "iconBtn legendClusterBtn legendKde legendKde--active"
-                : "iconBtn legendClusterBtn legendKde"
+              hotspotsEnabled
+                ? `iconBtn legendClusterBtn legendHotspots legendHotspots--active${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
+                : `iconBtn legendClusterBtn legendHotspots${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
             }
-            onClick={() => setShowKdeContours((v) => !v)}
-            aria-label="Blurred (precomputed)"
-            data-tour="kde"
+            onClick={() => {
+              const next = !hotspotsEnabled;
+              if (next) setShowKdeContours(false);
+              onHotspotsEnabledChange(next);
+            }}
+            aria-label="Toggle hotspots"
+            data-tour="hotspots"
+            disabled={!hasForecastLegend}
           >
-            <span className="material-symbols-rounded">blur_on</span>
-          </button>
-          <div className="legendClusterItem">
-            {/* {hotspotsOnly && hotspotCount !== null && (
-              <div
-                className={`map__hotspotCount${
-                  hotspotToastVisible ? " map__hotspotCount--visible" : ""
-                }`}
-                role="status"
-                aria-live="polite"
-              >
-                Hotspots: {hotspotCount.toLocaleString()} cells
-              </div>
-            )} */}
-            <button
-              className={
-                hotspotsEnabled
-                  ? "iconBtn legendClusterBtn legendHotspots legendHotspots--active"
-                  : "iconBtn legendClusterBtn legendHotspots"
-              }
-              onClick={() => {
-                const next = !hotspotsEnabled;
-                if (next) setShowKdeContours(false);
-                onHotspotsEnabledChange(next);
-              }}
-              aria-label="Toggle hotspots"
-              data-tour="hotspots"
-            >
-              <span className="material-symbols-rounded">local_fire_department</span>
-            </button>
-          </div>
-          <button
-            className="iconBtn legendClusterBtn"
-            onClick={() => setLegendOpen((v) => !v)}
-            aria-label={legendOpen ? "Hide legend" : "Show legend"}
-            data-tour="legend-toggle"
-          >
-            <span className="material-symbols-rounded">legend_toggle</span>
+            <span className="material-symbols-rounded">local_fire_department</span>
           </button>
         </div>
-      )}
+        <button
+          className={`iconBtn legendClusterBtn${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`}
+          onClick={() => setLegendOpen((v) => !v)}
+          aria-label={legendOpen ? "Hide legend" : "Show legend"}
+          data-tour="legend-toggle"
+          disabled={!hasForecastLegend}
+        >
+          <span className="material-symbols-rounded">legend_toggle</span>
+        </button>
+      </div>
       {legendSpec && legendOpen && <ProbabilityLegend scale={legendSpec} />}
       {kdeWarning && (
         <div className="map__kdeWarning" role="status" aria-live="polite">

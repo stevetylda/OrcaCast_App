@@ -1,5 +1,6 @@
 import type { H3Resolution } from "../config/dataPaths";
 import type { Period } from "../data/periods";
+import { ExpectedActivityPill } from "./ExpectedActivityPill";
 import { ForecastPeriodPill } from "./ForecastPeriodPill";
 import { H3ResolutionPill } from "./controls/H3ResolutionPill";
 
@@ -11,6 +12,18 @@ type Props = {
   forecastPeriods: Period[];
   forecastIndex: number;
   onForecastIndexChange: (idx: number) => void;
+  expectedActivityCount: number | null;
+  expectedActivityVsPriorWeek: number | null;
+  expectedActivityVs12WeekAvg: number | null;
+  expectedActivityTrend: "up" | "down" | "steady" | "none";
+  expectedActivityChart: {
+    values: number[];
+    forecastIndex: number;
+    ciLow?: number;
+    ciHigh?: number;
+  };
+  showForecastNotice?: boolean;
+  forecastNoticeText?: string;
   resolution: Resolution;
   onResolutionChange: (v: Resolution) => void;
   darkMode: boolean;
@@ -25,6 +38,13 @@ export function AppHeader({
   forecastPeriods,
   forecastIndex,
   onForecastIndexChange,
+  expectedActivityCount,
+  expectedActivityVsPriorWeek,
+  expectedActivityVs12WeekAvg,
+  expectedActivityTrend,
+  expectedActivityChart,
+  showForecastNotice = false,
+  forecastNoticeText = "Forecast data is not available for the selected period.",
   resolution,
   onResolutionChange,
   darkMode,
@@ -52,12 +72,29 @@ export function AppHeader({
       </div>
 
       <div className="header__right">
-        <ForecastPeriodPill
-          periods={forecastPeriods}
-          selectedIndex={forecastIndex}
-          onChangeIndex={onForecastIndexChange}
-          disabled={forecastPeriods.length === 0}
-          tourId="forecast-period"
+        <div className="headerForecast">
+          <ForecastPeriodPill
+            periods={forecastPeriods}
+            selectedIndex={forecastIndex}
+            onChangeIndex={onForecastIndexChange}
+            disabled={forecastPeriods.length === 0}
+            tourId="forecast-period"
+          />
+          <div
+            className={`headerForecast__notice${showForecastNotice ? " is-visible" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
+            {forecastNoticeText}
+          </div>
+        </div>
+
+        <ExpectedActivityPill
+          currentCount={expectedActivityCount}
+          vsPriorWeek={expectedActivityVsPriorWeek}
+          vs12WeekAvg={expectedActivityVs12WeekAvg}
+          trend={expectedActivityTrend}
+          chart={expectedActivityChart}
         />
 
         <H3ResolutionPill

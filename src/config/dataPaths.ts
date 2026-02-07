@@ -6,6 +6,13 @@ function withBase(path: string): string {
   return `${base}${trimmed}`;
 }
 
+const FORECAST_CACHE_BUST = String(Date.now());
+
+function withForecastCacheBust(url: string): string {
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}v=${FORECAST_CACHE_BUST}`;
+}
+
 export const GRID_PATH: Record<H3Resolution, string> = {
   H4: withBase("data/grids/H4.geojson"),
   H5: withBase("data/grids/H5.geojson"),
@@ -13,13 +20,15 @@ export const GRID_PATH: Record<H3Resolution, string> = {
 };
 
 export const FORECAST_PATH_LATEST_WEEKLY: Record<H3Resolution, string> = {
-  H4: withBase("data/forecasts/latest/weekly/H4.json"),
-  H5: withBase("data/forecasts/latest/weekly/H5.json"),
-  H6: withBase("data/forecasts/latest/weekly/H6.json"),
+  H4: withForecastCacheBust(withBase("data/forecasts/latest/weekly/H4.json")),
+  H5: withForecastCacheBust(withBase("data/forecasts/latest/weekly/H5.json")),
+  H6: withForecastCacheBust(withBase("data/forecasts/latest/weekly/H6.json")),
 };
 
 export function getForecastPathForPeriod(resolution: H3Resolution, periodFileId: string): string {
-  return withBase(`data/forecasts/latest/weekly/${periodFileId}_${resolution}.json`);
+  return withForecastCacheBust(
+    withBase(`data/forecasts/latest/weekly/${periodFileId}_${resolution}.json`)
+  );
 }
 
 function h3ResolutionToNumber(resolution: H3Resolution): number {
