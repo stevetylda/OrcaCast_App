@@ -10,6 +10,7 @@ type Props = {
   percentile: number;
   onPercentileChange: (value: number) => void;
   totalCells: number | null;
+  modeledCount: number | null;
 };
 
 export function HotspotsSettingsSection({
@@ -20,6 +21,7 @@ export function HotspotsSettingsSection({
   percentile,
   onPercentileChange,
   totalCells,
+  modeledCount,
 }: Props) {
   const showingCount = useMemo(() => {
     if (mode !== "custom" || !totalCells) return null;
@@ -81,6 +83,14 @@ export function HotspotsSettingsSection({
           <div className="hotspotsSettings__feedback">
             {showingCount ? `Showing: ${showingCount.toLocaleString()} cells` : "Showing: —"}
           </div>
+        </div>
+      )}
+
+      {mode === "modeled" && (
+        <div className="hotspotsSettings__feedback">
+          {modeledCount && modeledCount > 0
+            ? `Showing: ${Math.round(modeledCount).toLocaleString()} cells`
+            : "Showing: —"}
         </div>
       )}
     </section>

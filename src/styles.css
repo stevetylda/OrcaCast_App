@@ -340,7 +340,7 @@ body {
   font-family: "Space Grotesk", "Sora", sans-serif;
   font-weight: 700;
   letter-spacing: 0.2px;
-  font-size: 18px;
+  font-size: 22px;
   white-space: nowrap;
   text-shadow: 0 0 12px rgba(25, 240, 215, 0.16);
 }
@@ -348,7 +348,7 @@ body {
 .brand__subtitle {
   font-weight: 600;
   opacity: 0.9;
-  font-size: 16px;
+  font-size: 20px;
 }
 
 .header__right {
@@ -357,6 +357,252 @@ body {
   gap: 8px;
   min-width: 480px;
   justify-content: flex-end;
+}
+
+.headerForecast {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.headerForecast__notice {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  max-width: min(340px, 82vw);
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(8, 18, 44, 0.92);
+  box-shadow: var(--shadow);
+  color: var(--panel-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+  z-index: 32;
+}
+
+.headerForecast__notice.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.expectedPillWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.expectedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-h);
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+  cursor: pointer;
+}
+
+.expectedPill:hover,
+.expectedPill:focus-visible {
+  border-color: rgba(25, 240, 215, 0.36);
+  box-shadow: var(--teal-glow-soft);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.expectedPill--disabled {
+  opacity: 0.78;
+}
+
+.expectedPill__label {
+  color: var(--panel-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expectedPill__count {
+  color: var(--panel-text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expectedPill__dot {
+  color: var(--panel-text-muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.expectedPill__trend {
+  display: inline-flex;
+  align-items: center;
+}
+
+.expectedPill__trend .material-symbols-rounded {
+  font-size: 18px;
+}
+
+.expectedPill__trend--up {
+  color: rgba(73, 220, 152, 0.95);
+}
+
+.expectedPill__trend--down {
+  color: rgba(255, 118, 145, 0.95);
+}
+
+.expectedPill__trend--steady {
+  color: rgba(255, 220, 120, 0.95);
+}
+
+.expectedPill__trend--none {
+  color: rgba(203, 214, 228, 0.8);
+}
+
+.expectedPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 240, 215, 0.45);
+  background: rgba(8, 18, 44, 0.94);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  display: grid;
+  gap: 8px;
+  z-index: 33;
+}
+
+.expectedPopover__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--panel-text);
+}
+
+.expectedPopover__desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(220, 229, 241, 0.84);
+}
+
+.expectedPopover__valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.expectedPopover__value {
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--panel-text);
+}
+
+.expectedPopover__delta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-muted);
+}
+
+.expectedPopover__delta--secondary {
+  margin-top: -2px;
+}
+
+.expectedPopover__error {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(170, 208, 255, 0.92);
+}
+
+.expectedPopover__ciText {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(225, 232, 245, 0.9);
+}
+
+.expectedPopover__spark {
+  color: rgba(25, 240, 215, 0.95);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.expectedPopover__spark .insightSparkline {
+  width: 100%;
+  display: block;
+}
+
+.expectedPopover__sparkSvg {
+  width: 100%;
+  display: block;
+}
+
+.expectedPopover__axis {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1;
+}
+
+.expectedPopover__axisLabel {
+  fill: rgba(210, 222, 238, 0.72);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.expectedPopover__line {
+  fill: none;
+  stroke: rgba(25, 240, 215, 0.92);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.expectedPopover__dot {
+  fill: rgba(180, 230, 255, 0.95);
+}
+
+.expectedPopover__dotGlow {
+  fill: rgba(255, 246, 170, 0.28);
+}
+
+.expectedPopover__dot--forecast {
+  fill: rgba(255, 246, 170, 1);
+  stroke: rgba(12, 24, 48, 0.9);
+  stroke-width: 1.1;
+  filter: drop-shadow(0 0 4px rgba(255, 246, 170, 0.85));
+}
+
+.expectedPopover__ci {
+  stroke: rgba(255, 246, 170, 0.95);
+  stroke-width: 1.2;
+}
+
+.expectedPopover__sparkMeta {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.expectedPopover__sparkCaption {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(208, 221, 239, 0.78);
+  line-height: 1.2;
+}
+
+.expectedPopover__empty {
+  font-size: 11px;
+  color: var(--panel-text-muted);
 }
 
 .periodChip {
@@ -933,6 +1179,19 @@ body {
   background: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
   box-shadow: var(--teal-glow);
+}
+
+.iconBtn:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.iconBtn:disabled:hover,
+.iconBtn:disabled:focus-visible {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .iconBtn--menu {
@@ -2388,6 +2647,12 @@ body {
   box-shadow: var(--teal-glow-soft);
 }
 
+.legendClusterBtn--disabled {
+  opacity: 0.45;
+  border-color: rgba(180, 190, 210, 0.35);
+  background: rgba(58, 68, 86, 0.45);
+}
+
 .legendHotspots {
   background: rgba(8, 18, 44, 0.72);
   border: 1px solid rgba(25, 240, 215, 0.5);
@@ -2437,7 +2702,7 @@ body {
 @media (max-width: 820px) {
   .brand__title,
   .brand__subtitle {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .periodChip,

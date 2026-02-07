@@ -223,7 +223,7 @@ export function buildFillExprFromScale(scale: HeatScale, zeroColor = ZERO_COLOR)
 
 export function buildHotspotOnlyExpr(
   threshold: number,
-  hotspotFill = "rgba(255,45,170,0.65)",
+  hotspotFill = "rgba(255,45,170,0.78)",
   zeroColor = "rgba(0,0,0,0)"
 ): unknown[] {
   return [

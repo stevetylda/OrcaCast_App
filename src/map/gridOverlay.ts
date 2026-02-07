@@ -190,6 +190,7 @@ import type {
   Map as MapLibreMap,
   ExpressionSpecification,
   DataDrivenPropertyValueSpecification,
+  FillLayerSpecification,
 } from "maplibre-gl";
 
 const DEFAULT_SOURCE_ID = "grid";
@@ -199,9 +200,14 @@ const HOT_BASE_ID = "grid-hot-outline-base";
 const HOT_SPARKLE_ID = "grid-hot-outline-sparkle";
 const PEAK_BASE_ID = "grid-peak-outline";
 const PEAK_GLOW_ID = "grid-peak-glow";
+const HOT_FILL_SOFT_ID = "grid-hot-fill-soft";
+const HOT_FILL_HALO_ID = "grid-hot-fill-halo";
 const HALO_ID = "grid-halo";
 const SHIMMER_ID = "grid-shimmer-fill";
 const PEAK_SHINE_ID = "grid-peak-shine";
+
+const HOTSPOT_SPARKLE_COLOR = "rgba(255,45,170,0.90)";
+const HOTSPOT_GLOW_COLOR = "rgba(255,45,170,0.52)";
 
 /**
  * MapLibre expects "fill-color" to be a DataDrivenPropertyValueSpecification<string>
@@ -385,80 +391,64 @@ export function addGridOverlay(
   }
 
   if (hotspotThreshold !== undefined) {
-    const visibility = hotspotsVisible ? "visible" : "none";
+    const visibility = hotspotsVisible ? ("visible" as const) : ("none" as const);
     const filter = [">=", ["get", "prob"], hotspotThreshold] as ExpressionSpecification;
-    if (map.getLayer(HOT_BASE_ID)) {
-      map.setFilter(HOT_BASE_ID, filter);
-      map.setLayoutProperty(HOT_BASE_ID, "visibility", visibility);
+    // Visual "dissolve": avoid per-hex hotspot linework and use soft stacked fills.
+    removeLayerIfExists(map, PEAK_GLOW_ID);
+    removeLayerIfExists(map, PEAK_BASE_ID);
+    removeLayerIfExists(map, HOT_SPARKLE_ID);
+    removeLayerIfExists(map, HOT_BASE_ID);
+
+    if (map.getLayer(HOT_FILL_SOFT_ID)) {
+      map.setFilter(HOT_FILL_SOFT_ID, filter);
+      map.setLayoutProperty(HOT_FILL_SOFT_ID, "visibility", visibility);
+      map.setPaintProperty(HOT_FILL_SOFT_ID, "fill-color", HOTSPOT_GLOW_COLOR);
+      map.setPaintProperty(HOT_FILL_SOFT_ID, "fill-opacity", 0.28);
     } else {
-      map.addLayer({
-        id: HOT_BASE_ID,
-        type: "line",
+      const layer: FillLayerSpecification = {
+        id: HOT_FILL_SOFT_ID,
+        type: "fill" as const,
         source: sourceId,
         filter,
         layout: { visibility },
         paint: {
-          "line-color": "rgba(9,26,68,0.95)",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.4, 9, 2.4, 12, 3.0] as ExpressionSpecification,
-          "line-opacity": 0.95,
+          "fill-color": HOTSPOT_GLOW_COLOR,
+          "fill-opacity": 0.28,
         },
-      });
-    }
-    if (map.getLayer(HOT_SPARKLE_ID)) {
-      map.setFilter(HOT_SPARKLE_ID, filter);
-      map.setLayoutProperty(HOT_SPARKLE_ID, "visibility", visibility);
-    } else {
-      map.addLayer({
-        id: HOT_SPARKLE_ID,
-        type: "line",
-        source: sourceId,
-        filter,
-        layout: { visibility },
-        paint: {
-          "line-color": "rgba(255,45,170,0.9)",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
-          "line-opacity": 0.85,
-          "line-blur": 1.6,
-        },
-      });
+      };
+      if (map.getLayer(fillId)) {
+        map.addLayer(layer, fillId);
+      } else {
+        map.addLayer(layer);
+      }
     }
 
-    if (map.getLayer(PEAK_BASE_ID)) {
-      map.setFilter(PEAK_BASE_ID, filter);
-      map.setLayoutProperty(PEAK_BASE_ID, "visibility", visibility);
+    if (map.getLayer(HOT_FILL_HALO_ID)) {
+      map.setFilter(HOT_FILL_HALO_ID, filter);
+      map.setLayoutProperty(HOT_FILL_HALO_ID, "visibility", visibility);
+      map.setPaintProperty(HOT_FILL_HALO_ID, "fill-color", HOTSPOT_SPARKLE_COLOR);
+      map.setPaintProperty(HOT_FILL_HALO_ID, "fill-opacity", 0.22);
     } else {
-      map.addLayer({
-        id: PEAK_BASE_ID,
-        type: "line",
+      const layer: FillLayerSpecification = {
+        id: HOT_FILL_HALO_ID,
+        type: "fill" as const,
         source: sourceId,
         filter,
         layout: { visibility },
         paint: {
-          "line-color": "rgba(255,255,255,0.9)",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.0, 9, 2.8, 12, 3.4] as ExpressionSpecification,
-          "line-opacity": 0.95,
+          "fill-color": HOTSPOT_SPARKLE_COLOR,
+          "fill-opacity": 0.22,
         },
-      });
-    }
-    if (map.getLayer(PEAK_GLOW_ID)) {
-      map.setFilter(PEAK_GLOW_ID, filter);
-      map.setLayoutProperty(PEAK_GLOW_ID, "visibility", visibility);
-    } else {
-      map.addLayer({
-        id: PEAK_GLOW_ID,
-        type: "line",
-        source: sourceId,
-        filter,
-        layout: { visibility },
-        paint: {
-          "line-color": "rgba(255,45,170,0.45)",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 3.0, 9, 4.2, 12, 5.4] as ExpressionSpecification,
-          "line-opacity": 0.85,
-          "line-blur": 2.2,
-        },
-      });
+      };
+      if (map.getLayer(fillId)) {
+        map.addLayer(layer, fillId);
+      } else {
+        map.addLayer(layer);
+      }
     }
   } else {
+    removeLayerIfExists(map, HOT_FILL_HALO_ID);
+    removeLayerIfExists(map, HOT_FILL_SOFT_ID);
     removeLayerIfExists(map, PEAK_GLOW_ID);
     removeLayerIfExists(map, PEAK_BASE_ID);
     removeLayerIfExists(map, HOT_SPARKLE_ID);
@@ -510,6 +500,8 @@ export function removeGridOverlay(
   removeLayerIfExists(map, PEAK_SHINE_ID);
   removeLayerIfExists(map, SHIMMER_ID);
   removeLayerIfExists(map, HALO_ID);
+  removeLayerIfExists(map, HOT_FILL_HALO_ID);
+  removeLayerIfExists(map, HOT_FILL_SOFT_ID);
   removeLayerIfExists(map, PEAK_GLOW_ID);
   removeLayerIfExists(map, PEAK_BASE_ID);
   removeLayerIfExists(map, HOT_SPARKLE_ID);
@@ -521,6 +513,12 @@ export function removeGridOverlay(
 
 export function setHotspotVisibility(map: MapLibreMap, visible: boolean) {
   const visibility = visible ? "visible" : "none";
+  if (map.getLayer(HOT_FILL_SOFT_ID)) {
+    map.setLayoutProperty(HOT_FILL_SOFT_ID, "visibility", visibility);
+  }
+  if (map.getLayer(HOT_FILL_HALO_ID)) {
+    map.setLayoutProperty(HOT_FILL_HALO_ID, "visibility", visibility);
+  }
   if (map.getLayer(HOT_BASE_ID)) {
     map.setLayoutProperty(HOT_BASE_ID, "visibility", visibility);
   }

@@ -14,6 +14,7 @@ type Props = {
   hotspotPercentile: number;
   onHotspotPercentileChange: (value: number) => void;
   hotspotTotalCells: number | null;
+  hotspotModeledCount: number | null;
   onOpenTimeseries: () => void;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
@@ -34,6 +35,7 @@ export function ToolDrawer({
   hotspotPercentile,
   onHotspotPercentileChange,
   hotspotTotalCells,
+  hotspotModeledCount,
   onOpenTimeseries,
   poiFilters,
   onTogglePoiAll,
@@ -66,6 +68,7 @@ export function ToolDrawer({
               hotspotPercentile={hotspotPercentile}
               onHotspotPercentileChange={onHotspotPercentileChange}
               hotspotTotalCells={hotspotTotalCells}
+              hotspotModeledCount={hotspotModeledCount}
               onOpenTimeseries={onOpenTimeseries}
               poiFilters={poiFilters}
               onTogglePoiAll={onTogglePoiAll}

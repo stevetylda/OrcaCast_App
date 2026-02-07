@@ -12,6 +12,7 @@ type Props = {
   hotspotPercentile: number;
   onHotspotPercentileChange: (value: number) => void;
   hotspotTotalCells: number | null;
+  hotspotModeledCount: number | null;
   onOpenTimeseries: () => void;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
@@ -54,6 +55,7 @@ export function MapToolbar({
   hotspotPercentile,
   onHotspotPercentileChange,
   hotspotTotalCells,
+  hotspotModeledCount,
   onOpenTimeseries,
   poiFilters,
   onTogglePoiAll,
@@ -258,6 +260,7 @@ export function MapToolbar({
               percentile={hotspotPercentile}
               onPercentileChange={onHotspotPercentileChange}
               totalCells={hotspotTotalCells}
+              modeledCount={hotspotModeledCount}
             />
           </div>
         )}
