@@ -7,12 +7,17 @@ type Props = {
   onSelectLastWeek: (mode: "previous" | "selected") => void;
   lastWeekMode: "none" | "previous" | "selected" | "both";
   showLastWeek: boolean;
-  onToggleHistoric: () => void;
+  hotspotsEnabled: boolean;
+  onHotspotsEnabledChange: (value: boolean) => void;
+  hotspotMode: "modeled" | "custom";
+  onHotspotModeChange: (value: "modeled" | "custom") => void;
+  hotspotPercentile: number;
+  onHotspotPercentileChange: (value: number) => void;
+  hotspotTotalCells: number | null;
   onOpenTimeseries: () => void;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
-  onTogglePod: () => void;
 };
 
 export function ToolDrawer({
@@ -22,12 +27,17 @@ export function ToolDrawer({
   onSelectLastWeek,
   lastWeekMode,
   showLastWeek,
-  onToggleHistoric,
+  hotspotsEnabled,
+  onHotspotsEnabledChange,
+  hotspotMode,
+  onHotspotModeChange,
+  hotspotPercentile,
+  onHotspotPercentileChange,
+  hotspotTotalCells,
   onOpenTimeseries,
   poiFilters,
   onTogglePoiAll,
   onTogglePoiType,
-  onTogglePod,
 }: Props) {
   return (
     <div className="toolDrawer">
@@ -49,12 +59,17 @@ export function ToolDrawer({
               onSelectLastWeek={onSelectLastWeek}
               lastWeekMode={lastWeekMode}
               showLastWeek={showLastWeek}
-              onToggleHistoric={onToggleHistoric}
+              hotspotsEnabled={hotspotsEnabled}
+              onHotspotsEnabledChange={onHotspotsEnabledChange}
+              hotspotMode={hotspotMode}
+              onHotspotModeChange={onHotspotModeChange}
+              hotspotPercentile={hotspotPercentile}
+              onHotspotPercentileChange={onHotspotPercentileChange}
+              hotspotTotalCells={hotspotTotalCells}
               onOpenTimeseries={onOpenTimeseries}
               poiFilters={poiFilters}
               onTogglePoiAll={onTogglePoiAll}
               onTogglePoiType={onTogglePoiType}
-              onTogglePod={onTogglePod}
             />
           </div>
         </>

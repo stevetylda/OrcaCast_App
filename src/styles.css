@@ -3,6 +3,8 @@
   --navy2: #0a2e7c;
   --teal: #19f0d7;
   --teal2: #00c2ff;
+  --hotspot-accent-rgb: 255, 45, 170;
+  --hotspot-accent: rgb(var(--hotspot-accent-rgb));
   --teal-glow: 0 0 14px rgba(25, 240, 215, 0.28);
   --teal-glow-soft: 0 0 18px rgba(0, 194, 255, 0.18);
   --control-h: 36px;
@@ -96,6 +98,7 @@ body {
   padding: 0;
   border-radius: 12px;
   box-shadow: none;
+  max-width: none;
 }
 
 .maplibregl-popup-tip {
@@ -105,6 +108,79 @@ body {
 
 .maplibregl-popup-close-button {
   display: none;
+}
+
+.maplibregl-popup {
+  max-width: none;
+}
+
+.sparkPopup {
+  font-family: "Space Grotesk", "Sora", sans-serif;
+  color: #ffffff;
+  background: rgba(6, 16, 40, 0.96);
+  border: 1px solid rgba(25, 240, 215, 0.3);
+  border-radius: 12px;
+  padding: 12px 14px;
+  width: 270px;
+  min-width: 270px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.sparkPopup__title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.sparkPopup__meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+}
+
+.sparkPopup__loading {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 0 3px;
+}
+
+.sparkPopup__chart {
+  display: block;
+  width: 100%;
+  height: 72px;
+}
+
+.sparkPopup__line {
+  fill: none;
+  stroke: rgba(25, 240, 215, 0.9);
+  stroke-width: 1.8;
+}
+
+.sparkPopup__current {
+  stroke: rgba(255, 255, 255, 0.65);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.sparkPopup__axisLine {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+}
+
+.sparkPopup__axisTick {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+}
+
+.sparkPopup__axisLabel {
+  fill: rgba(255, 255, 255, 0.6);
+  font-size: 9px;
+}
+
+.sparkPopup__dot {
+  fill: #ffffff;
+  stroke: rgba(255, 45, 170, 0.7);
+  stroke-width: 1;
 }
 
 .poiPopup__title {
@@ -907,7 +983,7 @@ body {
 .toolDrawer {
   position: absolute;
   left: 14px;
-  bottom: 62px;
+  bottom: 60px;
   z-index: 12;
   display: flex;
   align-items: flex-start;
@@ -978,6 +1054,196 @@ body {
   z-index: 30;
 }
 
+.toolMenu__popover--stack {
+  grid-auto-flow: row;
+  min-width: 220px;
+  gap: 10px;
+}
+
+.toolMenu__section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.toolMenu__label {
+  letter-spacing: 0.01em;
+}
+
+.toolMenu__value {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.toolMenu__chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.toolMenu__chip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.toolMenu__chip:hover,
+.toolMenu__chip:focus-visible {
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+  outline: none;
+}
+
+.toolMenu__chip--active {
+  background: rgba(25, 240, 215, 0.18);
+  border-color: rgba(25, 240, 215, 0.6);
+  color: rgba(0, 255, 240, 0.95);
+}
+
+.hotspotsSettings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.hotspotsSettings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hotspotsSettings__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.hotspotsSettings__icon {
+  color: var(--hotspot-accent);
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 20;
+}
+
+.hotspotSwitch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.hotspotSwitch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.hotspotSwitch--on {
+  border-color: rgba(var(--hotspot-accent-rgb), 0.7);
+  background: rgba(var(--hotspot-accent-rgb), 0.2);
+  box-shadow: 0 0 10px rgba(var(--hotspot-accent-rgb), 0.35);
+}
+
+.hotspotSwitch--on .hotspotSwitch__knob {
+  transform: translateX(16px);
+  background: var(--hotspot-accent);
+}
+
+.hotspotSwitch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--hotspot-accent-rgb), 0.45);
+}
+
+.hotspotsSettings__mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hotspotSegment {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  cursor: pointer;
+  transition: color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.hotspotSegment--active {
+  color: #ffffff;
+  background: rgba(var(--hotspot-accent-rgb), 0.22);
+  box-shadow: 0 0 0 1px rgba(var(--hotspot-accent-rgb), 0.75) inset;
+}
+
+.hotspotSegment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--hotspot-accent-rgb), 0.45);
+}
+
+.hotspotsSettings__custom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hotspotsSettings__chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hotspotChip {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10px;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.hotspotChip--active {
+  border-color: rgba(var(--hotspot-accent-rgb), 0.8);
+  background: rgba(var(--hotspot-accent-rgb), 0.25);
+  color: #ffffff;
+}
+
+.hotspotChip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--hotspot-accent-rgb), 0.45);
+}
+
+.hotspotsSettings__feedback {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .toolMenu__option {
   width: 30px;
   height: 30px;
@@ -1042,6 +1308,38 @@ body {
   display: grid;
   place-items: center;
   transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.toolBtn__iconStack {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolBtn__iconBase {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.toolBtn__iconBase--hotspot {
+  color: var(--hotspot-accent);
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 22;
+}
+
+.toolBtn__iconBadge {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  font-size: 12px;
+  line-height: 1;
+  background: rgba(8, 18, 44, 0.85);
+  border: 1px solid rgba(25, 240, 215, 0.5);
+  border-radius: 999px;
+  padding: 1px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .toolBtn:hover {
@@ -2034,6 +2332,34 @@ body {
   gap: 8px;
 }
 
+.legendClusterItem {
+  position: relative;
+  display: inline-flex;
+}
+
+.map__hotspotCount {
+  position: absolute;
+  right: -8px;
+  bottom: calc(100% + 6px);
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  background: rgba(8, 18, 44, 0.88);
+  border: 1px solid rgba(255, 45, 170, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.map__hotspotCount--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .map__kdeWarning {
   position: absolute;
   right: 16px;
@@ -2073,14 +2399,14 @@ body {
 }
 
 .legendHotspots--active {
-  border-color: rgba(255, 45, 170, 0.85);
-  box-shadow: 0 0 16px rgba(255, 45, 170, 0.5);
-  background: rgba(255, 45, 170, 0.35);
+  border-color: rgba(var(--hotspot-accent-rgb), 0.85);
+  box-shadow: 0 0 16px rgba(var(--hotspot-accent-rgb), 0.5);
+  background: rgba(var(--hotspot-accent-rgb), 0.35);
 }
 
 .legendHotspots--active .material-symbols-rounded {
   font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 24;
-  color: #ff2daa;
+  color: var(--hotspot-accent);
 }
 
 .legendKde {
@@ -2150,7 +2476,8 @@ body {
   }
 
   .toolDrawer {
-    bottom: 78px;
+    left: 10px;
+    bottom: 96px;
   }
 
   .legend {

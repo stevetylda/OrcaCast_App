@@ -1024,9 +1024,10 @@ import { MapboxOverlay } from "@deck.gl/mapbox";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { appConfig } from "../config/appConfig";
 import type { H3Resolution } from "../config/dataPaths";
-import { getKdeBandsPathForPeriod } from "../config/dataPaths";
+import { getForecastPathForPeriod, getKdeBandsPathForPeriod } from "../config/dataPaths";
 import { attachProbabilities, loadForecast, loadGrid } from "../data/forecastIO";
 import { buildKdeBandsCacheKey, loadKdeBandsGeojson } from "../data/kdeBandsIO";
+import type { Period } from "../data/periods";
 import {
   addGridOverlay,
   setGridBaseVisibility,
@@ -1041,11 +1042,99 @@ import {
 } from "../map/colorScale";
 import type { HeatScale } from "../map/colorScale";
 import { isoWeekFromDate } from "../core/time/forecastPeriodToIsoWeek";
+import { isoWeekToDateRange } from "../core/time/forecastPeriodToIsoWeek";
 import { ProbabilityLegend } from "./ProbabilityLegend";
 import type { DataDrivenPropertyValueSpecification } from "maplibre-gl";
 
 type FillColorSpec = DataDrivenPropertyValueSpecification<string>;
 type LastWeekMode = "none" | "previous" | "selected" | "both";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatModelLabel(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function buildSparklineSvg(
+  values: number[],
+  selectedIndex: number,
+  periods: Period[],
+  width = 270,
+  height = 72
+): string {
+  const paddingX = 6;
+  const paddingY = 6;
+  const labelHeight = 12;
+  const innerW = Math.max(1, width - paddingX * 2);
+  const chartTop = paddingY;
+  const chartBottom = height - paddingY - labelHeight;
+  const innerH = Math.max(1, chartBottom - chartTop);
+  const safeValues = values.map((v) => (Number.isFinite(v) ? v : 0));
+  const max = safeValues.length ? Math.max(...safeValues) : 0;
+  const min = safeValues.length ? Math.min(...safeValues) : 0;
+  const range = max - min || 1;
+
+  const step = safeValues.length > 1 ? innerW / (safeValues.length - 1) : 0;
+  const points = safeValues.map((v, i) => {
+    const x = paddingX + step * i;
+    const t = (v - min) / range;
+    const y = chartTop + innerH * (1 - t);
+    return [x, y] as const;
+  });
+
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const marker =
+    selectedIndex >= 0 && selectedIndex < points.length
+      ? points[selectedIndex]
+      : null;
+
+  const markerX =
+    selectedIndex >= 0 && selectedIndex < points.length
+      ? (paddingX + step * selectedIndex).toFixed(1)
+      : null;
+
+  const axisY = chartBottom + 3;
+  const ticks: Array<{ x: number; label: string }> = [];
+  let lastMonth = -1;
+  let lastYear = -1;
+  periods.forEach((period, i) => {
+    const range = isoWeekToDateRange(period.year, period.stat_week);
+    const date = new Date(`${range.start}T00:00:00Z`);
+    const month = date.getUTCMonth();
+    const year = date.getUTCFullYear();
+    if (month !== lastMonth || year !== lastYear) {
+      ticks.push({ x: paddingX + step * i, label: String(month + 1) });
+      lastMonth = month;
+      lastYear = year;
+    }
+  });
+
+  return `
+    <svg class="sparkPopup__chart" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Probability sparkline">
+      ${markerX ? `<line class="sparkPopup__current" x1="${markerX}" x2="${markerX}" y1="${chartTop}" y2="${chartBottom}" />` : ""}
+      <path class="sparkPopup__line" d="${path}" />
+      ${marker ? `<circle class="sparkPopup__dot" cx="${marker[0].toFixed(1)}" cy="${marker[1].toFixed(1)}" r="2.4" />` : ""}
+      <line class="sparkPopup__axisLine" x1="${paddingX}" x2="${width - paddingX}" y1="${axisY}" y2="${axisY}" />
+      ${ticks
+        .map(
+          (tick) => `
+        <line class="sparkPopup__axisTick" x1="${tick.x.toFixed(1)}" x2="${tick.x.toFixed(1)}" y1="${axisY}" y2="${axisY + 3}" />
+        <text class="sparkPopup__axisLabel" x="${tick.x.toFixed(1)}" y="${height - paddingY}" text-anchor="middle">${tick.label}</text>
+      `.trim()
+        )
+        .join("")}
+    </svg>
+  `.trim();
+}
 
 type Props = {
   darkMode: boolean;
@@ -1054,9 +1143,15 @@ type Props = {
   lastWeekMode: LastWeekMode;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   modelId: string;
+  periods: Period[];
   selectedWeek: number;
   selectedWeekYear: number;
   timeseriesOpen: boolean;
+  hotspotsEnabled: boolean;
+  hotspotMode: "modeled" | "custom";
+  hotspotPercentile: number;
+  onHotspotsEnabledChange: (next: boolean) => void;
+  onGridCellCount?: (count: number) => void;
   forecastPath?: string;
   fallbackForecastPath?: string;
 };
@@ -1091,9 +1186,15 @@ export function ForecastMap({
   lastWeekMode,
   poiFilters,
   modelId,
+  periods,
   selectedWeek,
   selectedWeekYear,
   timeseriesOpen,
+  hotspotsEnabled,
+  hotspotMode,
+  hotspotPercentile,
+  onHotspotsEnabledChange,
+  onGridCellCount,
   forecastPath,
   fallbackForecastPath,
 }: Props) {
@@ -1103,10 +1204,13 @@ export function ForecastMap({
   const overlayRef = useRef<FeatureCollection | null>(null);
   const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
+  const modeledHotspotThresholdRef = useRef<number | undefined>(undefined);
+  const valuesByCellRef = useRef<Record<string, number>>({});
+  const sortedValuesDescRef = useRef<number[]>([]);
+  const totalCellsRef = useRef(0);
   const shimmerThresholdRef = useRef<number | undefined>(undefined);
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
   const [legendOpen, setLegendOpen] = useState(true);
-  const [hotspotsOnly, setHotspotsOnly] = useState(false);
   const [showKdeContours, setShowKdeContours] = useState(false);
   const [kdeBands, setKdeBands] = useState<FeatureCollection | null>(null);
   const [kdeWarning, setKdeWarning] = useState<string | null>(null);
@@ -1135,6 +1239,13 @@ export function ForecastMap({
   const lastWeekDataRef = useRef<Record<string, FeatureCollection | null>>({});
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
+  const sparkPopupRef = useRef<maplibregl.Popup | null>(null);
+  const sparkRequestIdRef = useRef(0);
+  const periodsRef = useRef<Period[]>(periods);
+  const modelIdRef = useRef(modelId);
+  const resolutionRef = useRef(resolution);
+  const periodsSignatureRef = useRef("");
+  const sparklineCacheRef = useRef<Map<string, number[]>>(new Map());
   const DEBUG_MAP =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -1163,6 +1274,18 @@ export function ForecastMap({
   useEffect(() => {
     legendSpecRef.current = legendSpec;
   }, [legendSpec]);
+
+  const resolveHotspotThreshold = () => {
+    const modeled = modeledHotspotThresholdRef.current ?? hotspotThresholdRef.current;
+    if (hotspotMode !== "custom") return modeled;
+    const values = sortedValuesDescRef.current;
+    const total = totalCellsRef.current;
+    if (values.length === 0 || total === 0) return modeled;
+    const clamped = Math.min(Math.max(hotspotPercentile, 0), 100);
+    const count = Math.max(1, Math.round((total * clamped) / 100));
+    const idx = Math.max(0, Math.min(values.length - 1, count - 1));
+    return values[idx] ?? modeled;
+  };
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1239,8 +1362,8 @@ export function ForecastMap({
   }, [poiFilters, mapReady]);
 
   useEffect(() => {
-    hotspotsOnlyRef.current = hotspotsOnly;
-  }, [hotspotsOnly]);
+    hotspotsOnlyRef.current = hotspotsEnabled;
+  }, [hotspotsEnabled]);
 
   useEffect(() => {
     showKdeContoursRef.current = showKdeContours;
@@ -1259,6 +1382,26 @@ export function ForecastMap({
   useEffect(() => {
     lastWeekModeRef.current = lastWeekMode;
   }, [lastWeekMode]);
+
+  useEffect(() => {
+    periodsRef.current = periods;
+    periodsSignatureRef.current = periods.map((p) => p.periodKey).join("|");
+  }, [periods]);
+
+  useEffect(() => {
+    modelIdRef.current = modelId;
+  }, [modelId]);
+
+  useEffect(() => {
+    resolutionRef.current = resolution;
+  }, [resolution]);
+
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    renderForecastLayer(map);
+  }, [hotspotMode, hotspotPercentile, hotspotsEnabled, mapReady]);
 
   useEffect(() => {
     selectedWeekRef.current = selectedWeek;
@@ -1356,6 +1499,121 @@ export function ForecastMap({
     canvas.addEventListener("webglcontextlost", onContextLost, false);
     canvas.addEventListener("webglcontextrestored", onContextRestored, false);
 
+    const handleSparklineClick = (event: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
+      const feature = features[0];
+      if (!feature) return;
+      const props = feature.properties as Record<string, unknown> | undefined;
+      const cellIdRaw = props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "";
+      const cellId = String(cellIdRaw || "");
+      if (!cellId) return;
+
+      const periodsList = periodsRef.current ?? [];
+      if (periodsList.length === 0) return;
+
+      const selectedIndex = periodsList.findIndex(
+        (p) => p.year === selectedWeekYearRef.current && p.stat_week === selectedWeekRef.current
+      );
+
+      if (!sparkPopupRef.current) {
+        sparkPopupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: true,
+          offset: 10,
+        });
+      }
+
+      const modelLabel = formatModelLabel(modelIdRef.current);
+      const initialHtml = `
+        <div class="sparkPopup">
+          <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
+          <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+          <div class="sparkPopup__loading">Loading sparkline…</div>
+        </div>
+      `;
+
+      sparkPopupRef.current.setLngLat(event.lngLat).setHTML(initialHtml).addTo(map);
+
+      const requestId = (sparkRequestIdRef.current += 1);
+      const cacheKey = [
+        resolutionRef.current,
+        modelIdRef.current,
+        cellId,
+        periodsSignatureRef.current,
+      ].join("|");
+
+      const cached = sparklineCacheRef.current.get(cacheKey);
+      if (cached) {
+        const svg = buildSparklineSvg(cached, selectedIndex, periodsList);
+        const html = `
+          <div class="sparkPopup">
+            <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
+            <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+            ${svg}
+          </div>
+        `;
+        sparkPopupRef.current.setHTML(html);
+        return;
+      }
+
+      const fetchSeries = async () => {
+        const values = await Promise.all(
+          periodsList.map(async (period) => {
+            const path = getForecastPathForPeriod(resolutionRef.current, period.fileId);
+            try {
+              const forecast = await loadForecast(resolutionRef.current, {
+                kind: "explicit",
+                explicitPath: path,
+                modelId: modelIdRef.current,
+              });
+              const value = Number(forecast.values?.[cellId] ?? 0);
+              return Number.isFinite(value) ? value : 0;
+            } catch {
+              return 0;
+            }
+          })
+        );
+        return values;
+      };
+
+      fetchSeries()
+        .then((series) => {
+          if (sparkRequestIdRef.current !== requestId) return;
+          sparklineCacheRef.current.set(cacheKey, series);
+          const svg = buildSparklineSvg(series, selectedIndex, periodsList);
+          const html = `
+            <div class="sparkPopup">
+              <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
+              <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+              ${svg}
+            </div>
+          `;
+          sparkPopupRef.current?.setHTML(html);
+        })
+        .catch(() => {
+          if (sparkRequestIdRef.current !== requestId) return;
+          const html = `
+            <div class="sparkPopup">
+              <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
+              <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+              <div class="sparkPopup__loading">Unable to load sparkline.</div>
+            </div>
+          `;
+          sparkPopupRef.current?.setHTML(html);
+        });
+    };
+
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
+
+    map.on("click", "grid-fill", handleSparklineClick);
+    map.on("mouseenter", "grid-fill", handleMouseEnter);
+    map.on("mouseleave", "grid-fill", handleMouseLeave);
+
     map.once("load", () => {
       map.resize();
       logMapDebug("load");
@@ -1402,6 +1660,13 @@ export function ForecastMap({
       }
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
+      map.off("click", "grid-fill", handleSparklineClick);
+      map.off("mouseenter", "grid-fill", handleMouseEnter);
+      map.off("mouseleave", "grid-fill", handleMouseLeave);
+      if (sparkPopupRef.current) {
+        sparkPopupRef.current.remove();
+        sparkPopupRef.current = null;
+      }
       if (deckOverlayRef.current) {
         map.removeControl(deckOverlayRef.current);
         deckOverlayRef.current = null;
@@ -1415,7 +1680,7 @@ export function ForecastMap({
     if (!overlayRef.current) return;
 
     const scale = legendSpecRef.current;
-    const threshold = scale?.hotspotThreshold ?? hotspotThresholdRef.current;
+    const threshold = resolveHotspotThreshold();
     const hotspots = hotspotsOnlyRef.current;
 
     const fillExpr: FillColorSpec | undefined =
@@ -1672,8 +1937,19 @@ export function ForecastMap({
           .map((v) => Number(v))
           .filter((v) => Number.isFinite(v) && v > 0)
           .sort((a, b) => a - b);
+        const featureValues = (joined.features ?? [])
+          .map((feature) => Number((feature.properties as Record<string, unknown> | null)?.prob ?? 0))
+          .filter((v) => Number.isFinite(v));
+        sortedValuesDescRef.current = [...featureValues].sort((a, b) => b - a);
+        totalCellsRef.current = featureValues.length;
+        if (onGridCellCount) {
+          onGridCellCount(featureValues.length);
+        }
 
-        hotspotThresholdRef.current = valueList.length > 0 ? Math.max(...valueList) : undefined;
+        valuesByCellRef.current = values;
+        modeledHotspotThresholdRef.current =
+          scale?.hotspotThreshold ?? (valueList.length > 0 ? Math.max(...valueList) : undefined);
+        hotspotThresholdRef.current = modeledHotspotThresholdRef.current;
         if (valueList.length > 0) {
           const idx = Math.max(0, Math.floor(valueList.length * 0.95) - 1);
           shimmerThresholdRef.current = valueList[idx];
@@ -1682,10 +1958,6 @@ export function ForecastMap({
         }
         overlayRef.current = joined;
         fillExprRef.current = fillColorExpr as unknown as FillColorSpec;
-
-        if (scale?.hotspotThreshold !== undefined) {
-          hotspotThresholdRef.current = scale.hotspotThreshold;
-        }
         legendSpecRef.current = scale;
         setLegendSpec(scale);
 
@@ -1954,21 +2226,21 @@ export function ForecastMap({
 
     renderForecastLayer(map);
     moveLastWeekToTop(map);
-  }, [hotspotsOnly, legendSpec]);
+  }, [hotspotsEnabled, legendSpec]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     if (showKdeContours) {
       setGridVisibility(map, false);
-    } else if (hotspotsOnly) {
+    } else if (hotspotsEnabled) {
       setGridBaseVisibility(map, false);
       setHotspotVisibility(map, true);
     } else {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [showKdeContours, hotspotsOnly, mapReady]);
+  }, [showKdeContours, hotspotsEnabled, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -2064,24 +2336,35 @@ export function ForecastMap({
           >
             <span className="material-symbols-rounded">blur_on</span>
           </button>
-          <button
-            className={
-              hotspotsOnly
-                ? "iconBtn legendClusterBtn legendHotspots legendHotspots--active"
-                : "iconBtn legendClusterBtn legendHotspots"
-            }
-            onClick={() =>
-              setHotspotsOnly((v) => {
-                const next = !v;
+          <div className="legendClusterItem">
+            {/* {hotspotsOnly && hotspotCount !== null && (
+              <div
+                className={`map__hotspotCount${
+                  hotspotToastVisible ? " map__hotspotCount--visible" : ""
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                Hotspots: {hotspotCount.toLocaleString()} cells
+              </div>
+            )} */}
+            <button
+              className={
+                hotspotsEnabled
+                  ? "iconBtn legendClusterBtn legendHotspots legendHotspots--active"
+                  : "iconBtn legendClusterBtn legendHotspots"
+              }
+              onClick={() => {
+                const next = !hotspotsEnabled;
                 if (next) setShowKdeContours(false);
-                return next;
-              })
-            }
-            aria-label="Toggle hotspots"
-            data-tour="hotspots"
-          >
-            <span className="material-symbols-rounded">local_fire_department</span>
-          </button>
+                onHotspotsEnabledChange(next);
+              }}
+              aria-label="Toggle hotspots"
+              data-tour="hotspots"
+            >
+              <span className="material-symbols-rounded">local_fire_department</span>
+            </button>
+          </div>
           <button
             className="iconBtn legendClusterBtn"
             onClick={() => setLegendOpen((v) => !v)}

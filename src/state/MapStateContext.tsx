@@ -16,6 +16,12 @@ type MapState = {
   setForecastIndex: (value: number | ((prev: number) => number)) => void;
   lastWeekMode: "none" | "previous" | "selected" | "both";
   setLastWeekMode: (value: "none" | "previous" | "selected" | "both") => void;
+  hotspotsEnabled: boolean;
+  setHotspotsEnabled: (value: boolean) => void;
+  hotspotMode: "modeled" | "custom";
+  setHotspotMode: (value: "modeled" | "custom") => void;
+  hotspotPercentile: number;
+  setHotspotPercentile: (value: number) => void;
   layerMode: "observed" | "forecast";
   setLayerMode: (value: "observed" | "forecast") => void;
   ecotype: "srkw" | "transient" | "both";
@@ -39,6 +45,9 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   const [lastWeekMode, setLastWeekMode] = useState<
     "none" | "previous" | "selected" | "both"
   >("none");
+  const [hotspotsEnabled, setHotspotsEnabled] = useState(false);
+  const [hotspotMode, setHotspotMode] = useState<"modeled" | "custom">("modeled");
+  const [hotspotPercentile, setHotspotPercentile] = useState(1);
   const [layerMode, setLayerMode] = useState<"observed" | "forecast">("forecast");
   const [ecotype, setEcotype] = useState<"srkw" | "transient" | "both">("srkw");
   const [pointsVisible, setPointsVisible] = useState(true);
@@ -61,6 +70,12 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setForecastIndex,
       lastWeekMode,
       setLastWeekMode,
+      hotspotsEnabled,
+      setHotspotsEnabled,
+      hotspotMode,
+      setHotspotMode,
+      hotspotPercentile,
+      setHotspotPercentile,
       layerMode,
       setLayerMode,
       ecotype,
@@ -75,6 +90,9 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       modelId,
       forecastIndex,
       lastWeekMode,
+      hotspotsEnabled,
+      hotspotMode,
+      hotspotPercentile,
       layerMode,
       ecotype,
       pointsVisible,
@@ -83,6 +101,9 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setModelId,
       setForecastIndex,
       setLastWeekMode,
+      setHotspotsEnabled,
+      setHotspotMode,
+      setHotspotPercentile,
       setLayerMode,
       setEcotype,
       setPointsVisible,
