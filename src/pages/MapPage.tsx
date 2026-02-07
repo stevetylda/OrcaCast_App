@@ -50,6 +50,12 @@ export function MapPage() {
     setForecastIndex,
     lastWeekMode,
     setLastWeekMode,
+    hotspotsEnabled,
+    setHotspotsEnabled,
+    hotspotMode,
+    setHotspotMode,
+    hotspotPercentile,
+    setHotspotPercentile,
   } = useMapState();
 
   const { setMenuOpen } = useMenu();
@@ -58,6 +64,7 @@ export function MapPage() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [timeseriesOpen, setTimeseriesOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [hotspotTotalCells, setHotspotTotalCells] = useState<number | null>(null);
   const [poiFilters, setPoiFilters] = useState({
     Park: false,
     Marina: false,
@@ -207,9 +214,15 @@ export function MapPage() {
           lastWeekMode={lastWeekMode}
           poiFilters={poiFilters}
           modelId={modelId}
+          periods={periods}
           selectedWeek={currentWeek}
           selectedWeekYear={currentWeekYear}
           timeseriesOpen={timeseriesOpen}
+          hotspotsEnabled={hotspotsEnabled}
+          hotspotMode={hotspotMode}
+          hotspotPercentile={hotspotPercentile}
+          onHotspotsEnabledChange={setHotspotsEnabled}
+          onGridCellCount={setHotspotTotalCells}
           forecastPath={forecastPath}
           fallbackForecastPath={latestForecastPath}
         />
@@ -235,7 +248,13 @@ export function MapPage() {
           }}
           lastWeekMode={lastWeekMode}
           showLastWeek={showLastWeek}
-          onToggleHistoric={() => alert("Historic presence toggle")}
+          hotspotsEnabled={hotspotsEnabled}
+          onHotspotsEnabledChange={setHotspotsEnabled}
+          hotspotMode={hotspotMode}
+          onHotspotModeChange={setHotspotMode}
+          hotspotPercentile={hotspotPercentile}
+          onHotspotPercentileChange={setHotspotPercentile}
+          hotspotTotalCells={hotspotTotalCells}
           onOpenTimeseries={() => setTimeseriesOpen(true)}
           poiFilters={poiFilters}
           onTogglePoiAll={() =>
@@ -247,7 +266,6 @@ export function MapPage() {
           onTogglePoiType={(type) =>
             setPoiFilters((prev) => ({ ...prev, [type]: !prev[type] }))
           }
-          onTogglePod={() => alert("Pod selector toggle")}
         />
 
         <div className="app__footer">

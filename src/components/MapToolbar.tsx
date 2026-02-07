@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { HotspotsSettingsSection } from "./map/settings/HotspotsSettingsSection";
 
 type Props = {
   onSelectLastWeek: (mode: "previous" | "selected") => void;
   lastWeekMode: "none" | "previous" | "selected" | "both";
   showLastWeek: boolean;
-  onToggleHistoric: () => void;
+  hotspotsEnabled: boolean;
+  onHotspotsEnabledChange: (value: boolean) => void;
+  hotspotMode: "modeled" | "custom";
+  onHotspotModeChange: (value: "modeled" | "custom") => void;
+  hotspotPercentile: number;
+  onHotspotPercentileChange: (value: number) => void;
+  hotspotTotalCells: number | null;
   onOpenTimeseries: () => void;
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
-  onTogglePod: () => void;
   className?: string;
 };
 
@@ -41,18 +47,25 @@ export function MapToolbar({
   onSelectLastWeek,
   lastWeekMode,
   showLastWeek,
-  onToggleHistoric,
+  hotspotsEnabled,
+  onHotspotsEnabledChange,
+  hotspotMode,
+  onHotspotModeChange,
+  hotspotPercentile,
+  onHotspotPercentileChange,
+  hotspotTotalCells,
   onOpenTimeseries,
   poiFilters,
   onTogglePoiAll,
   onTogglePoiType,
-  onTogglePod,
   className,
 }: Props) {
   const lastWeekRef = useRef<HTMLDivElement | null>(null);
   const poiRef = useRef<HTMLDivElement | null>(null);
+  const hotspotRef = useRef<HTMLDivElement | null>(null);
   const [lastWeekOpen, setLastWeekOpen] = useState(false);
   const [poiOpen, setPoiOpen] = useState(false);
+  const [hotspotOpen, setHotspotOpen] = useState(false);
   const hasPrevious = lastWeekMode === "previous" || lastWeekMode === "both";
   const hasSelected = lastWeekMode === "selected" || lastWeekMode === "both";
   const poiActive = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
@@ -94,6 +107,25 @@ export function MapToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [poiOpen]);
+
+  useEffect(() => {
+    if (!hotspotOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!hotspotRef.current) return;
+      if (hotspotRef.current.contains(event.target as Node)) return;
+      setHotspotOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setHotspotOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [hotspotOpen]);
 
   return (
     <div className={className ? `toolbar ${className}` : "toolbar"} data-tour="toolbar">
@@ -198,18 +230,38 @@ export function MapToolbar({
           </div>
         )}
       </div>
-      <ToolButton
-        icon="group"
-        label="Pod selection (SRKW/Transient/Both)"
-        onClick={onTogglePod}
-        tourId="pods"
-      />
-      <ToolButton
-        icon="manage_search"
-        label="Historic presence in period"
-        onClick={onToggleHistoric}
-        tourId="historic"
-      />
+      <div ref={hotspotRef} className={`toolMenu${hotspotOpen ? " toolMenu--open" : ""}`}>
+        <button
+          className={`toolBtn${hotspotsEnabled ? " toolBtn--active" : ""}`}
+          onClick={() => setHotspotOpen((v) => !v)}
+          title="Hotspot threshold"
+          aria-label="Hotspot threshold"
+        >
+          <span className="toolBtn__iconStack" aria-hidden="true">
+            <span className="material-symbols-rounded toolBtn__iconBase toolBtn__iconBase--hotspot">
+              local_fire_department
+            </span>
+            <span className="material-symbols-rounded toolBtn__iconBadge">settings</span>
+          </span>
+        </button>
+        {hotspotOpen && (
+          <div
+            className="toolMenu__popover toolMenu__popover--stack"
+            role="dialog"
+            aria-label="Hotspots settings"
+          >
+            <HotspotsSettingsSection
+              enabled={hotspotsEnabled}
+              onEnabledChange={onHotspotsEnabledChange}
+              mode={hotspotMode}
+              onModeChange={onHotspotModeChange}
+              percentile={hotspotPercentile}
+              onPercentileChange={onHotspotPercentileChange}
+              totalCells={hotspotTotalCells}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -77,6 +77,46 @@ type ForecastPayloadRaw = {
   valuesByModel?: Record<string, Record<string, number>>;
 };
 
+type ModelValuesEntry = {
+  id?: string;
+  values: Record<string, number>;
+};
+
+function collectModelEntries(raw: ForecastPayloadRaw): ModelValuesEntry[] {
+  if (raw.models && raw.models.length > 0) {
+    return raw.models.map((entry) => ({
+      id: entry.id ?? entry.model,
+      values: entry.values ?? {},
+    }));
+  }
+  if (raw.valuesByModel) {
+    return Object.entries(raw.valuesByModel).map(([id, values]) => ({
+      id,
+      values: values ?? {},
+    }));
+  }
+  return [];
+}
+
+function buildConsensusMean(entries: ModelValuesEntry[]): Record<string, number> {
+  const modelCount = entries.length;
+  if (modelCount === 0) return {};
+  const keys = new Set<string>();
+  entries.forEach((entry) => {
+    Object.keys(entry.values ?? {}).forEach((key) => keys.add(key));
+  });
+  const result: Record<string, number> = {};
+  keys.forEach((key) => {
+    let sum = 0;
+    for (const entry of entries) {
+      const value = Number(entry.values?.[key] ?? 0);
+      if (Number.isFinite(value)) sum += value;
+    }
+    result[key] = sum / modelCount;
+  });
+  return result;
+}
+
 function resolveModelValues(raw: ForecastPayloadRaw, modelId?: string) {
   if (raw.models && raw.models.length > 0) {
     if (modelId) {
@@ -102,7 +142,10 @@ export async function loadForecast(
   const cached = forecastCache.get(cacheKey);
   if (cached) return cached;
   const raw = await fetchJson<ForecastPayloadRaw>(url);
-  const values = resolveModelValues(raw, opts.modelId);
+  const values =
+    opts.modelId === "consensus"
+      ? buildConsensusMean(collectModelEntries(raw))
+      : resolveModelValues(raw, opts.modelId);
   const data: ForecastPayload = {
     target_start: raw.target_start,
     target_end: raw.target_end,
@@ -118,14 +161,22 @@ export async function loadForecastModelIds(
 ): Promise<string[]> {
   const url = getForecastPath(resolution, opts);
   const raw = await fetchJson<ForecastPayloadRaw>(url);
+  let ids: string[] = [];
+  let modelCount = 0;
   if (raw.models && raw.models.length > 0) {
-    return raw.models
+    ids = raw.models
       .map((entry) => entry.id ?? entry.model)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
+    modelCount = raw.models.length;
+  } else if (raw.valuesByModel) {
+    ids = Object.keys(raw.valuesByModel);
+    modelCount = ids.length;
+  } else if (raw.model) {
+    ids = [raw.model];
+    modelCount = 1;
   }
-  if (raw.valuesByModel) return Object.keys(raw.valuesByModel);
-  if (raw.model) return [raw.model];
-  return [];
+  if (modelCount > 1) ids.push("consensus");
+  return Array.from(new Set(ids));
 }
 
 export function attachProbabilities(
