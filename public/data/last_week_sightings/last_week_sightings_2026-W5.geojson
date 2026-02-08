@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "last_week_sightings_2026-W5",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-20T23:45:00", "LATITUDE": 47.3302, "LONGITUDE": -122.6892, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -122.6892, 47.3302 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-21T02:33:00", "LATITUDE": 47.18054, "LONGITUDE": -122.64526, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -122.64526, 47.18054 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-21T03:41:00", "LATITUDE": 47.26991, "LONGITUDE": -122.55273, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -122.55273, 47.26991 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-21T06:32:00", "LATITUDE": 47.41647, "LONGITUDE": -122.52348, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -122.52348, 47.41647 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-24T05:34:00", "LATITUDE": 48.53788, "LONGITUDE": -123.20252, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -123.20252, 48.53788 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-01-25T05:32:25", "LATITUDE": 41.78265, "LONGITUDE": -124.25552, "WEEK": 4, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -124.25552, 41.78265 ] } }
+]
+}
