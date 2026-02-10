@@ -144,34 +144,27 @@ export function MapPage() {
   const fillToConfiguredPeriod = (list: Period[]): Period[] => {
     const byKey = new Map<string, Period>();
     list.forEach((p) => byKey.set(p.periodKey, p));
+
+    const sortedExisting = Array.from(byKey.values()).sort(comparePeriods);
+    if (sortedExisting.length === 0) return [configPeriod];
+
+    const earliestExisting = sortedExisting[0];
+    const latestExisting = sortedExisting[sortedExisting.length - 1];
+
     byKey.set(configPeriod.periodKey, configPeriod);
 
-    const sorted = Array.from(byKey.values()).sort(comparePeriods);
-    if (sorted.length === 0) return [configPeriod];
+    const start =
+      comparePeriods(configPeriod, earliestExisting) < 0 ? configPeriod : earliestExisting;
+    const end = comparePeriods(configPeriod, latestExisting) > 0 ? configPeriod : latestExisting;
 
-    const earliest = sorted[0];
-    const latest = sorted[sorted.length - 1];
-
-    if (comparePeriods(configPeriod, latest) > 0) {
-      let cursorYear = latest.year;
-      let cursorWeek = latest.stat_week;
-      while (comparePeriods({ year: cursorYear, stat_week: cursorWeek }, configPeriod) < 0) {
-        const next = shiftIsoWeek(cursorYear, cursorWeek, 1);
-        cursorYear = next.year;
-        cursorWeek = next.statWeek;
-        const period = buildPeriod(cursorYear, cursorWeek);
-        if (!byKey.has(period.periodKey)) byKey.set(period.periodKey, period);
-      }
-    } else if (comparePeriods(configPeriod, earliest) < 0) {
-      let cursorYear = earliest.year;
-      let cursorWeek = earliest.stat_week;
-      while (comparePeriods({ year: cursorYear, stat_week: cursorWeek }, configPeriod) > 0) {
-        const prev = shiftIsoWeek(cursorYear, cursorWeek, -1);
-        cursorYear = prev.year;
-        cursorWeek = prev.statWeek;
-        const period = buildPeriod(cursorYear, cursorWeek);
-        if (!byKey.has(period.periodKey)) byKey.set(period.periodKey, period);
-      }
+    let cursorYear = start.year;
+    let cursorWeek = start.stat_week;
+    while (comparePeriods({ year: cursorYear, stat_week: cursorWeek }, end) <= 0) {
+      const period = buildPeriod(cursorYear, cursorWeek);
+      if (!byKey.has(period.periodKey)) byKey.set(period.periodKey, period);
+      const next = shiftIsoWeek(cursorYear, cursorWeek, 1);
+      cursorYear = next.year;
+      cursorWeek = next.statWeek;
     }
 
     return Array.from(byKey.values()).sort(comparePeriods);
