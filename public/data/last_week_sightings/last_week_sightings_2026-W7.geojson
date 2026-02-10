@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "last_week_sightings_2026-W7",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "DATETIME": "2026-02-04T00:15:00", "LATITUDE": 48.55384, "LONGITUDE": -123.1885, "WEEK": 6, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -123.1885, 48.55384 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-02-04T00:41:00", "LATITUDE": 48.53793, "LONGITUDE": -123.19176, "WEEK": 6, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -123.19176, 48.53793 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-02-07T00:22:00", "LATITUDE": 48.54204, "LONGITUDE": -123.20373, "WEEK": 6, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -123.20373, 48.54204 ] } },
+{ "type": "Feature", "properties": { "DATETIME": "2026-02-07T00:58:00", "LATITUDE": 48.55636, "LONGITUDE": -123.20511, "WEEK": 6, "YEAR": 2026 }, "geometry": { "type": "Point", "coordinates": [ -123.20511, 48.55636 ] } }
+]
+}
