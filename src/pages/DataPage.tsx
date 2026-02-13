@@ -1,16 +1,16 @@
 import { PageShell } from "../components/PageShell";
-import { attribution } from "../config/attribution";
+import { attribution, basemapSources } from "../config/attribution";
 
 const attributionLinks: Record<string, string> = {
   "OpenStreetMap contributors": "https://www.openstreetmap.org/copyright",
-  "CARTO basemaps": "https://carto.com/attributions",
+  OpenMapTiles: "https://openmaptiles.org/",
+  "Stadia Maps": "https://stadiamaps.com/",
   Acartia: "https://acartia.io/home",
   "The Whale Museum": "https://www.whalemuseum.org/",
   iNaturalist: "https://www.inaturalist.org/",
 };
 
 export function DataPage() {
-  const basemapSources = ["OpenStreetMap contributors", "CARTO basemaps"];
   const sightingSources = attribution.sources.filter(
     (source) => !basemapSources.includes(source)
   );

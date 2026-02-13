@@ -205,6 +205,10 @@ const HOT_FILL_HALO_ID = "grid-hot-fill-halo";
 const HALO_ID = "grid-halo";
 const SHIMMER_ID = "grid-shimmer-fill";
 const PEAK_SHINE_ID = "grid-peak-shine";
+const HOVER_FILL_ID = "grid-hover-fill";
+const HOVER_GLOW_ID = "grid-hover-glow";
+const HOVER_CORE_ID = "grid-hover-core";
+const GRID_SUBTLE_BORDER = "rgba(8,18,44,0.22)";
 
 const HOTSPOT_SPARKLE_COLOR = "rgba(255,45,170,0.90)";
 const HOTSPOT_GLOW_COLOR = "rgba(255,45,170,0.52)";
@@ -227,6 +231,20 @@ function removeSourceIfExists(map: MapLibreMap, id: string) {
   }
 }
 
+function emptyHoverFilter(): ExpressionSpecification {
+  return ["==", ["get", "__hover__"], "__none__"] as ExpressionSpecification;
+}
+
+function buildHoverFilter(cellId: string): ExpressionSpecification {
+  return [
+    "any",
+    ["==", ["to-string", ["coalesce", ["get", "h3"], ""]], cellId],
+    ["==", ["to-string", ["coalesce", ["get", "H3"], ""]], cellId],
+    ["==", ["to-string", ["coalesce", ["get", "h3_id"], ""]], cellId],
+    ["==", ["to-string", ["coalesce", ["get", "H3_ID"], ""]], cellId],
+  ] as ExpressionSpecification;
+}
+
 export function addGridOverlay(
   map: MapLibreMap,
   fc: FeatureCollection,
@@ -234,6 +252,7 @@ export function addGridOverlay(
   hotspotThreshold?: number,
   hotspotsVisible = true,
   shimmerThreshold?: number,
+  borderColor = GRID_SUBTLE_BORDER,
   sourceId = DEFAULT_SOURCE_ID,
   fillId = DEFAULT_FILL_ID,
   lineId = DEFAULT_LINE_ID
@@ -274,6 +293,7 @@ export function addGridOverlay(
   if (map.getLayer(fillId)) {
     map.setPaintProperty(fillId, "fill-color", fillColor);
     map.setPaintProperty(fillId, "fill-opacity", 0.8);
+    map.setPaintProperty(fillId, "fill-outline-color", borderColor);
     map.setPaintProperty(fillId, "fill-opacity-transition", { duration: 200, delay: 0 });
   } else {
     map.addLayer({
@@ -283,6 +303,7 @@ export function addGridOverlay(
       paint: {
         "fill-color": fillColor,
         "fill-opacity": 0.8,
+        "fill-outline-color": borderColor,
         "fill-opacity-transition": { duration: 200, delay: 0 },
       },
     });
@@ -323,18 +344,67 @@ export function addGridOverlay(
   }
 
   if (map.getLayer(lineId)) {
-    map.setPaintProperty(lineId, "line-color", "rgba(25,240,215,0.25)");
-    map.setPaintProperty(lineId, "line-width", 0.5);
-    map.setPaintProperty(lineId, "line-opacity", 0.35);
+    map.setPaintProperty(lineId, "line-color", borderColor);
+    map.setPaintProperty(lineId, "line-width", 0.4);
+    map.setPaintProperty(lineId, "line-opacity", 0.85);
   } else {
     map.addLayer({
       id: lineId,
       type: "line",
       source: sourceId,
       paint: {
-        "line-color": "rgba(25,240,215,0.25)",
-        "line-width": 0.5,
-        "line-opacity": 0.35,
+        "line-color": borderColor,
+        "line-width": 0.4,
+        "line-opacity": 0.85,
+      },
+    });
+  }
+
+  const hoverFilter = emptyHoverFilter();
+  if (map.getLayer(HOVER_FILL_ID)) {
+    map.setFilter(HOVER_FILL_ID, hoverFilter);
+  } else {
+    map.addLayer({
+      id: HOVER_FILL_ID,
+      type: "fill",
+      source: sourceId,
+      filter: hoverFilter,
+      paint: {
+        "fill-color": "rgba(25,240,215,0.28)",
+        "fill-opacity": 0.2,
+      },
+    });
+  }
+
+  if (map.getLayer(HOVER_GLOW_ID)) {
+    map.setFilter(HOVER_GLOW_ID, hoverFilter);
+  } else {
+    map.addLayer({
+      id: HOVER_GLOW_ID,
+      type: "line",
+      source: sourceId,
+      filter: hoverFilter,
+      paint: {
+        "line-color": "rgba(25,240,215,0.9)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.8, 9, 3.8, 12, 5.0] as ExpressionSpecification,
+        "line-opacity": 0.5,
+        "line-blur": 2.4,
+      },
+    });
+  }
+
+  if (map.getLayer(HOVER_CORE_ID)) {
+    map.setFilter(HOVER_CORE_ID, hoverFilter);
+  } else {
+    map.addLayer({
+      id: HOVER_CORE_ID,
+      type: "line",
+      source: sourceId,
+      filter: hoverFilter,
+      paint: {
+        "line-color": "rgba(225,255,255,0.95)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.0, 9, 1.4, 12, 1.8] as ExpressionSpecification,
+        "line-opacity": 0.9,
       },
     });
   }
@@ -471,6 +541,15 @@ export function setGridBaseVisibility(
   if (map.getLayer(PEAK_SHINE_ID)) {
     map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", visible ? 0.6 : 0);
   }
+  if (map.getLayer(HOVER_FILL_ID)) {
+    map.setPaintProperty(HOVER_FILL_ID, "fill-opacity", visible ? 0.2 : 0);
+  }
+  if (map.getLayer(HOVER_GLOW_ID)) {
+    map.setPaintProperty(HOVER_GLOW_ID, "line-opacity", visible ? 0.5 : 0);
+  }
+  if (map.getLayer(HOVER_CORE_ID)) {
+    map.setPaintProperty(HOVER_CORE_ID, "line-opacity", visible ? 0.9 : 0);
+  }
   if (map.getLayer(HALO_ID)) {
     map.setPaintProperty(HALO_ID, "line-opacity", visible ? 0.45 : 0);
   }
@@ -499,6 +578,9 @@ export function removeGridOverlay(
 ) {
   removeLayerIfExists(map, PEAK_SHINE_ID);
   removeLayerIfExists(map, SHIMMER_ID);
+  removeLayerIfExists(map, HOVER_CORE_ID);
+  removeLayerIfExists(map, HOVER_GLOW_ID);
+  removeLayerIfExists(map, HOVER_FILL_ID);
   removeLayerIfExists(map, HALO_ID);
   removeLayerIfExists(map, HOT_FILL_HALO_ID);
   removeLayerIfExists(map, HOT_FILL_SOFT_ID);
@@ -540,5 +622,21 @@ export function updateGridFillColor(
 ) {
   if (map.getLayer(fillId)) {
     map.setPaintProperty(fillId, "fill-color", fillColorExpr);
+  }
+}
+
+export function setGridHoverCell(
+  map: MapLibreMap,
+  cellId: string | null
+) {
+  const filter = cellId ? buildHoverFilter(cellId) : emptyHoverFilter();
+  if (map.getLayer(HOVER_FILL_ID)) {
+    map.setFilter(HOVER_FILL_ID, filter);
+  }
+  if (map.getLayer(HOVER_GLOW_ID)) {
+    map.setFilter(HOVER_GLOW_ID, filter);
+  }
+  if (map.getLayer(HOVER_CORE_ID)) {
+    map.setFilter(HOVER_CORE_ID, filter);
   }
 }

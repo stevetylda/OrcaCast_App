@@ -12,8 +12,8 @@ type Props = {
 };
 
 const DEFAULT_SIZE = 24;
-const STROKE_DEFAULT = "rgba(255,255,255,0.92)";
-const STROKE_SELECTED = "var(--teal)";
+const STROKE_DEFAULT = "var(--h3-icon-stroke, rgba(255,255,255,0.92))";
+const STROKE_SELECTED = "var(--h3-icon-selected, var(--teal))";
 
 export function StackedHexIcon({
   selected, // ✅ no default "false"

@@ -2,6 +2,12 @@ export type HeatScale = {
   thresholds: number[];
   binColorsRgba: string[];
   labels: string[];
+  binRanges: Array<{
+    percentileMin: number;
+    percentileMax: number;
+    probMin: number;
+    probMax: number;
+  }>;
   hotspotThreshold?: number;
 };
 
@@ -23,7 +29,7 @@ const BASE_PALETTE = [
 ];
 
 const LABELS = [
-  "No probability",
+  "Not Scored",
   "Very Low",
   "Low",
   "Moderate",
@@ -134,17 +140,17 @@ function buildRamp(colors: string[], n: number, alphas: number[]): string[] {
   return ramp;
 }
 
-function tailQuantileThresholds(values: number[]): number[] {
+function tailQuantileThresholds(values: number[]): Array<{ value: number; quantile: number }> {
   const sorted = [...values].sort((a, b) => a - b);
-  const thresholds: number[] = [];
+  const thresholds: Array<{ value: number; quantile: number }> = [];
   Q_LEVELS.forEach((q) => {
     const idx = Math.max(0, Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1))));
-    thresholds.push(sorted[idx]);
+    thresholds.push({ value: sorted[idx], quantile: q });
   });
-  const unique: number[] = [];
+  const unique: Array<{ value: number; quantile: number }> = [];
   thresholds.forEach((t) => {
-    const last = unique[unique.length - 1];
-    if (last === undefined || t > last) unique.push(t);
+    const last = unique[unique.length - 1]?.value;
+    if (last === undefined || t.value > last) unique.push(t);
   });
   return unique;
 }
@@ -163,17 +169,26 @@ export function buildAutoColorExprFromValues(
     };
   }
 
-  let thresholds = tailQuantileThresholds(values);
-  if (thresholds.length > 7) {
-    thresholds = thresholds.slice(0, 7);
+  let quantileThresholds = tailQuantileThresholds(values);
+  if (quantileThresholds.length > 7) {
+    quantileThresholds = quantileThresholds.slice(0, 7);
   }
+  const thresholds = quantileThresholds.map((entry) => entry.value);
   const maxValue = Math.max(...values);
+  const minValue = Math.min(...values);
   const bins = Math.max(1, thresholds.length + 1);
   const alphaRamp = Array.from({ length: bins }, (_, i) => {
     const t = i / Math.max(1, bins - 1);
     return 0.6 + t * (1.0 - 0.6);
   });
   const colors = buildRamp(adjustPalette(palette), bins, alphaRamp);
+  const quantileBounds = [0, ...quantileThresholds.map((entry) => entry.quantile), 1];
+  const binRanges = Array.from({ length: bins }, (_, idx) => ({
+    percentileMin: quantileBounds[idx] * 100,
+    percentileMax: quantileBounds[idx + 1] * 100,
+    probMin: idx === 0 ? minValue : thresholds[idx - 1],
+    probMax: idx < thresholds.length ? thresholds[idx] : maxValue,
+  }));
 
   if (thresholds.length === 0) {
     return {
@@ -182,6 +197,7 @@ export function buildAutoColorExprFromValues(
         thresholds: [],
         binColorsRgba: colors.length ? colors : [ZERO_COLOR],
         labels: LABELS,
+        binRanges,
         hotspotThreshold: maxValue,
       },
     };
@@ -200,6 +216,7 @@ export function buildAutoColorExprFromValues(
       thresholds,
       binColorsRgba: colors,
       labels: LABELS,
+      binRanges,
       hotspotThreshold: thresholds[thresholds.length - 1],
     },
   };
