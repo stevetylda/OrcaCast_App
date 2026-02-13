@@ -37,6 +37,14 @@ export function ModelCarousel({ models }: Props) {
     return () => window.clearTimeout(timer);
   }, [trayMessage]);
 
+  useEffect(() => {
+    if (!draggingId) return;
+    document.body.classList.add("modelsDragging");
+    return () => {
+      document.body.classList.remove("modelsDragging");
+    };
+  }, [draggingId]);
+
   const selectedModels = selectedIds
     .map((id) => modelsById.get(id))
     .filter((model): model is ModelInfo => Boolean(model));

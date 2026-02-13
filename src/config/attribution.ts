@@ -1,10 +1,10 @@
+export const basemapSources = [
+  "OpenStreetMap contributors",
+  "OpenMapTiles",
+  "Stadia Maps",
+];
+
 export const attribution = {
-  inlineText: "© OpenStreetMap contributors · © CARTO",
-  sources: [
-    "OpenStreetMap contributors",
-    "CARTO basemaps",
-    "Acartia",
-    "The Whale Museum",
-    "iNaturalist",
-  ],
+  inlineText: "© OpenStreetMap contributors · © OpenMapTiles · © Stadia Maps",
+  sources: [...basemapSources, "Acartia", "The Whale Museum", "iNaturalist"],
 };

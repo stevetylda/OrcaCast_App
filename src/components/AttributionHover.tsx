@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { attribution } from "../config/attribution";
+import { attribution, basemapSources } from "../config/attribution";
 
 type Props = {
   className?: string;
@@ -11,7 +11,7 @@ export function AttributionHover({ className }: Props) {
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const extraCount = useMemo(
-    () => Math.max(0, attribution.sources.length - 2),
+    () => Math.max(0, attribution.sources.length - basemapSources.length),
     []
   );
 

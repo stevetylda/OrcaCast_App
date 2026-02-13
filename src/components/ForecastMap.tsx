@@ -49,7 +49,7 @@
 //   "#E8FFFD",
 // ];
 
-// const VOYAGER_STYLE = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+// const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
 // const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 // const DEFAULT_CENTER: [number, number] = [-122.6, 47.6];
@@ -1030,6 +1030,7 @@ import { buildKdeBandsCacheKey, loadKdeBandsGeojson } from "../data/kdeBandsIO";
 import type { Period } from "../data/periods";
 import {
   addGridOverlay,
+  setGridHoverCell,
   setGridBaseVisibility,
   setGridVisibility,
   setHotspotVisibility,
@@ -1062,6 +1063,12 @@ function formatModelLabel(value: string): string {
   return value
     .replace(/_/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function getFeatureCellId(feature: { properties?: Record<string, unknown> } | undefined): string {
+  const props = feature?.properties as Record<string, unknown> | undefined;
+  const cellIdRaw = props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "";
+  return String(cellIdRaw || "");
 }
 
 function buildSparklineSvg(
@@ -1168,8 +1175,96 @@ const PALETTE = [
   "#E8FFFD",
 ];
 
-const VOYAGER_STYLE = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
-const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
+const DARK_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
+const BASEMAP_TINT_SOURCE_ID = "orcacast-basemap-tint-source";
+const BASEMAP_TINT_LAYER_ID = "orcacast-basemap-tint-layer";
+const DARK_LABEL_OPACITY = 0.86;
+
+function applyBasemapVisualTuning(map: MapLibreMap, isDarkBasemap: boolean) {
+  const style = map.getStyle();
+  const layers = style?.layers ?? [];
+  if (layers.length === 0) return;
+
+  if (isDarkBasemap) {
+    const firstSymbolLayerId = layers.find((layer) => layer.type === "symbol")?.id;
+    if (!map.getSource(BASEMAP_TINT_SOURCE_ID)) {
+      map.addSource(BASEMAP_TINT_SOURCE_ID, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [-180, -85],
+                    [180, -85],
+                    [180, 85],
+                    [-180, 85],
+                    [-180, -85],
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      });
+    }
+    if (!map.getLayer(BASEMAP_TINT_LAYER_ID)) {
+      map.addLayer(
+        {
+          id: BASEMAP_TINT_LAYER_ID,
+          type: "fill",
+          source: BASEMAP_TINT_SOURCE_ID,
+          paint: {
+            "fill-color": "#3a4148",
+            "fill-opacity": 0.14,
+          },
+        },
+        firstSymbolLayerId
+      );
+    } else {
+      map.setPaintProperty(BASEMAP_TINT_LAYER_ID, "fill-color", "#3a4148");
+      map.setPaintProperty(BASEMAP_TINT_LAYER_ID, "fill-opacity", 0.14);
+      if (firstSymbolLayerId) {
+        map.moveLayer(BASEMAP_TINT_LAYER_ID, firstSymbolLayerId);
+      }
+    }
+  } else {
+    if (map.getLayer(BASEMAP_TINT_LAYER_ID)) {
+      map.removeLayer(BASEMAP_TINT_LAYER_ID);
+    }
+    if (map.getSource(BASEMAP_TINT_SOURCE_ID)) {
+      map.removeSource(BASEMAP_TINT_SOURCE_ID);
+    }
+  }
+
+  layers.forEach((layer) => {
+    if (layer.type === "symbol") {
+      const layout = (layer as { layout?: Record<string, unknown> }).layout ?? {};
+      const hasText = "text-field" in layout;
+      const hasIcon = "icon-image" in layout;
+      if (hasText) {
+        map.setPaintProperty(layer.id, "text-opacity", isDarkBasemap ? DARK_LABEL_OPACITY : 1);
+      }
+      if (hasIcon) {
+        map.setPaintProperty(layer.id, "icon-opacity", isDarkBasemap ? 0.92 : 1);
+      }
+      return;
+    }
+
+    if (layer.type === "raster") {
+      map.setPaintProperty(layer.id, "raster-saturation", isDarkBasemap ? -0.2 : 0);
+      map.setPaintProperty(layer.id, "raster-brightness-min", isDarkBasemap ? 0.02 : 0);
+      map.setPaintProperty(layer.id, "raster-brightness-max", isDarkBasemap ? 0.92 : 1);
+      map.setPaintProperty(layer.id, "raster-contrast", isDarkBasemap ? -0.06 : 0);
+    }
+  });
+}
 
 const DEFAULT_CENTER: [number, number] = [-122.6, 47.6];
 const DEFAULT_ZOOM = 7;
@@ -1203,6 +1298,10 @@ export function ForecastMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
+  const gridBorderColor = useMemo(
+    () => (darkMode ? "rgba(8,18,44,0.22)" : "rgba(20,42,78,0.16)"),
+    [darkMode]
+  );
   const overlayRef = useRef<FeatureCollection | null>(null);
   const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
@@ -1240,11 +1339,13 @@ export function ForecastMap({
   const selectedWeekRef = useRef(selectedWeek);
   const selectedWeekYearRef = useRef(selectedWeekYear);
   const styleUrlRef = useRef(styleUrl);
+  const activeStyleUrlRef = useRef(styleUrl);
   const lastWeekDataRef = useRef<Record<string, FeatureCollection | null>>({});
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
   const sparkPopupRef = useRef<maplibregl.Popup | null>(null);
   const sparkRequestIdRef = useRef(0);
+  const hoveredCellRef = useRef<string | null>(null);
   const periodsRef = useRef<Period[]>(periods);
   const modelIdRef = useRef(modelId);
   const resolutionRef = useRef(resolution);
@@ -1469,7 +1570,7 @@ export function ForecastMap({
 
     const map = new maplibregl.Map(mapOptions);
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-left");
 
     map.on("error", (e: { error?: unknown }) => {
       // eslint-disable-next-line no-console
@@ -1500,6 +1601,7 @@ export function ForecastMap({
       const pitch = mapRef.current.getPitch();
 
       mapRef.current.setStyle(nextStyle);
+      activeStyleUrlRef.current = nextStyle;
       mapRef.current.once("styledata", () => {
         if (!mapRef.current) return;
         try {
@@ -1507,6 +1609,7 @@ export function ForecastMap({
         } catch {
           // no-op
         }
+        applyBasemapVisualTuning(mapRef.current, styleUrlRef.current === DARK_STYLE);
         mapRef.current.resize();
         renderForecastLayer(mapRef.current);
         applyLastWeekFromCache(mapRef.current);
@@ -1520,9 +1623,7 @@ export function ForecastMap({
       const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
       const feature = features[0];
       if (!feature) return;
-      const props = feature.properties as Record<string, unknown> | undefined;
-      const cellIdRaw = props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "";
-      const cellId = String(cellIdRaw || "");
+      const cellId = getFeatureCellId(feature as { properties?: Record<string, unknown> });
       if (!cellId) return;
 
       const periodsList = periodsRef.current ?? [];
@@ -1623,19 +1724,38 @@ export function ForecastMap({
     const handleMouseEnter = () => {
       map.getCanvas().style.cursor = "pointer";
     };
+    const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
+      const cellId = getFeatureCellId(
+        features[0] as { properties?: Record<string, unknown> } | undefined
+      );
+      if (!cellId || hoveredCellRef.current === cellId) return;
+      hoveredCellRef.current = cellId;
+      setGridHoverCell(map, cellId);
+    };
     const handleMouseLeave = () => {
+      hoveredCellRef.current = null;
+      setGridHoverCell(map, null);
       map.getCanvas().style.cursor = "";
     };
 
     map.on("click", "grid-fill", handleSparklineClick);
     map.on("mouseenter", "grid-fill", handleMouseEnter);
+    map.on("mousemove", "grid-fill", handleMouseMove);
     map.on("mouseleave", "grid-fill", handleMouseLeave);
 
     map.once("load", () => {
+      applyBasemapVisualTuning(map, styleUrlRef.current === DARK_STYLE);
       map.resize();
       logMapDebug("load");
       setMapReady(true);
     });
+
+    const handleStyleData = () => {
+      if (!mapRef.current) return;
+      applyBasemapVisualTuning(mapRef.current, styleUrlRef.current === DARK_STYLE);
+    };
+    map.on("styledata", handleStyleData);
 
     mapRef.current = map;
     if (import.meta.env.DEV && typeof window !== "undefined") {
@@ -1679,7 +1799,9 @@ export function ForecastMap({
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       map.off("click", "grid-fill", handleSparklineClick);
       map.off("mouseenter", "grid-fill", handleMouseEnter);
+      map.off("mousemove", "grid-fill", handleMouseMove);
       map.off("mouseleave", "grid-fill", handleMouseLeave);
+      map.off("styledata", handleStyleData);
       if (sparkPopupRef.current) {
         sparkPopupRef.current.remove();
         sparkPopupRef.current = null;
@@ -1711,7 +1833,15 @@ export function ForecastMap({
       fillExprRef.current = fillExpr;
     }
 
-    addGridOverlay(map, overlayRef.current, fillExpr, threshold, hotspots, shimmerThresholdRef.current);
+    addGridOverlay(
+      map,
+      overlayRef.current,
+      fillExpr,
+      threshold,
+      hotspots,
+      shimmerThresholdRef.current,
+      gridBorderColor
+    );
 
     if (showKdeContoursRef.current) {
       setGridVisibility(map, false);
@@ -1722,6 +1852,7 @@ export function ForecastMap({
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
+    setGridHoverCell(map, hoveredCellRef.current);
     moveLastWeekToTop(map);
   };
 
@@ -1733,6 +1864,9 @@ export function ForecastMap({
     let lastTick = 0;
     const shimmerId = "grid-shimmer-fill";
     const peakId = "grid-peak-shine";
+    const hoverFillId = "grid-hover-fill";
+    const hoverGlowId = "grid-hover-glow";
+    const hoverCoreId = "grid-hover-core";
 
     const tick = (time: number) => {
       if (time - lastTick > 120) {
@@ -1740,6 +1874,9 @@ export function ForecastMap({
         const t = time / 1000;
         const shimmerOpacity = 0.16 + 0.06 * Math.sin(t * 0.6);
         const glowOpacity = 0.5 + 0.12 * Math.sin(t * 0.5 + 0.8);
+        const wandFillOpacity = 0.16 + 0.06 * Math.sin(t * 1.5 + 0.2);
+        const wandGlowOpacity = 0.42 + 0.18 * Math.sin(t * 1.9);
+        const wandCoreOpacity = 0.72 + 0.18 * Math.sin(t * 1.2 + 0.9);
         const hideGrid = showKdeContoursRef.current || hotspotsOnlyRef.current;
         if (map.getLayer(shimmerId)) {
           map.setPaintProperty(shimmerId, "fill-opacity", hideGrid ? 0 : shimmerOpacity);
@@ -1751,6 +1888,15 @@ export function ForecastMap({
         }
         if (map.getLayer(peakId)) {
           map.setPaintProperty(peakId, "line-opacity", hideGrid ? 0 : glowOpacity);
+        }
+        if (map.getLayer(hoverFillId)) {
+          map.setPaintProperty(hoverFillId, "fill-opacity", hideGrid ? 0 : wandFillOpacity);
+        }
+        if (map.getLayer(hoverGlowId)) {
+          map.setPaintProperty(hoverGlowId, "line-opacity", hideGrid ? 0 : wandGlowOpacity);
+        }
+        if (map.getLayer(hoverCoreId)) {
+          map.setPaintProperty(hoverCoreId, "line-opacity", hideGrid ? 0 : wandCoreOpacity);
         }
       }
       rafId = requestAnimationFrame(tick);
@@ -1764,12 +1910,7 @@ export function ForecastMap({
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    const currentStyle = map.getStyle();
-    const currentName = currentStyle?.name ?? "";
-    const wantsDark = styleUrl.includes("dark-matter");
-    const isDarkNow = currentName.toLowerCase().includes("dark");
-
-    if ((wantsDark && isDarkNow) || (!wantsDark && !isDarkNow)) return;
+    if (activeStyleUrlRef.current === styleUrl) return;
 
     const center = map.getCenter();
     const zoom = map.getZoom();
@@ -1777,6 +1918,7 @@ export function ForecastMap({
     const pitch = map.getPitch();
 
     map.setStyle(styleUrl);
+    activeStyleUrlRef.current = styleUrl;
 
     map.once("styledata", () => {
       try {
@@ -1784,11 +1926,12 @@ export function ForecastMap({
       } catch {
         // no-op
       }
+      applyBasemapVisualTuning(map, styleUrl === DARK_STYLE);
       map.resize();
       renderForecastLayer(map);
       applyLastWeekFromCache(map);
     });
-  }, [styleUrl, showLastWeek]);
+  }, [styleUrl, mapReady]);
 
   const getPreviousWeek = (year: number, week: number) => {
     if (week > 1) {

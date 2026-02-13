@@ -44,7 +44,6 @@ type NonNoneLastWeekMode = Exclude<LastWeekMode, "none">;
 export function MapPage() {
   const {
     darkMode,
-    themeMode,
     setThemeMode,
     resolution,
     setResolution,
@@ -442,7 +441,7 @@ export function MapPage() {
         resolution={resolution}
         onResolutionChange={setResolution}
         darkMode={darkMode}
-        onToggleDarkMode={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+        onToggleDarkMode={() => setThemeMode(darkMode ? "light" : "dark")}
         onOpenInfo={() => setInfoOpen(true)}
         onOpenMenu={() => setMenuOpen(true)}
       />
