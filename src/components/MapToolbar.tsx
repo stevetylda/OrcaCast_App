@@ -17,6 +17,8 @@ type Props = {
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
+  compareEnabled: boolean;
+  onToggleCompare: (value: boolean) => void;
   className?: string;
 };
 
@@ -60,6 +62,8 @@ export function MapToolbar({
   poiFilters,
   onTogglePoiAll,
   onTogglePoiType,
+  compareEnabled,
+  onToggleCompare,
   className,
 }: Props) {
   const lastWeekRef = useRef<HTMLDivElement | null>(null);
@@ -131,6 +135,14 @@ export function MapToolbar({
 
   return (
     <div className={className ? `toolbar ${className}` : "toolbar"} data-tour="toolbar">
+      <label className="toolToolbar__compareToggle" data-tour="tools-compare-toggle">
+        <span>Compare</span>
+        <input
+          type="checkbox"
+          checked={compareEnabled}
+          onChange={(e) => onToggleCompare(e.target.checked)}
+        />
+      </label>
       <div
         ref={lastWeekRef}
         className={`toolMenu${lastWeekOpen ? " toolMenu--open" : ""}`}

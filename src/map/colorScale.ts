@@ -157,25 +157,30 @@ function tailQuantileThresholds(values: number[]): Array<{ value: number; quanti
 
 export function buildAutoColorExprFromValues(
   probsByH3: Record<string, number>,
-  palette: string[] = BASE_PALETTE
+  palette: string[] = BASE_PALETTE,
+  normalizationValues?: Record<string, number>
 ): ColorScaleResult {
   const values = Object.values(probsByH3)
     .map((v) => Number(v))
     .filter((v) => Number.isFinite(v) && v > 0);
-  if (values.length === 0) {
+  const scaleSource = normalizationValues ?? probsByH3;
+  const scaleValues = Object.values(scaleSource)
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (values.length === 0 || scaleValues.length === 0) {
     return {
       fillColorExpr: ["case", ["<=", ["coalesce", ["get", "prob"], 0], 0], ZERO_COLOR, ZERO_COLOR],
       scale: null,
     };
   }
 
-  let quantileThresholds = tailQuantileThresholds(values);
+  let quantileThresholds = tailQuantileThresholds(scaleValues);
   if (quantileThresholds.length > 7) {
     quantileThresholds = quantileThresholds.slice(0, 7);
   }
   const thresholds = quantileThresholds.map((entry) => entry.value);
-  const maxValue = Math.max(...values);
-  const minValue = Math.min(...values);
+  const maxValue = Math.max(...scaleValues);
+  const minValue = Math.min(...scaleValues);
   const bins = Math.max(1, thresholds.length + 1);
   const alphaRamp = Array.from({ length: bins }, (_, i) => {
     const t = i / Math.max(1, bins - 1);

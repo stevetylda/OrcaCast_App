@@ -5,6 +5,7 @@ import { ToolDrawer } from "../components/ToolDrawer";
 import { WelcomeModal } from "../components/WelcomeModal";
 
 import { ForecastMap } from "../components/ForecastMap";
+import { CompareToolTray } from "../components/CompareToolTray";
 // import { InfoModal } from "../components/InfoModal";
 // import { TimeseriesModal } from "../components/modals/TimeseriesModal";
 
@@ -59,6 +60,8 @@ export function MapPage() {
     setHotspotMode,
     hotspotPercentile,
     setHotspotPercentile,
+    compare,
+    setCompare,
   } = useMapState();
 
   const { setMenuOpen } = useMenu();
@@ -92,6 +95,10 @@ export function MapPage() {
   const [actualSeries, setActualSeries] = useState<
     Array<{ year: number; stat_week: number; actual_count: number }>
   >([]);
+  const [compareValuesA, setCompareValuesA] = useState<Record<string, number>>({});
+  const [compareValuesB, setCompareValuesB] = useState<Record<string, number>>({});
+  const mapARef = useRef<any>(null);
+  const mapBRef = useRef<any>(null);
 
   const modelVersion = useMemo(() => "vPhase2", []);
   const showLastWeek = lastWeekMode !== "none";
@@ -222,6 +229,14 @@ export function MapPage() {
   const selectedPeriodKeyForNotice = selectedForecast?.periodKey ?? configPeriod.periodKey;
   const selectedPeriodYear = selectedForecast?.year ?? configPeriod.year;
   const selectedPeriodWeek = selectedForecast?.stat_week ?? configPeriod.stat_week;
+  const comparePeriodA = periods.find((p) => p.year === compare.modelA.year && p.stat_week === compare.modelA.period) ?? selectedForecast ?? configPeriod;
+  const comparePeriodB = periods.find((p) => p.year === compare.modelB.year && p.stat_week === compare.modelB.period) ?? selectedForecast ?? configPeriod;
+  const comparePathA = getForecastPathForPeriod(resolution, comparePeriodA.fileId);
+  const comparePathB = getForecastPathForPeriod(resolution, comparePeriodB.fileId);
+  const compareNormalizationValues = useMemo(() => {
+    if (compare.scaleMode !== "shared") return undefined;
+    return { ...compareValuesA, ...compareValuesB };
+  }, [compare.scaleMode, compareValuesA, compareValuesB]);
 
   const forecastPeriodText = useMemo(
     () => selectedForecast?.label ?? formatForecastPeriod(appConfig.forecastPeriod),
@@ -408,6 +423,50 @@ export function MapPage() {
     return () => window.clearTimeout(timeoutId);
   }, [selectedPeriodHasForecast, selectedPeriodKeyForNotice]);
 
+  useEffect(() => {
+    if (!compare.enabled) return;
+    let active = true;
+    Promise.all([
+      loadForecast(resolution, { kind: "explicit", explicitPath: comparePathA, modelId: compare.modelA.model }).catch(() => ({ values: {} })),
+      loadForecast(resolution, { kind: "explicit", explicitPath: comparePathB, modelId: compare.modelB.model }).catch(() => ({ values: {} })),
+    ]).then(([a, b]) => {
+      if (!active) return;
+      setCompareValuesA(a.values ?? {});
+      setCompareValuesB(b.values ?? {});
+    });
+    return () => {
+      active = false;
+    };
+  }, [compare.enabled, compare.modelA.model, compare.modelB.model, comparePathA, comparePathB, resolution]);
+
+  useEffect(() => {
+    if (!compare.enabled || compare.mode !== "split" || !compare.split.syncDrag || !mapARef.current || !mapBRef.current) return;
+    let syncing = false;
+    const sync = (src: any, dst: any) => {
+      if (syncing) return;
+      syncing = true;
+      dst.jumpTo({ center: src.getCenter(), zoom: src.getZoom(), bearing: src.getBearing(), pitch: src.getPitch() });
+      syncing = false;
+    };
+    const onA = () => sync(mapARef.current, mapBRef.current);
+    const onB = () => sync(mapBRef.current, mapARef.current);
+    mapARef.current.on("moveend", onA);
+    mapBRef.current.on("moveend", onB);
+    return () => {
+      mapARef.current?.off("moveend", onA);
+      mapBRef.current?.off("moveend", onB);
+    };
+  }, [compare.enabled, compare.mode, compare.split.syncDrag]);
+
+  useEffect(() => {
+    if (!compare.enabled || compare.mode !== "split") return;
+    const id = requestAnimationFrame(() => {
+      mapARef.current?.resize();
+      mapBRef.current?.resize();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [compare.enabled, compare.mode, compare.split.splitPct, compare.split.fixed]);
+
   const currentWeek = useMemo(
     () => selectedForecast?.stat_week ?? forecastPeriodToIsoWeek(appConfig.forecastPeriod),
     [selectedForecast]
@@ -447,27 +506,126 @@ export function MapPage() {
       />
 
       <main className="app__main">
-        {/* <Suspense fallback={<div className="mapStage mapLoading">Loading map…</div>}> */}
-        <ForecastMap
-          darkMode={darkMode}
-          resolution={resolution}
-          showLastWeek={showLastWeek}
-          lastWeekMode={lastWeekMode}
-          poiFilters={poiFilters}
-          modelId={modelId}
-          periods={periods}
-          selectedWeek={currentWeek}
-          selectedWeekYear={currentWeekYear}
-          timeseriesOpen={timeseriesOpen}
-          hotspotsEnabled={hotspotsEnabled}
-          hotspotMode={hotspotMode}
-          hotspotPercentile={hotspotPercentile}
-          hotspotModeledCount={expectedSummary.current}
-          onHotspotsEnabledChange={setHotspotsEnabled}
-          onGridCellCount={setHotspotTotalCells}
-          forecastPath={forecastPath}
-        />
-        {/* </Suspense> */}
+        {compare.enabled ? (
+          compare.mode === "split" ? (
+            <div className="compareSplitWrap" style={{ ["--split" as string]: `${compare.split.fixed ? 50 : compare.split.splitPct}%` }}>
+              <ForecastMap
+                darkMode={darkMode}
+                resolution={resolution}
+                showLastWeek={showLastWeek}
+                lastWeekMode={lastWeekMode}
+                poiFilters={poiFilters}
+                modelId={compare.modelA.model}
+                periods={periods}
+                selectedWeek={compare.modelA.period}
+                selectedWeekYear={compare.modelA.year}
+                timeseriesOpen={timeseriesOpen}
+                hotspotsEnabled={hotspotsEnabled}
+                hotspotMode={hotspotMode}
+                hotspotPercentile={hotspotPercentile}
+                hotspotModeledCount={expectedSummary.current}
+                onHotspotsEnabledChange={setHotspotsEnabled}
+                onGridCellCount={setHotspotTotalCells}
+                onMapReady={(m) => (mapARef.current = m)}
+                onGridCellSelect={({ h3 }) => setCompare((p) => ({ ...p, selection: { h3 } }))}
+                enableSparklinePopup={false}
+                normalizationValues={compareNormalizationValues}
+                forecastPath={comparePathA}
+              />
+              <ForecastMap
+                darkMode={darkMode}
+                resolution={resolution}
+                showLastWeek={showLastWeek}
+                lastWeekMode={lastWeekMode}
+                poiFilters={poiFilters}
+                modelId={compare.modelB.model}
+                periods={periods}
+                selectedWeek={compare.modelB.period}
+                selectedWeekYear={compare.modelB.year}
+                timeseriesOpen={timeseriesOpen}
+                hotspotsEnabled={hotspotsEnabled}
+                hotspotMode={hotspotMode}
+                hotspotPercentile={hotspotPercentile}
+                hotspotModeledCount={expectedSummary.current}
+                onHotspotsEnabledChange={setHotspotsEnabled}
+                onGridCellCount={setHotspotTotalCells}
+                onMapReady={(m) => (mapBRef.current = m)}
+                onGridCellSelect={({ h3 }) => setCompare((p) => ({ ...p, selection: { h3 } }))}
+                enableSparklinePopup={false}
+                normalizationValues={compareNormalizationValues}
+                forecastPath={comparePathB}
+              />
+            </div>
+          ) : (
+            <div className="compareOverlayWrap">
+              <ForecastMap
+                darkMode={darkMode}
+                resolution={resolution}
+                showLastWeek={showLastWeek}
+                lastWeekMode={lastWeekMode}
+                poiFilters={poiFilters}
+                modelId={compare.modelA.model}
+                periods={periods}
+                selectedWeek={compare.modelA.period}
+                selectedWeekYear={compare.modelA.year}
+                timeseriesOpen={timeseriesOpen}
+                hotspotsEnabled={hotspotsEnabled}
+                hotspotMode={hotspotMode}
+                hotspotPercentile={hotspotPercentile}
+                hotspotModeledCount={expectedSummary.current}
+                onHotspotsEnabledChange={setHotspotsEnabled}
+                onGridCellCount={setHotspotTotalCells}
+                onGridCellSelect={({ h3 }) => setCompare((p) => ({ ...p, selection: { h3 } }))}
+                enableSparklinePopup={false}
+                normalizationValues={compareNormalizationValues}
+                forecastPath={comparePathA}
+              />
+              <ForecastMap
+                darkMode={darkMode}
+                resolution={resolution}
+                showLastWeek={showLastWeek}
+                lastWeekMode={lastWeekMode}
+                poiFilters={poiFilters}
+                modelId={compare.modelB.model}
+                periods={periods}
+                selectedWeek={compare.modelB.period}
+                selectedWeekYear={compare.modelB.year}
+                timeseriesOpen={timeseriesOpen}
+                hotspotsEnabled={false}
+                hotspotMode={hotspotMode}
+                hotspotPercentile={hotspotPercentile}
+                hotspotModeledCount={expectedSummary.current}
+                onHotspotsEnabledChange={() => {}}
+                onGridCellSelect={({ h3 }) => setCompare((p) => ({ ...p, selection: { h3 } }))}
+                enableSparklinePopup={false}
+                normalizationValues={compareNormalizationValues}
+                className="compareOverlayWrap__top"
+                style={{ opacity: compare.overlay.opacity }}
+                forecastPath={comparePathB}
+              />
+            </div>
+          )
+        ) : (
+          <ForecastMap
+            darkMode={darkMode}
+            resolution={resolution}
+            showLastWeek={showLastWeek}
+            lastWeekMode={lastWeekMode}
+            poiFilters={poiFilters}
+            modelId={modelId}
+            periods={periods}
+            selectedWeek={currentWeek}
+            selectedWeekYear={currentWeekYear}
+            timeseriesOpen={timeseriesOpen}
+            hotspotsEnabled={hotspotsEnabled}
+            hotspotMode={hotspotMode}
+            hotspotPercentile={hotspotPercentile}
+            hotspotModeledCount={expectedSummary.current}
+            onHotspotsEnabledChange={setHotspotsEnabled}
+            onGridCellCount={setHotspotTotalCells}
+            forecastPath={forecastPath}
+          />
+        )}
 
 
         <ToolDrawer
@@ -508,7 +666,27 @@ export function MapPage() {
           onTogglePoiType={(type) =>
             setPoiFilters((prev) => ({ ...prev, [type]: !prev[type] }))
           }
+          compareEnabled={compare.enabled}
+          onToggleCompare={(value) =>
+            setCompare((prev) => ({
+              ...prev,
+              enabled: value,
+              modelA: { ...prev.modelA, model: prev.modelA.model || modelId, year: selectedPeriodYear, period: selectedPeriodWeek },
+              modelB: { ...prev.modelB, model: prev.modelB.model || modelId, year: selectedPeriodYear, period: selectedPeriodWeek },
+            }))
+          }
         />
+
+        {compare.enabled && (
+          <CompareToolTray
+            compare={compare}
+            periods={periods}
+            modelOptions={modelOptions}
+            valueA={compare.selection.h3 ? Number(compareValuesA[compare.selection.h3]) || null : null}
+            valueB={compare.selection.h3 ? Number(compareValuesB[compare.selection.h3]) || null : null}
+            onChange={setCompare}
+          />
+        )}
 
         <div className="app__footer">
           <AppFooter

@@ -1,4 +1,4 @@
-// import { useEffect, useMemo, useRef, useState } from "react";
+// import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 // import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 // import type { FeatureCollection } from "geojson";
 // import { GeoJsonLayer } from "@deck.gl/layers";
@@ -443,7 +443,7 @@
 
 //         if (cancelled) return;
 //         const joined = attachProbabilities(grid, values);
-//         const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE);
+//         const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE, normalizationValues);
 //         const valueList = Object.values(values)
 //           .map((v) => Number(v))
 //           .filter((v) => Number.isFinite(v));
@@ -1016,7 +1016,7 @@
 //   }
 // }
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { GeoJsonLayer } from "@deck.gl/layers";
@@ -1160,6 +1160,12 @@ type Props = {
   hotspotModeledCount: number | null;
   onHotspotsEnabledChange: (next: boolean) => void;
   onGridCellCount?: (count: number) => void;
+  onGridCellSelect?: (selection: { h3: string; value: number; lngLat: { lng: number; lat: number } }) => void;
+  onMapReady?: (map: MapLibreMap | null) => void;
+  enableSparklinePopup?: boolean;
+  normalizationValues?: Record<string, number>;
+  className?: string;
+  style?: CSSProperties;
   forecastPath?: string;
   fallbackForecastPath?: string;
 };
@@ -1292,6 +1298,12 @@ export function ForecastMap({
   hotspotModeledCount,
   onHotspotsEnabledChange,
   onGridCellCount,
+  onGridCellSelect,
+  onMapReady,
+  enableSparklinePopup = true,
+  normalizationValues,
+  className,
+  style,
   forecastPath,
   fallbackForecastPath,
 }: Props) {
@@ -1625,6 +1637,17 @@ export function ForecastMap({
       if (!feature) return;
       const cellId = getFeatureCellId(feature as { properties?: Record<string, unknown> });
       if (!cellId) return;
+
+      if (onGridCellSelect) {
+        const value = Number(valuesByCellRef.current[cellId] ?? 0);
+        onGridCellSelect({
+          h3: cellId,
+          value: Number.isFinite(value) ? value : 0,
+          lngLat: { lng: event.lngLat.lng, lat: event.lngLat.lat },
+        });
+      }
+
+      if (!enableSparklinePopup) return;
 
       const periodsList = periodsRef.current ?? [];
       if (periodsList.length === 0) return;
@@ -2092,7 +2115,7 @@ export function ForecastMap({
         if (cancelled) return;
 
         const joined = attachProbabilities(grid, values);
-        const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE);
+        const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE, normalizationValues);
         const valueList = Object.values(values)
           .map((v) => Number(v))
           .filter((v) => Number.isFinite(v) && v > 0)
@@ -2146,7 +2169,7 @@ export function ForecastMap({
     return () => {
       cancelled = true;
     };
-  }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId]);
+  }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId, normalizationValues]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -2490,8 +2513,13 @@ export function ForecastMap({
     overlay.setProps({ layers: [layer] });
   }, [showKdeContours, kdeBands, legendSpec]);
 
+  useEffect(() => {
+    onMapReady?.(mapRef.current);
+    return () => onMapReady?.(null);
+  }, [mapReady, onMapReady]);
+
   return (
-    <div className="mapStage">
+    <div className={className ? `mapStage ${className}` : "mapStage"} style={style}>
       <div ref={containerRef} className="map" data-tour="map-canvas" />
       <div className="map__cornerRightBottom" data-tour="legend-controls">
         <button
