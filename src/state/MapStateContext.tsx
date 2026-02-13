@@ -3,6 +3,20 @@ import type { H3Resolution } from "../config/dataPaths";
 import { appConfig } from "../config/appConfig";
 
 type ThemeMode = "light" | "dark" | "system";
+type CompareMode = "split" | "overlay";
+type ScaleMode = "shared" | "separate";
+
+type CompareSpec = {
+  enabled: boolean;
+  mode: CompareMode;
+  scaleMode: ScaleMode;
+  modelA: { model: string; year: number; period: number };
+  modelB: { model: string; year: number; period: number };
+  split: { syncDrag: boolean; fixed: boolean; splitPct: number };
+  overlay: { opacity: number };
+  selection: { h3: string | null };
+  showDelta: boolean;
+};
 
 type MapState = {
   themeMode: ThemeMode;
@@ -28,6 +42,8 @@ type MapState = {
   setEcotype: (value: "srkw" | "transient" | "both") => void;
   pointsVisible: boolean;
   setPointsVisible: (value: boolean) => void;
+  compare: CompareSpec;
+  setCompare: (value: CompareSpec | ((prev: CompareSpec) => CompareSpec)) => void;
 };
 
 const MapStateContext = createContext<MapState | null>(null);
@@ -51,6 +67,17 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   const [layerMode, setLayerMode] = useState<"observed" | "forecast">("forecast");
   const [ecotype, setEcotype] = useState<"srkw" | "transient" | "both">("srkw");
   const [pointsVisible, setPointsVisible] = useState(true);
+  const [compare, setCompare] = useState<CompareSpec>({
+    enabled: false,
+    mode: "split",
+    scaleMode: "shared",
+    modelA: { model: appConfig.bestModelId, year: appConfig.forecastPeriod / 100 | 0, period: appConfig.forecastPeriod % 100 },
+    modelB: { model: appConfig.bestModelId, year: appConfig.forecastPeriod / 100 | 0, period: appConfig.forecastPeriod % 100 },
+    split: { syncDrag: true, fixed: true, splitPct: 50 },
+    overlay: { opacity: 0.5 },
+    selection: { h3: null },
+    showDelta: true,
+  });
 
   const darkMode = useMemo(() => {
     if (themeMode === "system") return getSystemPrefersDark();
@@ -82,6 +109,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setEcotype,
       pointsVisible,
       setPointsVisible,
+      compare,
+      setCompare,
     }),
     [
       themeMode,
@@ -96,6 +125,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       layerMode,
       ecotype,
       pointsVisible,
+      compare,
       setThemeMode,
       setResolution,
       setModelId,
@@ -107,6 +137,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setLayerMode,
       setEcotype,
       setPointsVisible,
+      setCompare,
     ]
   );
 
