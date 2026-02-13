@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import { appConfig } from "../config/appConfig";
+import { forecastPeriodToIsoWeek, forecastPeriodToIsoWeekYear } from "../core/time/forecastPeriodToIsoWeek";
 
 type ThemeMode = "light" | "dark" | "system";
 type CompareMode = "split" | "overlay";
@@ -54,6 +55,8 @@ const getSystemPrefersDark = () => {
 };
 
 export function MapStateProvider({ children }: { children: ReactNode }) {
+  const defaultCompareYear = forecastPeriodToIsoWeekYear(appConfig.forecastPeriod);
+  const defaultComparePeriod = forecastPeriodToIsoWeek(appConfig.forecastPeriod);
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [resolution, setResolution] = useState<H3Resolution>("H4");
   const [modelId, setModelId] = useState(appConfig.bestModelId);
@@ -71,8 +74,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
     enabled: false,
     mode: "split",
     scaleMode: "shared",
-    modelA: { model: appConfig.bestModelId, year: appConfig.forecastPeriod / 100 | 0, period: appConfig.forecastPeriod % 100 },
-    modelB: { model: appConfig.bestModelId, year: appConfig.forecastPeriod / 100 | 0, period: appConfig.forecastPeriod % 100 },
+    modelA: { model: appConfig.bestModelId, year: defaultCompareYear, period: defaultComparePeriod },
+    modelB: { model: appConfig.bestModelId, year: defaultCompareYear, period: defaultComparePeriod },
     split: { syncDrag: true, fixed: true, splitPct: 50 },
     overlay: { opacity: 0.5 },
     selection: { h3: null },
