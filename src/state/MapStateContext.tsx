@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import { appConfig } from "../config/appConfig";
+import { DEFAULT_COMPARE_SETTINGS, type CompareSettings, type CompareViewMode } from "./compareStore";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -28,6 +29,14 @@ type MapState = {
   setEcotype: (value: "srkw" | "transient" | "both") => void;
   pointsVisible: boolean;
   setPointsVisible: (value: boolean) => void;
+  compareEnabled: boolean;
+  setCompareEnabled: (value: boolean) => void;
+  compareSettings: CompareSettings;
+  setCompareSettings: (value: CompareSettings | ((prev: CompareSettings) => CompareSettings)) => void;
+  compareMode: CompareViewMode;
+  setCompareMode: (value: CompareViewMode) => void;
+  selectedCompareH3: string | null;
+  setSelectedCompareH3: (value: string | null) => void;
 };
 
 const MapStateContext = createContext<MapState | null>(null);
@@ -51,6 +60,10 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   const [layerMode, setLayerMode] = useState<"observed" | "forecast">("forecast");
   const [ecotype, setEcotype] = useState<"srkw" | "transient" | "both">("srkw");
   const [pointsVisible, setPointsVisible] = useState(true);
+  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [compareSettings, setCompareSettings] = useState<CompareSettings>(DEFAULT_COMPARE_SETTINGS);
+  const [compareMode, setCompareMode] = useState<CompareViewMode>("split");
+  const [selectedCompareH3, setSelectedCompareH3] = useState<string | null>(null);
 
   const darkMode = useMemo(() => {
     if (themeMode === "system") return getSystemPrefersDark();
@@ -82,6 +95,14 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setEcotype,
       pointsVisible,
       setPointsVisible,
+      compareEnabled,
+      setCompareEnabled,
+      compareSettings,
+      setCompareSettings,
+      compareMode,
+      setCompareMode,
+      selectedCompareH3,
+      setSelectedCompareH3,
     }),
     [
       themeMode,
@@ -96,6 +117,10 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       layerMode,
       ecotype,
       pointsVisible,
+      compareEnabled,
+      compareSettings,
+      compareMode,
+      selectedCompareH3,
       setThemeMode,
       setResolution,
       setModelId,
@@ -107,6 +132,10 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setLayerMode,
       setEcotype,
       setPointsVisible,
+      setCompareEnabled,
+      setCompareSettings,
+      setCompareMode,
+      setSelectedCompareH3,
     ]
   );
 
