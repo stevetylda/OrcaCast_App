@@ -1396,3 +1396,221 @@ body.modelsDragging * {
 .app:not(.app--dark) .compareTray__pillRemove {
   color: rgba(17, 37, 69, 0.9);
 }
+
+.modelsCompareModal--workspace {
+  width: min(1180px, 94vw);
+  max-height: min(88vh, 920px);
+}
+
+.modelsCompareModal__workspaceBody {
+  position: relative;
+  min-height: 560px;
+}
+
+.compareModeStage {
+  position: relative;
+  height: 100%;
+  min-height: 540px;
+  padding-bottom: 110px;
+}
+
+.splitCompareView {
+  --split-pct: 50%;
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(130, 172, 255, 0.28);
+  background: radial-gradient(circle at 30% 0%, rgba(47, 97, 201, 0.18), rgba(7, 12, 22, 0.94));
+}
+
+.splitCompareView__panel {
+  position: absolute;
+  inset: 0;
+}
+
+.splitCompareView--split .splitCompareView__panel--a {
+  clip-path: inset(0 calc(100% - var(--split-pct)) 0 0);
+}
+
+.splitCompareView--split .splitCompareView__panel--b {
+  clip-path: inset(0 0 0 var(--split-pct));
+}
+
+.splitCompareView--overlay .splitCompareView__panel--b {
+  mix-blend-mode: screen;
+}
+
+.splitCompareView__divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split-pct);
+  transform: translateX(-50%);
+  width: 2px;
+  background: rgba(194, 216, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(122, 173, 255, 0.4);
+}
+
+.splitCompareView__divider:not(.isFixed) {
+  cursor: col-resize;
+}
+
+.splitCompareView__overlayCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.compareDividerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(8, 17, 34, 0.86);
+  border: 1px solid rgba(146, 187, 255, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.compareDividerPill__btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #dce9ff;
+  background: rgba(54, 91, 151, 0.38);
+  font-size: 12px;
+}
+
+.compareDividerPill__btn--icon {
+  min-width: 30px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.compareAdvancedPopover {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 80vw);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(136, 178, 255, 0.32);
+  background: rgba(8, 17, 34, 0.94);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.compareAdvancedPopover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.compareAdvancedPopover__header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+}
+
+.compareAdvancedPopover__row,
+.compareAdvancedPopover__checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  margin: 7px 0;
+}
+
+.compareAdvancedPopover__sectionTitle {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.compareModeTray {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(1020px, calc(100% - 24px));
+  border-radius: 14px;
+  padding: 10px;
+  border: 1px solid rgba(140, 183, 255, 0.24);
+  background: rgba(7, 14, 28, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.compareModeTray__row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.compareModeTray label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(211, 225, 255, 0.86);
+}
+
+.compareModeTray select {
+  border-radius: 8px;
+  border: 1px solid rgba(146, 187, 255, 0.34);
+  background: rgba(11, 23, 43, 0.9);
+  color: #e8f1ff;
+  padding: 6px;
+}
+
+.compareModeTray__toggle {
+  justify-content: flex-end;
+}
+
+.compareModeTray__readout {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #b7d2ff;
+}
+
+.compareModelPanel {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: #eaf2ff;
+  padding: 24px;
+}
+
+.compareModelPanel--left {
+  background: linear-gradient(135deg, rgba(39, 77, 151, 0.45), rgba(11, 18, 33, 0.64));
+}
+
+.compareModelPanel--right {
+  background: linear-gradient(225deg, rgba(83, 56, 147, 0.5), rgba(11, 18, 33, 0.68));
+}
+
+.compareModelPanel__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.modelsCompareModal__footerActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 8px;
+}
