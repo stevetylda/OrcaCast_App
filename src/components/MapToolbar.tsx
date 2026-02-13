@@ -17,6 +17,10 @@ type Props = {
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
+  compareEnabled: boolean;
+  compareDisabled: boolean;
+  compareDisabledReason?: string;
+  onToggleCompare: () => void;
   className?: string;
 };
 
@@ -60,6 +64,10 @@ export function MapToolbar({
   poiFilters,
   onTogglePoiAll,
   onTogglePoiType,
+  compareEnabled,
+  compareDisabled,
+  compareDisabledReason,
+  onToggleCompare,
   className,
 }: Props) {
   const lastWeekRef = useRef<HTMLDivElement | null>(null);
@@ -190,6 +198,16 @@ export function MapToolbar({
         onClick={onOpenTimeseries}
         tourId="timeseries"
       />
+      <button
+        className={`toolBtn${compareEnabled ? " toolBtn--active" : ""}`}
+        onClick={onToggleCompare}
+        title={compareDisabled ? compareDisabledReason ?? "Compare unavailable" : "Compare mode"}
+        aria-label="Compare mode"
+        data-tour="tools-compare-toggle"
+        disabled={compareDisabled}
+      >
+        <span className="material-symbols-rounded">compare_arrows</span>
+      </button>
       <div ref={poiRef} className={`toolMenu${poiOpen ? " toolMenu--open" : ""}`}>
         <button
           className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}

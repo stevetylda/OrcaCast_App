@@ -19,6 +19,10 @@ type Props = {
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
+  compareEnabled: boolean;
+  compareDisabled: boolean;
+  compareDisabledReason?: string;
+  onToggleCompare: () => void;
 };
 
 export function ToolDrawer({
@@ -40,6 +44,10 @@ export function ToolDrawer({
   poiFilters,
   onTogglePoiAll,
   onTogglePoiType,
+  compareEnabled,
+  compareDisabled,
+  compareDisabledReason,
+  onToggleCompare,
 }: Props) {
   return (
     <div className="toolDrawer">
@@ -73,6 +81,10 @@ export function ToolDrawer({
               poiFilters={poiFilters}
               onTogglePoiAll={onTogglePoiAll}
               onTogglePoiType={onTogglePoiType}
+              compareEnabled={compareEnabled}
+              compareDisabled={compareDisabled}
+              compareDisabledReason={compareDisabledReason}
+              onToggleCompare={onToggleCompare}
             />
           </div>
         </>
