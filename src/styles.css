@@ -4502,3 +4502,25 @@ body {
   border-color: rgba(11, 27, 58, 0.14);
   color: rgba(42, 59, 89, 0.88);
 }
+
+.compareModeStage--map {
+  position: relative;
+  height: calc(100vh - 160px);
+  min-height: 520px;
+  padding-bottom: 116px;
+}
+
+.compareModeStage--map .splitCompareView,
+.compareModeStage--map .splitCompareView__panel,
+.compareModeStage--map .mapStage {
+  height: 100%;
+}
+
+.compareModeStage--map .mapStage {
+  border-radius: 0;
+}
+
+.toolbar .toolBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

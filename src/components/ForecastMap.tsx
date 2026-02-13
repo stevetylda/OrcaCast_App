@@ -1160,6 +1160,8 @@ type Props = {
   hotspotModeledCount: number | null;
   onHotspotsEnabledChange: (next: boolean) => void;
   onGridCellCount?: (count: number) => void;
+  onGridCellSelect?: (h3: string) => void;
+  resizeTick?: number;
   forecastPath?: string;
   fallbackForecastPath?: string;
 };
@@ -1292,6 +1294,8 @@ export function ForecastMap({
   hotspotModeledCount,
   onHotspotsEnabledChange,
   onGridCellCount,
+  onGridCellSelect,
+  resizeTick,
   forecastPath,
   fallbackForecastPath,
 }: Props) {
@@ -1548,6 +1552,14 @@ export function ForecastMap({
   };
 
   useEffect(() => {
+    if (!mapRef.current) return;
+    const id = window.requestAnimationFrame(() => {
+      mapRef.current?.resize();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [resizeTick]);
+
+  useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     logMapDebug("before-init");
@@ -1625,6 +1637,7 @@ export function ForecastMap({
       if (!feature) return;
       const cellId = getFeatureCellId(feature as { properties?: Record<string, unknown> });
       if (!cellId) return;
+      onGridCellSelect?.(cellId);
 
       const periodsList = periodsRef.current ?? [];
       if (periodsList.length === 0) return;
@@ -1813,7 +1826,7 @@ export function ForecastMap({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [onGridCellSelect]);
 
   const renderForecastLayer = (map: MapLibreMap) => {
     if (!overlayRef.current) return;
