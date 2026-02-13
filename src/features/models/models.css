@@ -1429,16 +1429,14 @@ body.modelsDragging * {
   inset: 0;
 }
 
-.splitCompareView--split .splitCompareView__panel--a {
+.splitCompareView__panel--a {
+  z-index: 1;
   clip-path: inset(0 calc(100% - var(--split-pct)) 0 0);
 }
 
-.splitCompareView--split .splitCompareView__panel--b {
+.splitCompareView__panel--b {
+  z-index: 2;
   clip-path: inset(0 0 0 var(--split-pct));
-}
-
-.splitCompareView--overlay .splitCompareView__panel--b {
-  mix-blend-mode: screen;
 }
 
 .splitCompareView__divider {
@@ -1453,17 +1451,18 @@ body.modelsDragging * {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 16px rgba(122, 173, 255, 0.4);
-}
-
-.splitCompareView__divider:not(.isFixed) {
   cursor: col-resize;
+  z-index: 5;
 }
 
-.splitCompareView__overlayCenter {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.splitCompareView__handle {
+  width: 24px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(187, 214, 255, 0.72);
+  background: rgba(8, 17, 34, 0.86);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 10px rgba(86, 143, 244, 0.35);
 }
 
 .compareDividerPill {
