@@ -1455,6 +1455,10 @@ body.modelsDragging * {
   z-index: 5;
 }
 
+.splitCompareView__divider.isFixed {
+  cursor: default;
+}
+
 .splitCompareView__handle {
   width: 24px;
   height: 40px;
@@ -1463,6 +1467,107 @@ body.modelsDragging * {
   background: rgba(8, 17, 34, 0.86);
   backdrop-filter: blur(8px);
   box-shadow: 0 0 10px rgba(86, 143, 244, 0.35);
+}
+
+.splitCompareView--swipe .splitCompareView__divider {
+  width: 44px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.splitCompareView--swipe .splitCompareView__divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgba(194, 216, 255, 0.95);
+  box-shadow: 0 0 16px rgba(122, 173, 255, 0.4);
+}
+
+.splitCompareView--swipe .splitCompareView__handle {
+  width: 56px;
+  height: 44px;
+  border: 1px solid rgba(145, 197, 255, 0.72);
+  background: rgba(8, 17, 34, 0.92);
+  box-shadow: 0 0 14px rgba(86, 143, 244, 0.4);
+  display: grid;
+  place-items: center;
+}
+
+.splitCompareView--swipe .splitCompareView__handle .material-symbols-rounded {
+  font-size: 22px;
+  color: rgba(227, 241, 255, 0.94);
+  text-shadow: 0 0 9px rgba(95, 166, 255, 0.55);
+  font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 24;
+}
+
+.dualCompareMaps {
+  --dual-gap: 10px;
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(130, 172, 255, 0.28);
+  background: radial-gradient(circle at 30% 0%, rgba(47, 97, 201, 0.18), rgba(7, 12, 22, 0.94));
+}
+
+.dualCompareMaps__pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.dualCompareMaps__pane--left {
+  left: 0;
+  right: calc(50% + (var(--dual-gap) / 2));
+}
+
+.dualCompareMaps__pane--right {
+  left: calc(50% + (var(--dual-gap) / 2));
+  right: 0;
+}
+
+.dualCompareMaps__divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--dual-gap);
+  background: linear-gradient(
+    180deg,
+    rgba(7, 14, 28, 0.98),
+    rgba(10, 19, 37, 0.98)
+  );
+  border-left: 1px solid rgba(194, 216, 255, 0.28);
+  border-right: 1px solid rgba(194, 216, 255, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(16, 33, 64, 0.55);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dualCompareMaps__handle {
+  width: 56px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(145, 197, 255, 0.72);
+  background: rgba(8, 17, 34, 0.92);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 14px rgba(86, 143, 244, 0.4);
+  display: grid;
+  place-items: center;
+}
+
+.dualCompareMaps__handle .material-symbols-rounded {
+  font-size: 20px;
+  color: rgba(227, 241, 255, 0.94);
+  text-shadow: 0 0 9px rgba(95, 166, 255, 0.55);
+  font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 24;
 }
 
 .compareDividerPill {
@@ -1537,11 +1642,6 @@ body.modelsDragging * {
 }
 
 .compareModeTray {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  width: min(1020px, calc(100% - 24px));
   border-radius: 14px;
   padding: 10px;
   border: 1px solid rgba(140, 183, 255, 0.24);
@@ -1549,10 +1649,54 @@ body.modelsDragging * {
   backdrop-filter: blur(10px);
 }
 
+.compareModeTray--full {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(1020px, calc(100% - 24px));
+}
+
+.compareModeTray--panel {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: auto;
+  bottom: auto;
+  width: min(420px, calc(100% - 28px));
+  z-index: 9;
+  pointer-events: auto;
+  border-radius: 999px;
+  padding: 10px 14px;
+  box-shadow: 0 12px 30px rgba(5, 10, 22, 0.45);
+}
+
+.compareModeTray--panelB {
+  left: auto;
+  right: 14px;
+  width: min(560px, calc(100% - 28px));
+}
+
 .compareModeTray__row {
   display: grid;
   grid-template-columns: repeat(5, minmax(100px, 1fr));
   gap: 10px;
+}
+
+.compareModeTray__lensLabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(190, 212, 246, 0.8);
+  margin-bottom: 6px;
+}
+
+.compareModeTray__row--panel {
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+}
+
+.compareModeTray--panelB .compareModeTray__row--panel {
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto minmax(96px, auto);
 }
 
 .compareModeTray label {
@@ -1579,6 +1723,207 @@ body.modelsDragging * {
   margin-top: 8px;
   font-size: 12px;
   color: #b7d2ff;
+}
+
+@media (max-width: 960px) {
+  .compareModeTray--panel .compareModeTray__row--panel,
+  .compareModeTray--panelB .compareModeTray__row--panel {
+    grid-template-columns: 1fr;
+  }
+
+  .compareModeTray--panel,
+  .compareModeTray--panelB {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    border-radius: 14px;
+  }
+
+  .compareModeTray__toggle {
+    justify-content: flex-start;
+  }
+}
+
+.swipeComparePills {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: calc(100% - 28px);
+  z-index: 11;
+  pointer-events: none;
+}
+
+.swipeComparePills__surface {
+  display: inline-block;
+  pointer-events: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 183, 255, 0.24);
+  background: rgba(7, 14, 28, 0.82);
+  backdrop-filter: blur(10px);
+  padding: 10px;
+}
+
+.swipeComparePills__grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 240px) 40px minmax(170px, 240px) 40px auto;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipeComparePills__field {
+  position: relative;
+}
+
+.swipeComparePills__field--model::after {
+  content: "expand_more";
+  font-family: "Material Symbols Rounded";
+  font-size: 18px;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(205, 224, 252, 0.84);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.swipeComparePills__field select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 172, 248, 0.42);
+  background: rgba(11, 23, 43, 0.9);
+  color: #e8f1ff;
+  padding: 6px 34px 6px 10px;
+  height: 34px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.swipeComparePills__field select:hover {
+  border-color: rgba(151, 196, 255, 0.62);
+  background: rgba(14, 29, 55, 0.96);
+}
+
+.swipeComparePills__field select:focus-visible {
+  outline: none;
+  border-color: rgba(25, 240, 215, 0.7);
+  box-shadow: var(--teal-glow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.swipeComparePills__field--periodIcon {
+  width: 40px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 172, 248, 0.42);
+  background: rgba(11, 23, 43, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(226, 240, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.swipeComparePills__field--periodIcon:hover {
+  border-color: rgba(151, 196, 255, 0.62);
+  background: rgba(14, 29, 55, 0.96);
+}
+
+.swipeComparePills__field--periodIcon:focus-within {
+  border-color: rgba(25, 240, 215, 0.7);
+  box-shadow: var(--teal-glow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.swipeComparePills__field--periodIcon .material-symbols-rounded {
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.swipeComparePills__field--periodIcon select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+}
+
+.swipeComparePills__tools {
+  display: inline-flex;
+  gap: 8px;
+  justify-self: end;
+}
+
+.swipeComparePills__toolBtn {
+  position: relative;
+  border-color: rgba(25, 240, 215, 0.5);
+  box-shadow: var(--teal-glow-soft);
+  background: rgba(8, 18, 44, 0.72);
+}
+
+.swipeComparePills__toolBtn.isActive {
+  border-color: rgba(25, 240, 215, 0.95);
+  box-shadow: 0 0 0 1px rgba(25, 240, 215, 0.42), 0 0 18px rgba(25, 240, 215, 0.55);
+  background: linear-gradient(180deg, rgba(25, 240, 215, 0.34), rgba(9, 31, 63, 0.9));
+}
+
+.swipeComparePills__toolBtn.isActive .material-symbols-rounded {
+  color: #e9fffb;
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 24;
+  text-shadow: 0 0 10px rgba(25, 240, 215, 0.55);
+}
+
+.swipeComparePills__toolBtn:focus-visible {
+  outline: 2px solid rgba(25, 240, 215, 0.75);
+  outline-offset: 2px;
+}
+
+.swipeComparePills__toolBtn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-4px);
+  min-width: max-content;
+  padding: 6px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(232, 241, 255, 0.96);
+  background: rgba(8, 17, 34, 0.96);
+  border: 1px solid rgba(146, 187, 255, 0.34);
+  box-shadow: 0 8px 20px rgba(5, 10, 22, 0.36);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.swipeComparePills__toolBtn:hover::after,
+.swipeComparePills__toolBtn:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 980px) {
+  .swipeComparePills {
+    width: auto;
+    max-width: calc(100% - 20px);
+    top: 10px;
+  }
+
+  .swipeComparePills__grid {
+    grid-template-columns: 1fr 40px 1fr 40px auto;
+  }
 }
 
 .compareModelPanel {

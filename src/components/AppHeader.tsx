@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import type { Period } from "../data/periods";
 import { ExpectedActivityPill } from "./ExpectedActivityPill";
@@ -30,6 +31,8 @@ type Props = {
   onToggleDarkMode: () => void;
   onOpenInfo: () => void;
   onOpenMenu: () => void;
+  compareEnabled?: boolean;
+  onExitCompareMode?: () => void;
 };
 
 export function AppHeader({
@@ -51,7 +54,15 @@ export function AppHeader({
   onToggleDarkMode,
   onOpenInfo,
   onOpenMenu,
+  compareEnabled = false,
+  onExitCompareMode,
 }: Props) {
+  const [compareModeHovered, setCompareModeHovered] = useState(false);
+
+  useEffect(() => {
+    setCompareModeHovered(false);
+  }, [compareEnabled]);
+
   return (
     <header className="header" data-tour="top-bar">
       <div className="header__left">
@@ -72,30 +83,47 @@ export function AppHeader({
       </div>
 
       <div className="header__right">
-        <div className="headerForecast">
-          <ForecastPeriodPill
-            periods={forecastPeriods}
-            selectedIndex={forecastIndex}
-            onChangeIndex={onForecastIndexChange}
-            disabled={forecastPeriods.length === 0}
-            tourId="forecast-period"
-          />
-          <div
-            className={`headerForecast__notice${showForecastNotice ? " is-visible" : ""}`}
-            role="status"
-            aria-live="polite"
+        {compareEnabled ? (
+          <button
+            type="button"
+            className="compareModePill compareModePill--button"
+            aria-label="Exit compare mode"
+            onClick={onExitCompareMode}
+            onMouseEnter={() => setCompareModeHovered(true)}
+            onMouseLeave={() => setCompareModeHovered(false)}
+            onFocus={() => setCompareModeHovered(true)}
+            onBlur={() => setCompareModeHovered(false)}
           >
-            {forecastNoticeText}
-          </div>
-        </div>
+            {compareModeHovered ? "EXIT" : "COMPARE MODE"}
+          </button>
+        ) : (
+          <>
+            <div className="headerForecast">
+              <ForecastPeriodPill
+                periods={forecastPeriods}
+                selectedIndex={forecastIndex}
+                onChangeIndex={onForecastIndexChange}
+                disabled={forecastPeriods.length === 0}
+                tourId="forecast-period"
+              />
+              <div
+                className={`headerForecast__notice${showForecastNotice ? " is-visible" : ""}`}
+                role="status"
+                aria-live="polite"
+              >
+                {forecastNoticeText}
+              </div>
+            </div>
 
-        <ExpectedActivityPill
-          currentCount={expectedActivityCount}
-          vsPriorWeek={expectedActivityVsPriorWeek}
-          vs12WeekAvg={expectedActivityVs12WeekAvg}
-          trend={expectedActivityTrend}
-          chart={expectedActivityChart}
-        />
+            <ExpectedActivityPill
+              currentCount={expectedActivityCount}
+              vsPriorWeek={expectedActivityVsPriorWeek}
+              vs12WeekAvg={expectedActivityVs12WeekAvg}
+              trend={expectedActivityTrend}
+              chart={expectedActivityChart}
+            />
+          </>
+        )}
 
         <H3ResolutionPill
           value={resolution === "H4" ? 4 : resolution === "H5" ? 5 : 6}

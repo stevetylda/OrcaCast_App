@@ -199,7 +199,7 @@ export function MapToolbar({
         tourId="timeseries"
       />
       <button
-        className={`toolBtn${compareEnabled ? " toolBtn--active" : ""}`}
+        className={`toolBtn toolBtn--compare${compareEnabled ? " toolBtn--active" : ""}`}
         onClick={onToggleCompare}
         title={compareDisabled ? compareDisabledReason ?? "Compare unavailable" : "Compare mode"}
         aria-label="Compare mode"
