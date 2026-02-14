@@ -61,11 +61,11 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollection> {
   const cached = gridCache.get(resolution);
-  if (cached) return cached;
+  if (cached) return structuredClone(cached);
   const url = GRID_PATH[resolution];
   const data = await fetchJson<FeatureCollection>(url);
   gridCache.set(resolution, data);
-  return data;
+  return structuredClone(data);
 }
 
 type ForecastPayloadRaw = {
@@ -185,14 +185,20 @@ export function attachProbabilities(
   key = "h3",
   outKey = "prob"
 ): FeatureCollection {
-  for (const feature of fc.features) {
-    const props = (feature.properties ??= {} as Record<string, unknown>);
-    const id = String((props as Record<string, unknown>)[key] ?? "");
-    const raw = values[id];
-    const prob = Number.isFinite(raw) ? Number(raw) : 0;
-    (props as Record<string, unknown>)[outKey] = prob;
-  }
-  return fc;
+  return {
+    ...fc,
+    features: (fc.features ?? []).map((feature) => {
+      const props = { ...((feature.properties ?? {}) as Record<string, unknown>) };
+      const id = String(props[key] ?? "");
+      const raw = values[id];
+      const prob = Number.isFinite(raw) ? Number(raw) : 0;
+      props[outKey] = prob;
+      return {
+        ...feature,
+        properties: props,
+      };
+    }),
+  };
 }
 
 export function countNonZero(fc: FeatureCollection, key = "prob"): number {

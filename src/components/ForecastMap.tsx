@@ -153,7 +153,10 @@ type Props = {
   resizeTick?: number;
   forecastPath?: string;
   fallbackForecastPath?: string;
+  colorScaleValues?: Record<string, number>;
+  useExternalColorScale?: boolean;
   syncViewState?: CompareMapViewState | null;
+  onMoveViewState?: (viewState: CompareMapViewState) => void;
   onMoveEndViewState?: (viewState: CompareMapViewState) => void;
 };
 
@@ -289,7 +292,10 @@ export function ForecastMap({
   resizeTick,
   forecastPath,
   fallbackForecastPath,
+  colorScaleValues,
+  useExternalColorScale = false,
   syncViewState,
+  onMoveViewState,
   onMoveEndViewState,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -305,6 +311,7 @@ export function ForecastMap({
   const modeledHotspotThresholdRef = useRef<number | undefined>(undefined);
   const modeledHotspotCountRef = useRef<number | null>(hotspotModeledCount);
   const valuesByCellRef = useRef<Record<string, number>>({});
+  const colorScaleValuesRef = useRef<Record<string, number> | undefined>(colorScaleValues);
   const sortedValuesDescRef = useRef<number[]>([]);
   const totalCellsRef = useRef(0);
   const shimmerThresholdRef = useRef<number | undefined>(undefined);
@@ -374,6 +381,10 @@ export function ForecastMap({
   }, [styleUrl]);
 
   useEffect(() => {
+    colorScaleValuesRef.current = colorScaleValues;
+  }, [colorScaleValues]);
+
+  useEffect(() => {
     legendSpecRef.current = legendSpec;
   }, [legendSpec]);
 
@@ -396,6 +407,80 @@ export function ForecastMap({
     const count = Math.max(1, Math.round((total * clamped) / 100));
     const idx = Math.max(0, Math.min(values.length - 1, count - 1));
     return values[idx] ?? modeled;
+  };
+
+  const applyScaleToCurrentValues = (values: Record<string, number>) => {
+    const scaleSourceValues =
+      useExternalColorScale && colorScaleValuesRef.current && Object.keys(colorScaleValuesRef.current).length > 0
+        ? colorScaleValuesRef.current
+        : values;
+    const { fillColorExpr, scale } = buildAutoColorExprFromValues(scaleSourceValues, PALETTE);
+    const valueList = Object.values(values)
+      .map((v) => Number(v))
+      .filter((v) => Number.isFinite(v) && v > 0)
+      .sort((a, b) => a - b);
+    fillExprRef.current = fillColorExpr as unknown as FillColorSpec;
+    legendSpecRef.current = scale;
+    setLegendSpec(scale);
+    modeledHotspotThresholdRef.current =
+      scale?.hotspotThreshold ?? (valueList.length > 0 ? Math.max(...valueList) : undefined);
+    hotspotThresholdRef.current = modeledHotspotThresholdRef.current;
+    if (valueList.length > 0) {
+      const idx = Math.max(0, Math.floor(valueList.length * 0.95) - 1);
+      shimmerThresholdRef.current = valueList[idx];
+    } else {
+      shimmerThresholdRef.current = undefined;
+    }
+    if (!scale) {
+      setLegendOpen(false);
+    }
+    return scale;
+  };
+
+  const scheduleForecastRender = (map: MapLibreMap, isCancelled?: () => boolean) => {
+    let attempts = 0;
+    let timeoutId: number | null = null;
+    let done = false;
+
+    const cleanup = () => {
+      map.off("styledata", tryRender);
+      map.off("load", tryRender);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    const tryRender = () => {
+      if (done) return;
+      if (isCancelled?.()) {
+        done = true;
+        cleanup();
+        return;
+      }
+      if (!overlayRef.current || !mapRef.current) return;
+      if (!map.isStyleLoaded()) return;
+      done = true;
+      cleanup();
+      renderForecastLayer(map);
+      moveLastWeekToTop(map);
+    };
+
+    const poll = () => {
+      if (done) return;
+      tryRender();
+      if (done) return;
+      attempts += 1;
+      if (attempts > 300) {
+        cleanup();
+        return;
+      }
+      timeoutId = window.setTimeout(poll, 60);
+    };
+
+    map.on("styledata", tryRender);
+    map.on("load", tryRender);
+    poll();
   };
 
   useEffect(() => {
@@ -795,7 +880,18 @@ export function ForecastMap({
         pitch: map.getPitch(),
       });
     };
+    const handleMove = () => {
+      if (!onMoveViewState) return;
+      const center = map.getCenter();
+      onMoveViewState({
+        center: [center.lng, center.lat],
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+      });
+    };
     map.on("moveend", handleMoveEnd);
+    map.on("move", handleMove);
 
     mapRef.current = map;
     if (import.meta.env.DEV && typeof window !== "undefined") {
@@ -843,6 +939,7 @@ export function ForecastMap({
       map.off("mouseleave", "grid-fill", handleMouseLeave);
       map.off("styledata", handleStyleData);
       map.off("moveend", handleMoveEnd);
+      map.off("move", handleMove);
       if (sparkPopupRef.current) {
         sparkPopupRef.current.remove();
         sparkPopupRef.current = null;
@@ -854,7 +951,7 @@ export function ForecastMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [onGridCellSelect]);
+  }, [onGridCellSelect, onMoveEndViewState, onMoveViewState]);
 
   const renderForecastLayer = (map: MapLibreMap) => {
     if (!overlayRef.current) return;
@@ -1133,11 +1230,7 @@ export function ForecastMap({
         if (cancelled) return;
 
         const joined = attachProbabilities(grid, values);
-        const { fillColorExpr, scale } = buildAutoColorExprFromValues(values, PALETTE);
-        const valueList = Object.values(values)
-          .map((v) => Number(v))
-          .filter((v) => Number.isFinite(v) && v > 0)
-          .sort((a, b) => a - b);
+        applyScaleToCurrentValues(values);
         const featureValues = (joined.features ?? [])
           .map((feature) => Number((feature.properties as Record<string, unknown> | null)?.prob ?? 0))
           .filter((v) => Number.isFinite(v));
@@ -1148,33 +1241,13 @@ export function ForecastMap({
         }
 
         valuesByCellRef.current = values;
-        modeledHotspotThresholdRef.current =
-          scale?.hotspotThreshold ?? (valueList.length > 0 ? Math.max(...valueList) : undefined);
-        hotspotThresholdRef.current = modeledHotspotThresholdRef.current;
-        if (valueList.length > 0) {
-          const idx = Math.max(0, Math.floor(valueList.length * 0.95) - 1);
-          shimmerThresholdRef.current = valueList[idx];
-        } else {
-          shimmerThresholdRef.current = undefined;
-        }
         overlayRef.current = joined;
-        fillExprRef.current = fillColorExpr as unknown as FillColorSpec;
-        legendSpecRef.current = scale;
-        setLegendSpec(scale);
-
-        if (!scale) {
-          setLegendOpen(false);
-        }
 
         if (map.isStyleLoaded()) {
           renderForecastLayer(map);
           moveLastWeekToTop(map);
         } else {
-          map.once("styledata", () => {
-            if (!overlayRef.current) return;
-            renderForecastLayer(map);
-            moveLastWeekToTop(map);
-          });
+          scheduleForecastRender(map, () => cancelled);
         }
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -1188,6 +1261,15 @@ export function ForecastMap({
       cancelled = true;
     };
   }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !overlayRef.current) return;
+    const values = valuesByCellRef.current ?? {};
+    applyScaleToCurrentValues(values);
+    renderForecastLayer(map);
+    moveLastWeekToTop(map);
+  }, [colorScaleValues, mapReady, useExternalColorScale]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1417,11 +1499,7 @@ export function ForecastMap({
     if (!map || !overlayRef.current) return;
 
     if (!map.isStyleLoaded()) {
-      map.once("styledata", () => {
-        if (!mapRef.current || !overlayRef.current || !legendSpec) return;
-        renderForecastLayer(mapRef.current);
-        moveLastWeekToTop(mapRef.current);
-      });
+      scheduleForecastRender(map);
       return;
     }
 

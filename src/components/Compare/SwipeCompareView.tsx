@@ -4,13 +4,14 @@ import type { ReactNode } from "react";
 type Props = {
   splitPct: number;
   onSplitCommit?: (pct: number) => void;
+  fixedSplit?: boolean;
   childrenA: ReactNode;
   childrenB: ReactNode;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-export function SwipeCompareView({ splitPct, onSplitCommit, childrenA, childrenB }: Props) {
+export function SwipeCompareView({ splitPct, onSplitCommit, fixedSplit = false, childrenA, childrenB }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dragPctRef = useRef(splitPct);
 
@@ -21,6 +22,7 @@ export function SwipeCompareView({ splitPct, onSplitCommit, childrenA, childrenB
   }, [splitPct]);
 
   const onDividerPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (fixedSplit) return;
     const root = rootRef.current;
     if (!root) return;
 
@@ -52,16 +54,20 @@ export function SwipeCompareView({ splitPct, onSplitCommit, childrenA, childrenB
   };
 
   return (
-    <div className="splitCompareView" ref={rootRef}>
+    <div className="splitCompareView splitCompareView--swipe" ref={rootRef}>
       <div className="splitCompareView__panel splitCompareView__panel--a">{childrenA}</div>
       <div className="splitCompareView__panel splitCompareView__panel--b">{childrenB}</div>
       <div
-        className="splitCompareView__divider"
+        className={`splitCompareView__divider ${fixedSplit ? "isFixed" : ""}`}
         onPointerDown={onDividerPointerDown}
         role="separator"
         aria-orientation="vertical"
+        aria-label="Drag to compare layers"
+        title="Drag to compare layers"
       >
-        <span className="splitCompareView__handle" aria-hidden="true" />
+        <span className="splitCompareView__handle" aria-hidden="true">
+          <span className="material-symbols-rounded">swap_horiz</span>
+        </span>
       </div>
     </div>
   );

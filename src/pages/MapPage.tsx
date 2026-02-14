@@ -5,8 +5,9 @@ import { ToolDrawer } from "../components/ToolDrawer";
 import { WelcomeModal } from "../components/WelcomeModal";
 
 import { ForecastMap } from "../components/ForecastMap";
-import { CompareTray } from "../components/Compare/CompareTray";
-import { SwipeCompareView } from "../components/Compare/SwipeCompareView";
+import { SwipeComparePills } from "../components/Compare/SwipeComparePills";
+import { DualMapCompare } from "../components/Compare/DualMapCompare";
+import { SingleSwipeMap } from "../components/Compare/SingleSwipeMap";
 // import { InfoModal } from "../components/InfoModal";
 // import { TimeseriesModal } from "../components/modals/TimeseriesModal";
 
@@ -67,7 +68,6 @@ export function MapPage() {
     setCompareEnabled,
     compareSettings,
     setCompareSettings,
-    selectedCompareH3,
     setSelectedCompareH3,
   } = useMapState();
 
@@ -95,8 +95,6 @@ export function MapPage() {
     bearing: number;
     pitch: number;
   } | null>(null);
-  const [compareValuesA, setCompareValuesA] = useState<Record<string, number>>({});
-  const [compareValuesB, setCompareValuesB] = useState<Record<string, number>>({});
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodHasForecast, setSelectedPeriodHasForecast] = useState<boolean | null>(null);
   const [showNoForecastNotice, setShowNoForecastNotice] = useState(false);
@@ -388,7 +386,7 @@ export function MapPage() {
         }
         if (!active) return;
         setSelectedPeriodHasForecast(hasForecastForSelectedPeriod);
-        const unique = Array.from(new Set(ids));
+        const unique = Array.from(new Set(ids.filter((id) => Boolean(id?.trim()))));
         const options = unique.map((id) => ({ value: id, label: toLabel(id) }));
         setModelOptions(options);
 
@@ -460,39 +458,62 @@ export function MapPage() {
   const periodOptions = useMemo(() => periods.map((p) => p.periodKey), [periods]);
   const compareDisabled = modelOptions.length === 0 || periods.length === 0;
   const compareDisabledReason = compareDisabled ? "Compare will enable after forecast options load" : undefined;
+  const compareModelIds = useMemo(() => compareModels.map((model) => model.id), [compareModels]);
+  const resolvedCompareModelA = useMemo(() => {
+    if (compareModelIds.length === 0) return "";
+    if (compareModelIds.includes(compareModelA)) return compareModelA;
+    if (compareModelIds.includes(modelId)) return modelId;
+    return compareModelIds[0];
+  }, [compareModelIds, compareModelA, modelId]);
+  const resolvedCompareModelB = useMemo(() => {
+    if (compareModelIds.length === 0) return "";
+    if (compareModelIds.includes(compareModelB)) return compareModelB;
+    const fallback =
+      compareModelIds.length > 1 && compareModelIds[1] !== resolvedCompareModelA
+        ? compareModelIds[1]
+        : compareModelIds[0];
+    return fallback;
+  }, [compareModelIds, compareModelB, resolvedCompareModelA]);
+  const resolvedComparePeriodA = useMemo(() => {
+    if (periodOptions.length === 0) return "";
+    if (periodOptions.includes(comparePeriodA)) return comparePeriodA;
+    return periodOptions[periodOptions.length - 1];
+  }, [periodOptions, comparePeriodA]);
+  const resolvedComparePeriodB = useMemo(() => {
+    if (periodOptions.length === 0) return "";
+    if (periodOptions.includes(comparePeriodB)) return comparePeriodB;
+    return periodOptions[Math.max(0, periodOptions.length - 2)];
+  }, [periodOptions, comparePeriodB]);
+
+  useEffect(() => {
+    if (resolvedCompareModelA && compareModelA !== resolvedCompareModelA) {
+      setCompareModelA(resolvedCompareModelA);
+    }
+  }, [compareModelA, resolvedCompareModelA]);
+
+  useEffect(() => {
+    if (resolvedCompareModelB && compareModelB !== resolvedCompareModelB) {
+      setCompareModelB(resolvedCompareModelB);
+    }
+  }, [compareModelB, resolvedCompareModelB]);
+
+  useEffect(() => {
+    if (resolvedComparePeriodA && comparePeriodA !== resolvedComparePeriodA) {
+      setComparePeriodA(resolvedComparePeriodA);
+    }
+  }, [comparePeriodA, resolvedComparePeriodA]);
+
+  useEffect(() => {
+    if (resolvedComparePeriodB && comparePeriodB !== resolvedComparePeriodB) {
+      setComparePeriodB(resolvedComparePeriodB);
+    }
+  }, [comparePeriodB, resolvedComparePeriodB]);
 
   const resolveForecastPathByPeriodKey = (periodKey: string) => {
     const period = periods.find((item) => item.periodKey === periodKey);
     if (!period) return undefined;
     return getForecastPathForPeriod(resolution, period.fileId);
   };
-
-  useEffect(() => {
-    if (!compareEnabled || compareDisabled || !compareModelA || !compareModelB) return;
-    const pathA = resolveForecastPathByPeriodKey(comparePeriodA);
-    const pathB = resolveForecastPathByPeriodKey(comparePeriodB);
-    if (!pathA || !pathB) return;
-    let active = true;
-    Promise.all([
-      loadForecast(resolution, { kind: "explicit", explicitPath: pathA, modelId: compareModelA }).catch(() => null),
-      loadForecast(resolution, { kind: "explicit", explicitPath: pathB, modelId: compareModelB }).catch(() => null),
-    ]).then(([a, b]) => {
-      if (!active) return;
-      setCompareValuesA(a?.values ?? {});
-      setCompareValuesB(b?.values ?? {});
-    });
-    return () => {
-      active = false;
-    };
-  }, [compareEnabled, compareDisabled, compareModelA, compareModelB, comparePeriodA, comparePeriodB, periods, resolution]);
-
-  const compareReadout = useMemo(() => {
-    if (!selectedCompareH3) return null;
-    const a = compareValuesA[selectedCompareH3] ?? 0;
-    const b = compareValuesB[selectedCompareH3] ?? 0;
-    const delta = b - a;
-    return `H3 ${selectedCompareH3} · A ${a.toFixed(4)} · B ${b.toFixed(4)} · Δ ${delta.toFixed(4)}`;
-  }, [compareValuesA, compareValuesB, selectedCompareH3]);
 
   const currentWeek = useMemo(
     () => selectedForecast?.stat_week ?? forecastPeriodToIsoWeek(appConfig.forecastPeriod),
@@ -504,10 +525,34 @@ export function MapPage() {
     [selectedForecast]
   );
 
-  const comparePeriodAObj = periods.find((p) => p.periodKey === comparePeriodA) ?? selectedForecast ?? configPeriod;
-  const comparePeriodBObj = periods.find((p) => p.periodKey === comparePeriodB) ?? selectedForecast ?? configPeriod;
+  const comparePeriodAObj = periods.find((p) => p.periodKey === resolvedComparePeriodA) ?? selectedForecast ?? configPeriod;
+  const comparePeriodBObj = periods.find((p) => p.periodKey === resolvedComparePeriodB) ?? selectedForecast ?? configPeriod;
   const comparePathA = resolveForecastPathByPeriodKey(comparePeriodAObj.periodKey);
   const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey);
+  const compareRenderMode: "single" | "dual" = compareEnabled
+    ? compareSettings.dualMapMode
+      ? "dual"
+      : "single"
+    : "single";
+  const syncEnabled = true;
+
+  useEffect(() => {
+    if (!compareSettings.sharedScale) return;
+    setCompareSettings((prev) => ({ ...prev, sharedScale: false }));
+  }, [compareSettings.sharedScale, setCompareSettings]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const id = window.setTimeout(() => {
+      const count = document.querySelectorAll(".maplibregl-canvas").length;
+      if (compareRenderMode === "dual" && count < 2) {
+        throw new Error(`DualMapCompare invariant failed: expected 2 canvases, found ${count}`);
+      }
+      // eslint-disable-next-line no-console
+      console.info(`[CompareDebug] mode=${compareRenderMode} canvases=${count}`);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [compareRenderMode, compareEnabled, compareModelA, compareModelB, comparePeriodA, comparePeriodB]);
 
   return (
     <>
@@ -535,6 +580,8 @@ export function MapPage() {
         onToggleDarkMode={() => setThemeMode(darkMode ? "light" : "dark")}
         onOpenInfo={() => setInfoOpen(true)}
         onOpenMenu={() => setMenuOpen(true)}
+        compareEnabled={compareEnabled}
+        onExitCompareMode={() => setCompareEnabled(false)}
       />
 
       <main className="app__main">
@@ -562,72 +609,149 @@ export function MapPage() {
           />
         ) : (
           <div className="compareModeStage compareModeStage--map">
-            <SwipeCompareView
-              splitPct={compareSettings.splitPct}
-              onSplitCommit={(pct) => setCompareSettings((prev) => ({ ...prev, splitPct: pct }))}
-              childrenA={
-                <ForecastMap
-                  darkMode={darkMode}
-                  resolution={resolution}
-                  showLastWeek={showLastWeek}
-                  lastWeekMode={lastWeekMode}
-                  poiFilters={poiFilters}
-                  modelId={compareModelA || modelId}
-                  periods={periods}
-                  selectedWeek={comparePeriodAObj.stat_week}
-                  selectedWeekYear={comparePeriodAObj.year}
-                  timeseriesOpen={timeseriesOpen}
-                  hotspotsEnabled={hotspotsEnabled}
-                  hotspotMode={hotspotMode}
-                  hotspotPercentile={hotspotPercentile}
-                  hotspotModeledCount={expectedSummary.current}
-                  onHotspotsEnabledChange={setHotspotsEnabled}
-                  onGridCellCount={setHotspotTotalCells}
-                  onGridCellSelect={setSelectedCompareH3}
-                  resizeTick={mapResizeTick}
-                  forecastPath={comparePathA}
-                  onMoveEndViewState={setCompareViewState}
-                />
-              }
-              childrenB={
-                <ForecastMap
-                  darkMode={darkMode}
-                  resolution={resolution}
-                  showLastWeek={showLastWeek}
-                  lastWeekMode={lastWeekMode}
-                  poiFilters={poiFilters}
-                  modelId={compareModelB || modelId}
-                  periods={periods}
-                  selectedWeek={comparePeriodBObj.stat_week}
-                  selectedWeekYear={comparePeriodBObj.year}
-                  timeseriesOpen={timeseriesOpen}
-                  hotspotsEnabled={hotspotsEnabled}
-                  hotspotMode={hotspotMode}
-                  hotspotPercentile={hotspotPercentile}
-                  hotspotModeledCount={expectedSummary.current}
-                  onHotspotsEnabledChange={setHotspotsEnabled}
-                  onGridCellCount={setHotspotTotalCells}
-                  onGridCellSelect={setSelectedCompareH3}
-                  resizeTick={mapResizeTick}
-                  forecastPath={comparePathB}
-                  syncViewState={compareViewState}
-                />
-              }
-            />
-            <CompareTray
-              modelAId={compareModelA || modelId}
-              modelBId={compareModelB || modelId}
-              periodA={comparePeriodAObj.periodKey}
-              periodB={comparePeriodBObj.periodKey}
-              sharedScale={compareSettings.sharedScale}
+            {compareRenderMode === "dual" ? (
+              <DualMapCompare
+                childrenLeft={
+                  <div className="compareMapPane">
+                    <ForecastMap
+                      darkMode={darkMode}
+                      resolution={resolution}
+                      showLastWeek={showLastWeek}
+                      lastWeekMode={lastWeekMode}
+                      poiFilters={poiFilters}
+                      modelId={resolvedCompareModelA || modelId}
+                      periods={periods}
+                      selectedWeek={comparePeriodAObj.stat_week}
+                      selectedWeekYear={comparePeriodAObj.year}
+                      timeseriesOpen={timeseriesOpen}
+                      hotspotsEnabled={hotspotsEnabled}
+                      hotspotMode={hotspotMode}
+                      hotspotPercentile={hotspotPercentile}
+                      hotspotModeledCount={expectedSummary.current}
+                      onHotspotsEnabledChange={setHotspotsEnabled}
+                      onGridCellCount={setHotspotTotalCells}
+                      onGridCellSelect={setSelectedCompareH3}
+                      resizeTick={mapResizeTick}
+                      forecastPath={comparePathA}
+                    useExternalColorScale={false}
+                    syncViewState={syncEnabled ? compareViewState : null}
+                    onMoveViewState={setCompareViewState}
+                      onMoveEndViewState={setCompareViewState}
+                    />
+                  </div>
+                }
+                childrenRight={
+                  <div className="compareMapPane">
+                    <ForecastMap
+                      darkMode={darkMode}
+                      resolution={resolution}
+                      showLastWeek={showLastWeek}
+                      lastWeekMode={lastWeekMode}
+                      poiFilters={poiFilters}
+                      modelId={resolvedCompareModelB || modelId}
+                      periods={periods}
+                      selectedWeek={comparePeriodBObj.stat_week}
+                      selectedWeekYear={comparePeriodBObj.year}
+                      timeseriesOpen={timeseriesOpen}
+                      hotspotsEnabled={hotspotsEnabled}
+                      hotspotMode={hotspotMode}
+                      hotspotPercentile={hotspotPercentile}
+                      hotspotModeledCount={expectedSummary.current}
+                      onHotspotsEnabledChange={setHotspotsEnabled}
+                      onGridCellCount={setHotspotTotalCells}
+                      onGridCellSelect={setSelectedCompareH3}
+                      resizeTick={mapResizeTick}
+                      forecastPath={comparePathB}
+                    useExternalColorScale={false}
+                    syncViewState={syncEnabled ? compareViewState : null}
+                    onMoveViewState={setCompareViewState}
+                      onMoveEndViewState={setCompareViewState}
+                    />
+                  </div>
+                }
+              />
+            ) : (
+              <SingleSwipeMap
+                splitPct={compareSettings.splitPct}
+                onSplitCommit={(pct) => setCompareSettings((prev) => ({ ...prev, splitPct: pct }))}
+                childrenLeft={
+                  <div className="compareMapPane">
+                    <ForecastMap
+                      darkMode={darkMode}
+                      resolution={resolution}
+                      showLastWeek={showLastWeek}
+                      lastWeekMode={lastWeekMode}
+                      poiFilters={poiFilters}
+                      modelId={resolvedCompareModelA || modelId}
+                      periods={periods}
+                      selectedWeek={comparePeriodAObj.stat_week}
+                      selectedWeekYear={comparePeriodAObj.year}
+                      timeseriesOpen={timeseriesOpen}
+                      hotspotsEnabled={hotspotsEnabled}
+                      hotspotMode={hotspotMode}
+                      hotspotPercentile={hotspotPercentile}
+                      hotspotModeledCount={expectedSummary.current}
+                      onHotspotsEnabledChange={setHotspotsEnabled}
+                      onGridCellCount={setHotspotTotalCells}
+                      onGridCellSelect={setSelectedCompareH3}
+                      resizeTick={mapResizeTick}
+                      forecastPath={comparePathA}
+                      useExternalColorScale={false}
+                      syncViewState={syncEnabled ? compareViewState : null}
+                      onMoveEndViewState={setCompareViewState}
+                    />
+                  </div>
+                }
+                childrenRight={
+                  <div className="compareMapPane">
+                    <ForecastMap
+                      darkMode={darkMode}
+                      resolution={resolution}
+                      showLastWeek={showLastWeek}
+                      lastWeekMode={lastWeekMode}
+                      poiFilters={poiFilters}
+                      modelId={resolvedCompareModelB || modelId}
+                      periods={periods}
+                      selectedWeek={comparePeriodBObj.stat_week}
+                      selectedWeekYear={comparePeriodBObj.year}
+                      timeseriesOpen={timeseriesOpen}
+                      hotspotsEnabled={hotspotsEnabled}
+                      hotspotMode={hotspotMode}
+                      hotspotPercentile={hotspotPercentile}
+                      hotspotModeledCount={expectedSummary.current}
+                      onHotspotsEnabledChange={setHotspotsEnabled}
+                      onGridCellCount={setHotspotTotalCells}
+                      onGridCellSelect={setSelectedCompareH3}
+                      resizeTick={mapResizeTick}
+                      forecastPath={comparePathB}
+                      useExternalColorScale={false}
+                      syncViewState={syncEnabled ? compareViewState : null}
+                      onMoveEndViewState={setCompareViewState}
+                    />
+                  </div>
+                }
+              />
+            )}
+
+            <SwipeComparePills
+              modelLeftId={resolvedCompareModelA || modelId}
+              modelRightId={resolvedCompareModelB || modelId}
+              periodLeft={comparePeriodAObj.periodKey}
+              periodRight={comparePeriodBObj.periodKey}
               periodOptions={periodOptions}
               models={compareModels}
-              selectionReadout={compareReadout}
-              onChangeModelA={setCompareModelA}
-              onChangeModelB={setCompareModelB}
-              onChangePeriodA={setComparePeriodA}
-              onChangePeriodB={setComparePeriodB}
-              onToggleSharedScale={(next) => setCompareSettings((prev) => ({ ...prev, sharedScale: next }))}
+              dualMapMode={compareSettings.dualMapMode}
+              onChangeModelLeft={setCompareModelA}
+              onChangeModelRight={setCompareModelB}
+              onChangePeriodLeft={setComparePeriodA}
+              onChangePeriodRight={setComparePeriodB}
+              onToggleLocked={() =>
+                setCompareSettings((prev) => ({
+                  ...prev,
+                  dualMapMode: !prev.dualMapMode,
+                  splitPct: !prev.dualMapMode ? 50 : prev.splitPct,
+                }))
+              }
             />
           </div>
         )}
@@ -684,6 +808,7 @@ export function MapPage() {
             modelId={modelId}
             modelOptions={modelOptions}
             onModelChange={setModelId}
+            compareEnabled={compareEnabled}
           />
         </div>
       </main>
