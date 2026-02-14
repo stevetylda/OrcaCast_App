@@ -1767,7 +1767,7 @@ body.modelsDragging * {
 
 .swipeComparePills__grid {
   display: grid;
-  grid-template-columns: minmax(170px, 240px) 40px minmax(170px, 240px) 40px auto;
+  grid-template-columns: minmax(170px, 240px) 40px 40px minmax(170px, 240px) 40px 40px auto;
   gap: 10px;
   align-items: center;
   justify-content: center;
@@ -1858,6 +1858,35 @@ body.modelsDragging * {
   border: 0;
 }
 
+.swipeComparePills__resolution {
+  width: 40px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipeComparePills__resolution .h3menu,
+.swipeComparePills__resolution .h3menu--compact {
+  width: 100%;
+  height: 100%;
+}
+
+.swipeComparePills__resolution .h3menu__trigger {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 172, 248, 0.42);
+  background: rgba(11, 23, 43, 0.9);
+  padding: 0;
+}
+
+.swipeComparePills__resolution .h3menu__trigger:hover,
+.swipeComparePills__resolution .h3menu__trigger:focus-visible {
+  border-color: rgba(151, 196, 255, 0.62);
+  background: rgba(14, 29, 55, 0.96);
+}
+
 .swipeComparePills__tools {
   display: inline-flex;
   gap: 8px;
@@ -1922,7 +1951,7 @@ body.modelsDragging * {
   }
 
   .swipeComparePills__grid {
-    grid-template-columns: 1fr 40px 1fr 40px auto;
+    grid-template-columns: 1fr 40px 40px 1fr 40px 40px auto;
   }
 }
 

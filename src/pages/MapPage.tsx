@@ -26,6 +26,7 @@ const TimeseriesModal = lazy(() =>
 
 import { appConfig, formatForecastPeriod } from "../config/appConfig";
 import { getForecastPathForPeriod } from "../config/dataPaths";
+import type { H3Resolution } from "../config/dataPaths";
 import {
   forecastPeriodToIsoWeek,
   forecastPeriodToIsoWeekYear,
@@ -88,6 +89,8 @@ export function MapPage() {
   const [compareModelB, setCompareModelB] = useState("");
   const [comparePeriodA, setComparePeriodA] = useState("");
   const [comparePeriodB, setComparePeriodB] = useState("");
+  const [compareResolutionA, setCompareResolutionA] = useState<H3Resolution>(resolution);
+  const [compareResolutionB, setCompareResolutionB] = useState<H3Resolution>(resolution);
   const [mapResizeTick] = useState(0);
   const [compareViewState, setCompareViewState] = useState<{
     center: [number, number];
@@ -455,6 +458,12 @@ export function MapPage() {
     setComparePeriodB((prev) => prev || periods[Math.max(0, periods.length - 2)].periodKey);
   }, [periods]);
 
+  useEffect(() => {
+    if (compareEnabled) return;
+    setCompareResolutionA(resolution);
+    setCompareResolutionB(resolution);
+  }, [compareEnabled, resolution]);
+
   const periodOptions = useMemo(() => periods.map((p) => p.periodKey), [periods]);
   const compareDisabled = modelOptions.length === 0 || periods.length === 0;
   const compareDisabledReason = compareDisabled ? "Compare will enable after forecast options load" : undefined;
@@ -509,10 +518,10 @@ export function MapPage() {
     }
   }, [comparePeriodB, resolvedComparePeriodB]);
 
-  const resolveForecastPathByPeriodKey = (periodKey: string) => {
+  const resolveForecastPathByPeriodKey = (periodKey: string, targetResolution: H3Resolution) => {
     const period = periods.find((item) => item.periodKey === periodKey);
     if (!period) return undefined;
-    return getForecastPathForPeriod(resolution, period.fileId);
+    return getForecastPathForPeriod(targetResolution, period.fileId);
   };
 
   const currentWeek = useMemo(
@@ -527,8 +536,8 @@ export function MapPage() {
 
   const comparePeriodAObj = periods.find((p) => p.periodKey === resolvedComparePeriodA) ?? selectedForecast ?? configPeriod;
   const comparePeriodBObj = periods.find((p) => p.periodKey === resolvedComparePeriodB) ?? selectedForecast ?? configPeriod;
-  const comparePathA = resolveForecastPathByPeriodKey(comparePeriodAObj.periodKey);
-  const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey);
+  const comparePathA = resolveForecastPathByPeriodKey(comparePeriodAObj.periodKey, compareResolutionA);
+  const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey, compareResolutionB);
   const compareRenderMode: "single" | "dual" = compareEnabled
     ? compareSettings.dualMapMode
       ? "dual"
@@ -615,7 +624,7 @@ export function MapPage() {
                   <div className="compareMapPane">
                     <ForecastMap
                       darkMode={darkMode}
-                      resolution={resolution}
+                      resolution={compareResolutionA}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
                       poiFilters={poiFilters}
@@ -644,7 +653,7 @@ export function MapPage() {
                   <div className="compareMapPane">
                     <ForecastMap
                       darkMode={darkMode}
-                      resolution={resolution}
+                      resolution={compareResolutionB}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
                       poiFilters={poiFilters}
@@ -678,7 +687,7 @@ export function MapPage() {
                   <div className="compareMapPane">
                     <ForecastMap
                       darkMode={darkMode}
-                      resolution={resolution}
+                      resolution={compareResolutionA}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
                       poiFilters={poiFilters}
@@ -706,7 +715,7 @@ export function MapPage() {
                   <div className="compareMapPane">
                     <ForecastMap
                       darkMode={darkMode}
-                      resolution={resolution}
+                      resolution={compareResolutionB}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
                       poiFilters={poiFilters}
@@ -738,6 +747,8 @@ export function MapPage() {
               modelRightId={resolvedCompareModelB || modelId}
               periodLeft={comparePeriodAObj.periodKey}
               periodRight={comparePeriodBObj.periodKey}
+              resolutionLeft={compareResolutionA}
+              resolutionRight={compareResolutionB}
               periodOptions={periodOptions}
               models={compareModels}
               dualMapMode={compareSettings.dualMapMode}
@@ -745,6 +756,8 @@ export function MapPage() {
               onChangeModelRight={setCompareModelB}
               onChangePeriodLeft={setComparePeriodA}
               onChangePeriodRight={setComparePeriodB}
+              onChangeResolutionLeft={setCompareResolutionA}
+              onChangeResolutionRight={setCompareResolutionB}
               onToggleLocked={() =>
                 setCompareSettings((prev) => ({
                   ...prev,
@@ -799,7 +812,13 @@ export function MapPage() {
           compareEnabled={compareEnabled}
           compareDisabled={compareDisabled}
           compareDisabledReason={compareDisabledReason}
-          onToggleCompare={() => setCompareEnabled(!compareEnabled)}
+          onToggleCompare={() => {
+            if (!compareEnabled) {
+              setCompareResolutionA(resolution);
+              setCompareResolutionB(resolution);
+            }
+            setCompareEnabled(!compareEnabled);
+          }}
         />
 
         <div className="app__footer">
