@@ -1,4 +1,5 @@
 import { MapToolbar } from "./MapToolbar";
+import type { PaletteId } from "../constants/palettes";
 
 type Props = {
   open: boolean;
@@ -22,6 +23,8 @@ type Props = {
   compareEnabled: boolean;
   compareDisabled: boolean;
   compareDisabledReason?: string;
+  selectedPaletteId: PaletteId;
+  onPaletteChange: (paletteId: PaletteId) => void;
   onToggleCompare: () => void;
 };
 
@@ -47,6 +50,8 @@ export function ToolDrawer({
   compareEnabled,
   compareDisabled,
   compareDisabledReason,
+  selectedPaletteId,
+  onPaletteChange,
   onToggleCompare,
 }: Props) {
   return (
@@ -84,6 +89,8 @@ export function ToolDrawer({
               compareEnabled={compareEnabled}
               compareDisabled={compareDisabled}
               compareDisabledReason={compareDisabledReason}
+              selectedPaletteId={selectedPaletteId}
+              onPaletteChange={onPaletteChange}
               onToggleCompare={onToggleCompare}
             />
           </div>

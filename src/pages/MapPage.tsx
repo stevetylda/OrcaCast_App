@@ -42,6 +42,7 @@ import type { Period } from "../data/periods";
 import { useMenu } from "../state/MenuContext";
 import { useMapState } from "../state/MapStateContext";
 import { startMapTour } from "../tour/startMapTour";
+import { DEFAULT_PALETTE_ID } from "../constants/palettes";
 import "../features/models/models.css";
 
 type LastWeekMode = "none" | "previous" | "selected" | "both";
@@ -69,6 +70,8 @@ export function MapPage() {
     setCompareEnabled,
     compareSettings,
     setCompareSettings,
+    selectedPaletteId,
+    setSelectedPaletteId,
     setSelectedCompareH3,
   } = useMapState();
 
@@ -98,6 +101,7 @@ export function MapPage() {
     bearing: number;
     pitch: number;
   } | null>(null);
+  const [mapResetNonce, setMapResetNonce] = useState(0);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodHasForecast, setSelectedPeriodHasForecast] = useState<boolean | null>(null);
   const [showNoForecastNotice, setShowNoForecastNotice] = useState(false);
@@ -545,6 +549,36 @@ export function MapPage() {
     : "single";
   const syncEnabled = true;
 
+  const handleResetMap = () => {
+    setCompareEnabled(false);
+    setCompareViewState(null);
+    setToolsOpen(false);
+    setTimeseriesOpen(false);
+
+    setResolution("H4");
+    setModelId(appConfig.bestModelId);
+    setLastWeekMode("none");
+    setHotspotsEnabled(false);
+    setHotspotMode("modeled");
+    setHotspotPercentile(1);
+    setSelectedPaletteId(DEFAULT_PALETTE_ID);
+    setPoiFilters({ Park: false, Marina: false, Ferry: false });
+    setSelectedCompareH3(null);
+
+    setCompareModelA("");
+    setCompareModelB("");
+    setComparePeriodA("");
+    setComparePeriodB("");
+    setCompareResolutionA("H4");
+    setCompareResolutionB("H4");
+
+    const configuredIndex = periods.findIndex(
+      (p) => p.year === configPeriod.year && p.stat_week === configPeriod.stat_week
+    );
+    setForecastIndex(configuredIndex >= 0 ? configuredIndex : 0);
+    setMapResetNonce((prev) => prev + 1);
+  };
+
   useEffect(() => {
     if (!compareSettings.sharedScale) return;
     setCompareSettings((prev) => ({ ...prev, sharedScale: false }));
@@ -589,6 +623,7 @@ export function MapPage() {
         onToggleDarkMode={() => setThemeMode(darkMode ? "light" : "dark")}
         onOpenInfo={() => setInfoOpen(true)}
         onOpenMenu={() => setMenuOpen(true)}
+        onBrandClick={handleResetMap}
         compareEnabled={compareEnabled}
         onExitCompareMode={() => setCompareEnabled(false)}
       />
@@ -597,7 +632,9 @@ export function MapPage() {
         {/* <Suspense fallback={<div className="mapStage mapLoading">Loading map…</div>}> */}
         {!compareEnabled ? (
           <ForecastMap
+            key={`map-main-${selectedPaletteId}-${mapResetNonce}`}
             darkMode={darkMode}
+            paletteId={selectedPaletteId}
             resolution={resolution}
             showLastWeek={showLastWeek}
             lastWeekMode={lastWeekMode}
@@ -623,7 +660,9 @@ export function MapPage() {
                 childrenLeft={
                   <div className="compareMapPane">
                     <ForecastMap
+                      key={`map-dual-a-${selectedPaletteId}-${mapResetNonce}`}
                       darkMode={darkMode}
+                      paletteId={selectedPaletteId}
                       resolution={compareResolutionA}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
@@ -652,7 +691,9 @@ export function MapPage() {
                 childrenRight={
                   <div className="compareMapPane">
                     <ForecastMap
+                      key={`map-dual-b-${selectedPaletteId}-${mapResetNonce}`}
                       darkMode={darkMode}
+                      paletteId={selectedPaletteId}
                       resolution={compareResolutionB}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
@@ -686,7 +727,9 @@ export function MapPage() {
                 childrenLeft={
                   <div className="compareMapPane">
                     <ForecastMap
+                      key={`map-swipe-a-${selectedPaletteId}-${mapResetNonce}`}
                       darkMode={darkMode}
+                      paletteId={selectedPaletteId}
                       resolution={compareResolutionA}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
@@ -714,7 +757,9 @@ export function MapPage() {
                 childrenRight={
                   <div className="compareMapPane">
                     <ForecastMap
+                      key={`map-swipe-b-${selectedPaletteId}-${mapResetNonce}`}
                       darkMode={darkMode}
+                      paletteId={selectedPaletteId}
                       resolution={compareResolutionB}
                       showLastWeek={showLastWeek}
                       lastWeekMode={lastWeekMode}
@@ -812,6 +857,8 @@ export function MapPage() {
           compareEnabled={compareEnabled}
           compareDisabled={compareDisabled}
           compareDisabledReason={compareDisabledReason}
+          selectedPaletteId={selectedPaletteId}
+          onPaletteChange={setSelectedPaletteId}
           onToggleCompare={() => {
             if (!compareEnabled) {
               setCompareResolutionA(resolution);

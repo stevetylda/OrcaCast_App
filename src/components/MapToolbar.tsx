@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { HotspotsSettingsSection } from "./map/settings/HotspotsSettingsSection";
+import { PALETTES, getPalette, type PaletteId } from "../constants/palettes";
 
 type Props = {
   onSelectLastWeek: (mode: "previous" | "selected") => void;
@@ -20,6 +21,8 @@ type Props = {
   compareEnabled: boolean;
   compareDisabled: boolean;
   compareDisabledReason?: string;
+  selectedPaletteId: PaletteId;
+  onPaletteChange: (paletteId: PaletteId) => void;
   onToggleCompare: () => void;
   className?: string;
 };
@@ -67,18 +70,23 @@ export function MapToolbar({
   compareEnabled,
   compareDisabled,
   compareDisabledReason,
+  selectedPaletteId,
+  onPaletteChange,
   onToggleCompare,
   className,
 }: Props) {
   const lastWeekRef = useRef<HTMLDivElement | null>(null);
   const poiRef = useRef<HTMLDivElement | null>(null);
   const hotspotRef = useRef<HTMLDivElement | null>(null);
+  const paletteRef = useRef<HTMLDivElement | null>(null);
   const [lastWeekOpen, setLastWeekOpen] = useState(false);
   const [poiOpen, setPoiOpen] = useState(false);
   const [hotspotOpen, setHotspotOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const hasPrevious = lastWeekMode === "previous" || lastWeekMode === "both";
   const hasSelected = lastWeekMode === "selected" || lastWeekMode === "both";
   const poiActive = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
+  const activePalette = getPalette(selectedPaletteId);
 
   useEffect(() => {
     if (!lastWeekOpen) return;
@@ -136,6 +144,25 @@ export function MapToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [hotspotOpen]);
+
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!paletteRef.current) return;
+      if (paletteRef.current.contains(event.target as Node)) return;
+      setPaletteOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setPaletteOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [paletteOpen]);
 
   return (
     <div className={className ? `toolbar ${className}` : "toolbar"} data-tour="toolbar">
@@ -208,6 +235,58 @@ export function MapToolbar({
       >
         <span className="material-symbols-rounded">compare_arrows</span>
       </button>
+      <div ref={paletteRef} className={`toolMenu toolDrawer__paletteMenu${paletteOpen ? " toolMenu--open" : ""}`}>
+        <button
+          className="toolBtn toolDrawer__paletteToggle"
+          onClick={() => setPaletteOpen((v) => !v)}
+          aria-label="Color palette"
+          title="Color palette"
+          data-tour="palette-picker"
+        >
+          <span className="material-symbols-rounded" style={{ color: activePalette.dominant }}>
+            palette
+          </span>
+        </button>
+        {paletteOpen && (
+          <div
+            className="toolMenu__popover toolMenu__popover--stack toolDrawer__palettePopover"
+            role="menu"
+            aria-label="Sighting outlook palettes"
+            onWheel={(event) => event.stopPropagation()}
+          >
+            {Object.values(PALETTES).map((palette) => {
+              const selected = palette.id === selectedPaletteId;
+              return (
+                <button
+                  key={palette.id}
+                  type="button"
+                  className={`toolDrawer__paletteRow${selected ? " isSelected" : ""}`}
+                  onClick={() => {
+                    onPaletteChange(palette.id);
+                    setPaletteOpen(false);
+                  }}
+                  role="menuitemradio"
+                  aria-checked={selected}
+                >
+                  <span className="toolDrawer__paletteChips" aria-hidden="true">
+                    {palette.colors.map((color, idx) => (
+                      <span
+                        key={`${palette.id}-chip-${idx}`}
+                        className="toolDrawer__paletteChip"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </span>
+                  <span className="toolDrawer__paletteLabel">{palette.name}</span>
+                  <span className="toolDrawer__paletteCheck" aria-hidden="true">
+                    {selected ? "check" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
       <div ref={poiRef} className={`toolMenu${poiOpen ? " toolMenu--open" : ""}`}>
         <button
           className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}
@@ -256,6 +335,7 @@ export function MapToolbar({
           onClick={() => setHotspotOpen((v) => !v)}
           title="Hotspot threshold"
           aria-label="Hotspot threshold"
+          data-tour="tools-hotspots"
         >
           <span className="toolBtn__iconStack" aria-hidden="true">
             <span className="material-symbols-rounded toolBtn__iconBase toolBtn__iconBase--hotspot">

@@ -28,6 +28,7 @@ import { isoWeekFromDate } from "../core/time/forecastPeriodToIsoWeek";
 import { isoWeekToDateRange } from "../core/time/forecastPeriodToIsoWeek";
 import { ProbabilityLegend } from "./ProbabilityLegend";
 import type { DataDrivenPropertyValueSpecification } from "maplibre-gl";
+import { getPaletteOrDefault, type PaletteId } from "../constants/palettes";
 
 type FillColorSpec = DataDrivenPropertyValueSpecification<string>;
 type LastWeekMode = "none" | "previous" | "selected" | "both";
@@ -134,6 +135,7 @@ type CompareMapViewState = {
 
 type Props = {
   darkMode: boolean;
+  paletteId: PaletteId;
   resolution: H3Resolution;
   showLastWeek: boolean;
   lastWeekMode: LastWeekMode;
@@ -159,17 +161,6 @@ type Props = {
   onMoveViewState?: (viewState: CompareMapViewState) => void;
   onMoveEndViewState?: (viewState: CompareMapViewState) => void;
 };
-
-const PALETTE = [
-  "#123BFF",
-  "#1B74FF",
-  "#1AA8FF",
-  "#14D3FF",
-  "#00F5FF",
-  "#00FFC6",
-  "#00FFF0",
-  "#E8FFFD",
-];
 
 const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
 const DARK_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
@@ -274,6 +265,7 @@ const LAST_WEEK_WHITE_ID = "last-week-sightings-white";
 
 export function ForecastMap({
   darkMode,
+  paletteId,
   resolution,
   showLastWeek,
   lastWeekMode,
@@ -302,6 +294,7 @@ export function ForecastMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
+  const activePalette = useMemo(() => getPaletteOrDefault(paletteId), [paletteId]);
   const gridBorderColor = useMemo(
     () => (darkMode ? "rgba(8,18,44,0.22)" : "rgba(20,42,78,0.16)"),
     [darkMode]
@@ -317,7 +310,7 @@ export function ForecastMap({
   const totalCellsRef = useRef(0);
   const shimmerThresholdRef = useRef<number | undefined>(undefined);
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
-  const [legendOpen, setLegendOpen] = useState(true);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [showKdeContours, setShowKdeContours] = useState(false);
   const [kdeBands, setKdeBands] = useState<FeatureCollection | null>(null);
   const [kdeWarning, setKdeWarning] = useState<string | null>(null);
@@ -415,7 +408,7 @@ export function ForecastMap({
       useExternalColorScale && colorScaleValuesRef.current && Object.keys(colorScaleValuesRef.current).length > 0
         ? colorScaleValuesRef.current
         : values;
-    const { fillColorExpr, scale } = buildAutoColorExprFromValues(scaleSourceValues, PALETTE);
+    const { fillColorExpr, scale } = buildAutoColorExprFromValues(scaleSourceValues, activePalette.colors);
     const valueList = Object.values(values)
       .map((v) => Number(v))
       .filter((v) => Number.isFinite(v) && v > 0)
@@ -1369,7 +1362,7 @@ export function ForecastMap({
     applyScaleToCurrentValues(values);
     renderForecastLayer(map);
     moveLastWeekToTop(map);
-  }, [colorScaleValues, mapReady, useExternalColorScale]);
+  }, [colorScaleValues, mapReady, useExternalColorScale, activePalette]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1809,6 +1802,22 @@ function getKdeBandColor(
 }
 
 function rgbaStringToArray(value: string): [number, number, number, number] | null {
+  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const cleaned = hexMatch[1];
+    const full =
+      cleaned.length === 3
+        ? cleaned
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : cleaned;
+    const numeric = parseInt(full, 16);
+    const r = (numeric >> 16) & 255;
+    const g = (numeric >> 8) & 255;
+    const b = numeric & 255;
+    return [r, g, b, 255];
+  }
   const match = value.match(/rgba?\(([^)]+)\)/i);
   if (!match) return null;
   const parts = match[1].split(",").map((part) => Number(part.trim()));
