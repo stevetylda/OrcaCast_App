@@ -31,6 +31,7 @@ type Props = {
   onToggleDarkMode: () => void;
   onOpenInfo: () => void;
   onOpenMenu: () => void;
+  onBrandClick?: () => void;
   compareEnabled?: boolean;
   onExitCompareMode?: () => void;
 };
@@ -54,6 +55,7 @@ export function AppHeader({
   onToggleDarkMode,
   onOpenInfo,
   onOpenMenu,
+  onBrandClick,
   compareEnabled = false,
   onExitCompareMode,
 }: Props) {
@@ -75,11 +77,17 @@ export function AppHeader({
           <span className="material-symbols-rounded">menu</span>
         </button>
 
-        <div className="brand">
+        <button
+          type="button"
+          className={`brand brandBtn${onBrandClick ? " brandBtn--active" : ""}`}
+          onClick={onBrandClick}
+          aria-label={onBrandClick ? "Reset map" : undefined}
+          title={onBrandClick ? "Reset map" : undefined}
+        >
           <div className="brand__title">
             {title} <span className="brand__subtitle">– {subtitle}</span>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="header__right">

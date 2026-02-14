@@ -1,7 +1,8 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import { appConfig } from "../config/appConfig";
 import { DEFAULT_COMPARE_SETTINGS, type CompareSettings, type CompareViewMode } from "./compareStore";
+import { DEFAULT_PALETTE_ID, getPaletteOrDefault, type PaletteId } from "../constants/palettes";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -35,6 +36,8 @@ type MapState = {
   setCompareSettings: (value: CompareSettings | ((prev: CompareSettings) => CompareSettings)) => void;
   compareMode: CompareViewMode;
   setCompareMode: (value: CompareViewMode) => void;
+  selectedPaletteId: PaletteId;
+  setSelectedPaletteId: (value: PaletteId) => void;
   selectedCompareH3: string | null;
   setSelectedCompareH3: (value: string | null) => void;
 };
@@ -63,7 +66,17 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [compareSettings, setCompareSettings] = useState<CompareSettings>(DEFAULT_COMPARE_SETTINGS);
   const [compareMode, setCompareMode] = useState<CompareViewMode>("split");
+  const [selectedPaletteId, setSelectedPaletteId] = useState<PaletteId>(() => {
+    if (typeof window === "undefined") return DEFAULT_PALETTE_ID;
+    const stored = window.localStorage.getItem("orcacast.paletteId");
+    return getPaletteOrDefault(stored).id;
+  });
   const [selectedCompareH3, setSelectedCompareH3] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("orcacast.paletteId", selectedPaletteId);
+  }, [selectedPaletteId]);
 
   const darkMode = useMemo(() => {
     if (themeMode === "system") return getSystemPrefersDark();
@@ -101,6 +114,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setCompareSettings,
       compareMode,
       setCompareMode,
+      selectedPaletteId,
+      setSelectedPaletteId,
       selectedCompareH3,
       setSelectedCompareH3,
     }),
@@ -120,6 +135,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       compareEnabled,
       compareSettings,
       compareMode,
+      selectedPaletteId,
       selectedCompareH3,
       setThemeMode,
       setResolution,
@@ -135,6 +151,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setCompareEnabled,
       setCompareSettings,
       setCompareMode,
+      setSelectedPaletteId,
       setSelectedCompareH3,
     ]
   );

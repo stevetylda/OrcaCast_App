@@ -361,6 +361,29 @@ body {
   text-shadow: 0 0 12px rgba(25, 240, 215, 0.16);
 }
 
+.brandBtn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+}
+
+.brandBtn--active {
+  cursor: pointer;
+}
+
+.brandBtn--active:hover .brand__title,
+.brandBtn--active:focus-visible .brand__title {
+  text-shadow: 0 0 14px rgba(25, 240, 215, 0.34);
+}
+
+.brandBtn:focus-visible {
+  outline: 1px solid rgba(25, 240, 215, 0.45);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 .brand__subtitle {
   font-weight: 600;
   opacity: 0.9;
@@ -1333,6 +1356,84 @@ body {
   border: 1px solid rgba(25, 240, 215, 0.5);
   box-shadow: var(--teal-glow), var(--shadow);
   width: max-content;
+}
+
+.toolDrawer__paletteMenu {
+  position: relative;
+}
+
+.toolDrawer__paletteToggle .material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 22;
+}
+
+.toolDrawer__palettePopover {
+  left: 0;
+  transform: none;
+  bottom: calc(100% + 8px);
+  min-width: 252px;
+  max-height: min(320px, calc(100vh - 140px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+}
+
+.toolDrawer__paletteRow {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.toolDrawer__paletteRow + .toolDrawer__paletteRow {
+  margin-top: 6px;
+}
+
+.toolDrawer__paletteRow:hover,
+.toolDrawer__paletteRow:focus-visible {
+  outline: none;
+  border-color: rgba(25, 240, 215, 0.6);
+  box-shadow: var(--teal-glow-soft);
+}
+
+.toolDrawer__paletteRow.isSelected {
+  border-color: rgba(25, 240, 215, 0.7);
+  background: rgba(25, 240, 215, 0.14);
+}
+
+.toolDrawer__paletteChips {
+  display: inline-grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+}
+
+.toolDrawer__paletteChip {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.toolDrawer__paletteLabel {
+  font-size: 12px;
+  text-align: left;
+}
+
+.toolDrawer__paletteCheck {
+  min-width: 20px;
+  text-align: right;
+  font-family: "Material Symbols Rounded";
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(25, 240, 215, 0.95);
+  font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 20;
 }
 
 .toolbar {
@@ -2550,8 +2651,9 @@ body {
   right: 16px;
   bottom: 122px;
   z-index: 12;
-  min-width: 180px;
-  max-width: 240px;
+  width: fit-content;
+  min-width: 0;
+  max-width: 186px;
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(8, 18, 44, 0.88);
@@ -2684,6 +2786,7 @@ body {
   font-size: 11px;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.72);
+  white-space: normal;
 }
 
 .map__cornerRightBottom {
@@ -2866,7 +2969,7 @@ body {
   .legend {
     right: 10px;
     bottom: 140px;
-    max-width: 200px;
+    max-width: 186px;
   }
 
   .map__cornerRightBottom {

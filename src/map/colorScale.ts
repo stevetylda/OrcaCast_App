@@ -17,147 +17,54 @@ type ColorScaleResult = {
 };
 
 export const ZERO_COLOR = "rgba(25,240,215,0.12)";
-const BASE_PALETTE = [
-  "#1A4DFF",
-  "#2E7BFF",
-  "#24B6FF",
-  "#19E0FF",
-  "#00FFF0",
-  "#00FFC6",
-  "#5CFF6B",
-  "#E9FF6A",
-];
-
-const LABELS = [
-  "Not Scored",
+export const OUTLOOK_BIN_LABELS = [
   "Very Low",
   "Low",
   "Moderate",
   "Elevated",
   "High",
   "Very High",
-  "Extreme / Peak",
+  "Extreme",
+  "Peak",
+] as const;
+
+const LABELS: string[] = [
+  "Not Scored",
+  ...OUTLOOK_BIN_LABELS,
 ];
 
 const Q_LEVELS = [0.6, 0.9, 0.94, 0.96, 0.975, 0.9875, 0.995];
 
-function hexToRgb(hex: string): [number, number, number] {
-  const cleaned = hex.replace("#", "");
-  const full = cleaned.length === 3
-    ? cleaned
-        .split("")
-        .map((c) => c + c)
-        .join("")
-    : cleaned;
-  const num = parseInt(full, 16);
-  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
-  const rn = r / 255;
-  const gn = g / 255;
-  const bn = b / 255;
-  const max = Math.max(rn, gn, bn);
-  const min = Math.min(rn, gn, bn);
-  const l = (max + min) / 2;
-  if (max === min) return [0, 0, l];
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  switch (max) {
-    case rn:
-      h = (gn - bn) / d + (gn < bn ? 6 : 0);
-      break;
-    case gn:
-      h = (bn - rn) / d + 2;
-      break;
-    default:
-      h = (rn - gn) / d + 4;
-  }
-  h /= 6;
-  return [h, s, l];
-}
-
-function hslToRgb([h, s, l]: [number, number, number]): [number, number, number] {
-  if (s === 0) {
-    const v = Math.round(l * 255);
-    return [v, v, v];
-  }
-  const hue2rgb = (p: number, q: number, t: number) => {
-    let tt = t;
-    if (tt < 0) tt += 1;
-    if (tt > 1) tt -= 1;
-    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
-    if (tt < 1 / 2) return q;
-    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
-    return p;
-  };
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const r = hue2rgb(p, q, h + 1 / 3);
-  const g = hue2rgb(p, q, h);
-  const b = hue2rgb(p, q, h - 1 / 3);
-  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-}
-
-function adjustPalette(base: string[]): string[] {
-  return base.map((hex) => {
-    const rgb = hexToRgb(hex);
-    const [h, s, l] = rgbToHsl(rgb);
-    const ns = Math.min(1, s * 1.18);
-    const nl = Math.max(0, l * 0.92);
-    const [r, g, b] = hslToRgb([h, ns, nl]);
-    return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
-  });
-}
-
-function rgbToRgba([r, g, b]: [number, number, number], alpha: number): string {
-  return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha.toFixed(3)})`;
-}
-
-function buildRamp(colors: string[], n: number, alphas: number[]): string[] {
-  if (n <= 1) return [rgbToRgba(hexToRgb(colors[0]), alphas[0] ?? 0.6)];
-  const stops = colors.map(hexToRgb);
-  const ramp: string[] = [];
-  for (let i = 0; i < n; i += 1) {
-    const t = i / (n - 1);
-    const idx = Math.min(stops.length - 2, Math.floor(t * (stops.length - 1)));
-    const localT = (t * (stops.length - 1)) - idx;
-    const a = stops[idx];
-    const b = stops[idx + 1];
-    const rgb: [number, number, number] = [
-      lerp(a[0], b[0], localT),
-      lerp(a[1], b[1], localT),
-      lerp(a[2], b[2], localT),
-    ];
-    const alpha = alphas[Math.min(i, alphas.length - 1)];
-    ramp.push(rgbToRgba(rgb, alpha));
-  }
-  return ramp;
-}
-
-function tailQuantileThresholds(values: number[]): Array<{ value: number; quantile: number }> {
+function quantileThresholds(values: number[]): number[] {
   const sorted = [...values].sort((a, b) => a - b);
-  const thresholds: Array<{ value: number; quantile: number }> = [];
-  Q_LEVELS.forEach((q) => {
+  const rawThresholds = Q_LEVELS.map((q) => {
     const idx = Math.max(0, Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1))));
-    thresholds.push({ value: sorted[idx], quantile: q });
+    return sorted[idx];
   });
-  const unique: Array<{ value: number; quantile: number }> = [];
-  thresholds.forEach((t) => {
-    const last = unique[unique.length - 1]?.value;
-    if (last === undefined || t.value > last) unique.push(t);
+  const span = Math.max(1, sorted[sorted.length - 1] - sorted[0]);
+  const epsilon = span * 1e-9;
+  const adjusted: number[] = [];
+  rawThresholds.forEach((value, idx) => {
+    if (idx === 0) {
+      adjusted.push(value);
+      return;
+    }
+    const prev = adjusted[idx - 1];
+    adjusted.push(value <= prev ? prev + epsilon : value);
   });
-  return unique;
+  return adjusted;
+}
+
+function normalizePaletteColors(palette: string[], bins: number): string[] {
+  if (palette.length >= bins) return palette.slice(0, bins);
+  if (palette.length === 0) return Array.from({ length: bins }, () => "#ffffff");
+  const last = palette[palette.length - 1];
+  return [...palette, ...Array.from({ length: bins - palette.length }, () => last)];
 }
 
 export function buildAutoColorExprFromValues(
   probsByH3: Record<string, number>,
-  palette: string[] = BASE_PALETTE
+  palette: string[]
 ): ColorScaleResult {
   const values = Object.values(probsByH3)
     .map((v) => Number(v))
@@ -169,20 +76,12 @@ export function buildAutoColorExprFromValues(
     };
   }
 
-  let quantileThresholds = tailQuantileThresholds(values);
-  if (quantileThresholds.length > 7) {
-    quantileThresholds = quantileThresholds.slice(0, 7);
-  }
-  const thresholds = quantileThresholds.map((entry) => entry.value);
+  const thresholds = quantileThresholds(values);
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   const bins = Math.max(1, thresholds.length + 1);
-  const alphaRamp = Array.from({ length: bins }, (_, i) => {
-    const t = i / Math.max(1, bins - 1);
-    return 0.6 + t * (1.0 - 0.6);
-  });
-  const colors = buildRamp(adjustPalette(palette), bins, alphaRamp);
-  const quantileBounds = [0, ...quantileThresholds.map((entry) => entry.quantile), 1];
+  const colors = normalizePaletteColors(palette, bins);
+  const quantileBounds = [0, ...Q_LEVELS, 1];
   const binRanges = Array.from({ length: bins }, (_, idx) => ({
     percentileMin: quantileBounds[idx] * 100,
     percentileMax: quantileBounds[idx + 1] * 100,
