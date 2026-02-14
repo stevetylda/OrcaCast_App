@@ -86,6 +86,10 @@ body {
   transform: translateY(0.5px);
 }
 
+.maplibregl-marker {
+  z-index: 8;
+}
+
 .poiPopup {
   font-family: "Space Grotesk", "Sora", sans-serif;
   color: #ffffff;

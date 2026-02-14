@@ -173,6 +173,7 @@ const PALETTE = [
 
 const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
 const DARK_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
+const KDE_ENABLED = false;
 const BASEMAP_TINT_SOURCE_ID = "orcacast-basemap-tint-source";
 const BASEMAP_TINT_LAYER_ID = "orcacast-basemap-tint-layer";
 const DARK_LABEL_OPACITY = 0.86;
@@ -485,7 +486,7 @@ export function ForecastMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map) return;
 
     const showPoi = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
     if (!showPoi) {
@@ -496,21 +497,79 @@ export function ForecastMap({
 
     const loadPoi = async () => {
       if (poiLoadedRef.current && poiDataRef.current) return poiDataRef.current;
-      const response = await fetch("/data/places_of_interest.json");
-      if (!response.ok) throw new Error("Failed to load POI data");
-      const payload = (await response.json()) as {
-        items?: Array<{ type: string; name: string; latitude: number; longitude: number }>;
-      };
-      poiLoadedRef.current = true;
-      poiDataRef.current = payload.items ?? [];
-      return poiDataRef.current;
+      const base = import.meta.env.BASE_URL || "/";
+      const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+      const candidates = Array.from(
+        new Set([
+          `${normalizedBase}data/places_of_interest.json`,
+          "/data/places_of_interest.json",
+          "data/places_of_interest.json",
+        ])
+      );
+
+      let lastError: Error | null = null;
+      for (const url of candidates) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            lastError = new Error(`Failed to load POI data from ${url}: ${response.status}`);
+            continue;
+          }
+          const payload = (await response.json()) as
+            | { items?: Array<{ type: string; name: string; latitude: number; longitude: number }> }
+            | Array<{ type: string; name: string; latitude: number; longitude: number }>
+            | {
+                features?: Array<{
+                  properties?: Record<string, unknown>;
+                  geometry?: { coordinates?: [number, number] };
+                }>;
+              };
+
+          let items: Array<{ type: string; name: string; latitude: number; longitude: number }> = [];
+          if (Array.isArray(payload)) {
+            items = payload.map((entry) => ({
+              type: String((entry as { type?: string }).type ?? ""),
+              name: String((entry as { name?: string }).name ?? "POI"),
+              latitude: Number((entry as { latitude?: number }).latitude),
+              longitude: Number((entry as { longitude?: number }).longitude),
+            }));
+          } else if ("items" in payload && Array.isArray(payload.items)) {
+            items = payload.items.map((entry) => ({
+              type: String(entry.type ?? ""),
+              name: String(entry.name ?? "POI"),
+              latitude: Number(entry.latitude),
+              longitude: Number(entry.longitude),
+            }));
+          } else if ("features" in payload && Array.isArray(payload.features)) {
+            items = payload.features.map((feature) => {
+              const props = feature.properties ?? {};
+              const coordinates = feature.geometry?.coordinates ?? [Number.NaN, Number.NaN];
+              const [lng, lat] = coordinates;
+              return {
+                type: String(props.type ?? props.category ?? ""),
+                name: String(props.name ?? "POI"),
+                latitude: Number(lat),
+                longitude: Number(lng),
+              };
+            });
+          }
+
+          poiLoadedRef.current = true;
+          poiDataRef.current = items;
+          // eslint-disable-next-line no-console
+          console.info(`[POI] loaded ${items.length} items from ${url}`);
+          return poiDataRef.current;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+        }
+      }
+      throw lastError ?? new Error("Failed to load POI data");
     };
 
     let cancelled = false;
 
-    loadPoi()
-      .then((items) => {
-        if (cancelled || !map) return;
+    const renderPoiMarkers = (items: Array<{ type: string; name: string; latitude: number; longitude: number }>) => {
+      if (cancelled || !mapRef.current) return;
         poiMarkersRef.current.forEach((marker) => marker.remove());
         poiMarkersRef.current = [];
 
@@ -520,17 +579,40 @@ export function ForecastMap({
           Ferry: "directions_boat",
         };
 
-        const markers = items
-          .filter((poi) => {
-            const key = poi.type as keyof typeof poiFilters;
-            return poiFilters[key] ?? false;
-          })
+        const normalizeType = (value: string) => value.trim().toLowerCase();
+        const typeToFilterKey = (value: string): keyof typeof poiFilters | null => {
+          const normalized = normalizeType(value);
+          if (normalized === "park") return "Park";
+          if (normalized === "marina") return "Marina";
+          if (normalized === "ferry") return "Ferry";
+          return null;
+        };
+
+        const safeItems = items
+          .map((poi) => ({
+            ...poi,
+            latitude: Number(poi.latitude),
+            longitude: Number(poi.longitude),
+            filterKey: typeToFilterKey(String(poi.type ?? "")),
+          }))
+          .filter(
+            (poi) =>
+              poi.filterKey !== null &&
+              Number.isFinite(poi.latitude) &&
+              Number.isFinite(poi.longitude)
+          );
+
+        const filteredItems = safeItems.filter(
+          (poi) => poi.filterKey && (poiFilters[poi.filterKey] ?? false)
+        );
+        const itemsToRender = filteredItems.length > 0 ? filteredItems : safeItems;
+        const markers = itemsToRender
           .map((poi) => {
           const el = document.createElement("button");
           el.type = "button";
           el.className = "poiMarker";
           el.setAttribute("aria-label", poi.name);
-          const icon = iconMap[poi.type] ?? "directions_boat";
+          const icon = poi.filterKey ? iconMap[poi.filterKey] : "directions_boat";
           el.innerHTML = `<span class=\"material-symbols-rounded\">${icon}</span>`;
 
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: true }).setHTML(
@@ -546,27 +628,45 @@ export function ForecastMap({
             .addTo(map);
         });
 
-        poiMarkersRef.current = markers;
+      poiMarkersRef.current = markers;
+      // eslint-disable-next-line no-console
+      console.info(
+        `[POI] rendered ${markers.length} markers (valid=${safeItems.length}, matchedFilters=${filteredItems.length})`
+      );
+    };
+
+    loadPoi()
+      .then((items) => {
+        if (cancelled || !mapRef.current) return;
+        if (!mapRef.current.isStyleLoaded()) {
+          mapRef.current.once("load", () => {
+            renderPoiMarkers(items);
+          });
+          return;
+        }
+        renderPoiMarkers(items);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
+        // eslint-disable-next-line no-console
+        console.warn("[POI] failed to load places_of_interest.json", err);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [poiFilters, mapReady]);
+  }, [poiFilters, styleUrl, mapReady]);
 
   useEffect(() => {
     hotspotsOnlyRef.current = hotspotsEnabled;
   }, [hotspotsEnabled]);
 
   useEffect(() => {
-    showKdeContoursRef.current = showKdeContours;
+    showKdeContoursRef.current = KDE_ENABLED && showKdeContours;
   }, [showKdeContours]);
 
   useEffect(() => {
-    if (showKdeContours) return;
+    if (KDE_ENABLED && showKdeContours) return;
     setKdeBands(null);
     setKdeWarning(null);
   }, [showKdeContours]);
@@ -1515,7 +1615,7 @@ export function ForecastMap({
       setHotspotVisibility(map, false);
       return;
     }
-    if (showKdeContours) {
+    if (KDE_ENABLED && showKdeContours) {
       setGridVisibility(map, false);
     } else if (hotspotsEnabled) {
       setGridBaseVisibility(map, false);
@@ -1528,11 +1628,16 @@ export function ForecastMap({
 
   useEffect(() => {
     if (hasForecastLegend) return;
-    if (showKdeContours) setShowKdeContours(false);
+    if (KDE_ENABLED && showKdeContours) setShowKdeContours(false);
     if (hotspotsEnabled) onHotspotsEnabledChange(false);
   }, [hasForecastLegend, showKdeContours, hotspotsEnabled, onHotspotsEnabledChange]);
 
   useEffect(() => {
+    if (!KDE_ENABLED) {
+      setKdeBands(null);
+      setKdeWarning(null);
+      return;
+    }
     const map = mapRef.current;
     if (!map || !showKdeContours) return;
 
@@ -1587,7 +1692,7 @@ export function ForecastMap({
     const overlay = deckOverlayRef.current;
     if (!overlay) return;
 
-    if (!showKdeContours || !kdeBands) {
+    if (!KDE_ENABLED || !showKdeContours || !kdeBands) {
       overlay.setProps({ layers: [] });
       return;
     }
@@ -1613,19 +1718,6 @@ export function ForecastMap({
     <div className="mapStage">
       <div ref={containerRef} className="map" data-tour="map-canvas" />
       <div className="map__cornerRightBottom" data-tour="legend-controls">
-        <button
-          className={
-            showKdeContours
-              ? `iconBtn legendClusterBtn legendKde legendKde--active${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
-              : `iconBtn legendClusterBtn legendKde${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
-          }
-          onClick={() => setShowKdeContours((v) => !v)}
-          aria-label="Blurred (precomputed)"
-          data-tour="kde"
-          disabled={!hasForecastLegend}
-        >
-          <span className="material-symbols-rounded">blur_on</span>
-        </button>
         <div className="legendClusterItem">
           {/* {hotspotsOnly && hotspotCount !== null && (
             <div
@@ -1646,7 +1738,6 @@ export function ForecastMap({
             }
             onClick={() => {
               const next = !hotspotsEnabled;
-              if (next) setShowKdeContours(false);
               onHotspotsEnabledChange(next);
             }}
             aria-label="Toggle hotspots"
@@ -1667,7 +1758,7 @@ export function ForecastMap({
         </button>
       </div>
       {legendSpec && legendOpen && <ProbabilityLegend scale={legendSpec} />}
-      {kdeWarning && (
+      {KDE_ENABLED && kdeWarning && (
         <div className="map__kdeWarning" role="status" aria-live="polite">
           <span className="material-symbols-rounded" aria-hidden="true">
             warning

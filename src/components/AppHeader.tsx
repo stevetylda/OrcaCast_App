@@ -125,13 +125,15 @@ export function AppHeader({
           </>
         )}
 
-        <H3ResolutionPill
-          value={resolution === "H4" ? 4 : resolution === "H5" ? 5 : 6}
-          onChange={(next) =>
-            onResolutionChange(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
-          }
-          tourId="resolution"
-        />
+        {!compareEnabled && (
+          <H3ResolutionPill
+            value={resolution === "H4" ? 4 : resolution === "H5" ? 5 : 6}
+            onChange={(next) =>
+              onResolutionChange(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
+            }
+            tourId="resolution"
+          />
+        )}
 
         <button
           className="iconBtn"

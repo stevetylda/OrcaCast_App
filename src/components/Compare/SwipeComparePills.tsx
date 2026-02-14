@@ -1,10 +1,14 @@
 import type { ModelInfo } from "../../features/models/data/dummyModels";
+import type { H3Resolution } from "../../config/dataPaths";
+import { H3ResolutionPill } from "../controls/H3ResolutionPill";
 
 type Props = {
   modelLeftId: string;
   modelRightId: string;
   periodLeft: string;
   periodRight: string;
+  resolutionLeft: H3Resolution;
+  resolutionRight: H3Resolution;
   dualMapMode: boolean;
   periodOptions: string[];
   models: ModelInfo[];
@@ -12,6 +16,8 @@ type Props = {
   onChangeModelRight: (id: string) => void;
   onChangePeriodLeft: (period: string) => void;
   onChangePeriodRight: (period: string) => void;
+  onChangeResolutionLeft: (resolution: H3Resolution) => void;
+  onChangeResolutionRight: (resolution: H3Resolution) => void;
   onToggleLocked: () => void;
 };
 
@@ -26,6 +32,8 @@ export function SwipeComparePills({
   modelRightId,
   periodLeft,
   periodRight,
+  resolutionLeft,
+  resolutionRight,
   dualMapMode,
   periodOptions,
   models,
@@ -33,6 +41,8 @@ export function SwipeComparePills({
   onChangeModelRight,
   onChangePeriodLeft,
   onChangePeriodRight,
+  onChangeResolutionLeft,
+  onChangeResolutionRight,
   onToggleLocked,
 }: Props) {
   const safeLeftModelId = modelLeftId || models[0]?.id || "";
@@ -83,6 +93,16 @@ export function SwipeComparePills({
             </select>
           </div>
 
+          <div className="swipeComparePills__resolution" aria-label="Left hex resolution">
+            <H3ResolutionPill
+              value={resolutionLeft === "H4" ? 4 : resolutionLeft === "H5" ? 5 : 6}
+              onChange={(next) =>
+                onChangeResolutionLeft(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
+              }
+              compact
+            />
+          </div>
+
           <div className="swipeComparePills__field swipeComparePills__field--model">
             <select aria-label="Right model" value={safeRightModelId} onChange={(event) => onChangeModelRight(event.target.value)}>
               {!rightModelExists && safeRightModelId ? (
@@ -115,6 +135,16 @@ export function SwipeComparePills({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="swipeComparePills__resolution" aria-label="Right hex resolution">
+            <H3ResolutionPill
+              value={resolutionRight === "H4" ? 4 : resolutionRight === "H5" ? 5 : 6}
+              onChange={(next) =>
+                onChangeResolutionRight(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
+              }
+              compact
+            />
           </div>
 
           <div className="swipeComparePills__tools" role="toolbar" aria-label="Compare tools">
