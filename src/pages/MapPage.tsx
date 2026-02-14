@@ -6,9 +6,7 @@ import { WelcomeModal } from "../components/WelcomeModal";
 
 import { ForecastMap } from "../components/ForecastMap";
 import { CompareTray } from "../components/Compare/CompareTray";
-import { CompareDividerPill } from "../components/Compare/CompareDividerPill";
-import { CompareAdvancedPopover } from "../components/Compare/CompareAdvancedPopover";
-import { SplitCompareView } from "../components/Compare/SplitCompareView";
+import { SwipeCompareView } from "../components/Compare/SwipeCompareView";
 // import { InfoModal } from "../components/InfoModal";
 // import { TimeseriesModal } from "../components/modals/TimeseriesModal";
 
@@ -67,8 +65,6 @@ export function MapPage() {
     setHotspotPercentile,
     compareEnabled,
     setCompareEnabled,
-    compareMode,
-    setCompareMode,
     compareSettings,
     setCompareSettings,
     selectedCompareH3,
@@ -92,8 +88,13 @@ export function MapPage() {
   const [compareModelB, setCompareModelB] = useState("");
   const [comparePeriodA, setComparePeriodA] = useState("");
   const [comparePeriodB, setComparePeriodB] = useState("");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [mapResizeTick, setMapResizeTick] = useState(0);
+  const [mapResizeTick] = useState(0);
+  const [compareViewState, setCompareViewState] = useState<{
+    center: [number, number];
+    zoom: number;
+    bearing: number;
+    pitch: number;
+  } | null>(null);
   const [compareValuesA, setCompareValuesA] = useState<Record<string, number>>({});
   const [compareValuesB, setCompareValuesB] = useState<Record<string, number>>({});
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -412,11 +413,6 @@ export function MapPage() {
   }, [forecastPath, latestForecastPath, resolution, modelId, setModelId]);
 
   useEffect(() => {
-    if (compareEnabled || !advancedOpen) return;
-    setAdvancedOpen(false);
-  }, [compareEnabled, advancedOpen]);
-
-  useEffect(() => {
     if (selectedPeriodHasForecast === true) {
       lastMissingNoticePeriodKeyRef.current = null;
       setShowNoForecastNotice(false);
@@ -566,12 +562,9 @@ export function MapPage() {
           />
         ) : (
           <div className="compareModeStage compareModeStage--map">
-            <SplitCompareView
-              mode={compareMode}
+            <SwipeCompareView
               splitPct={compareSettings.splitPct}
-              fixedSplit={compareSettings.fixedSplit}
               onSplitCommit={(pct) => setCompareSettings((prev) => ({ ...prev, splitPct: pct }))}
-              onResize={() => setMapResizeTick((v) => v + 1)}
               childrenA={
                 <ForecastMap
                   darkMode={darkMode}
@@ -593,53 +586,32 @@ export function MapPage() {
                   onGridCellSelect={setSelectedCompareH3}
                   resizeTick={mapResizeTick}
                   forecastPath={comparePathA}
+                  onMoveEndViewState={setCompareViewState}
                 />
               }
               childrenB={
-                <div style={compareMode === "overlay" ? { opacity: compareSettings.overlayOpacity } : undefined}>
-                  <ForecastMap
-                    darkMode={darkMode}
-                    resolution={resolution}
-                    showLastWeek={showLastWeek}
-                    lastWeekMode={lastWeekMode}
-                    poiFilters={poiFilters}
-                    modelId={compareModelB || modelId}
-                    periods={periods}
-                    selectedWeek={comparePeriodBObj.stat_week}
-                    selectedWeekYear={comparePeriodBObj.year}
-                    timeseriesOpen={timeseriesOpen}
-                    hotspotsEnabled={hotspotsEnabled}
-                    hotspotMode={hotspotMode}
-                    hotspotPercentile={hotspotPercentile}
-                    hotspotModeledCount={expectedSummary.current}
-                    onHotspotsEnabledChange={setHotspotsEnabled}
-                    onGridCellCount={setHotspotTotalCells}
-                    onGridCellSelect={setSelectedCompareH3}
-                    resizeTick={mapResizeTick}
-                    forecastPath={comparePathB}
-                  />
-                </div>
-              }
-              dividerOverlay={
-                <>
-                  <CompareDividerPill
-                    mode={compareMode}
-                    onSwap={() => {
-                      setCompareModelA(compareModelB);
-                      setCompareModelB(compareModelA);
-                      setComparePeriodA(comparePeriodB);
-                      setComparePeriodB(comparePeriodA);
-                    }}
-                    onToggleMode={() => setCompareMode(compareMode === "split" ? "overlay" : "split")}
-                    onOpenAdvanced={() => setAdvancedOpen((v) => !v)}
-                  />
-                  <CompareAdvancedPopover
-                    open={advancedOpen}
-                    settings={compareSettings}
-                    onClose={() => setAdvancedOpen(false)}
-                    onChange={(patch) => setCompareSettings((prev) => ({ ...prev, ...patch }))}
-                  />
-                </>
+                <ForecastMap
+                  darkMode={darkMode}
+                  resolution={resolution}
+                  showLastWeek={showLastWeek}
+                  lastWeekMode={lastWeekMode}
+                  poiFilters={poiFilters}
+                  modelId={compareModelB || modelId}
+                  periods={periods}
+                  selectedWeek={comparePeriodBObj.stat_week}
+                  selectedWeekYear={comparePeriodBObj.year}
+                  timeseriesOpen={timeseriesOpen}
+                  hotspotsEnabled={hotspotsEnabled}
+                  hotspotMode={hotspotMode}
+                  hotspotPercentile={hotspotPercentile}
+                  hotspotModeledCount={expectedSummary.current}
+                  onHotspotsEnabledChange={setHotspotsEnabled}
+                  onGridCellCount={setHotspotTotalCells}
+                  onGridCellSelect={setSelectedCompareH3}
+                  resizeTick={mapResizeTick}
+                  forecastPath={comparePathB}
+                  syncViewState={compareViewState}
+                />
               }
             />
             <CompareTray
