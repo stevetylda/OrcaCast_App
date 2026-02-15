@@ -10,7 +10,7 @@ import {
 } from "./data/lineageConfig";
 import { coverageRows, coverageYears } from "./data/coverageMatrix";
 
-export function DataPage() {
+export function TestPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [lineageView, setLineageView] = useState<"high-level" | "full-feature">("high-level");
 
@@ -163,7 +163,7 @@ export function DataPage() {
 
   return (
     <PageShell
-      title="Data"
+      title="Test Page"
       fullBleed
       showBottomRail={false}
       showFooter={false}
