@@ -10,7 +10,7 @@ type WeeklyActivityRow = {
 type Props = {
   rows: WeeklyActivityRow[];
   currentWeek: number;
-  darkMode: boolean; // kept for API compatibility (not used internally right now)
+  darkMode: boolean;
 };
 
 /**
@@ -55,7 +55,7 @@ type ChartState = {
   maxY: number;
 };
 
-export function WeeklySightingActivitySvg({ rows, currentWeek }: Props) {
+export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props) {
   const clipId = useId();
 
   // NOTE: ref type is HTMLDivElement; hook is generic so this is accepted.
@@ -92,10 +92,9 @@ export function WeeklySightingActivitySvg({ rows, currentWeek }: Props) {
 
   const baselineY = yScale(0);
 
-  // Force all chart text to white (except current-week label)
-  const axisText = "rgba(255,255,255,0.92)";
-  const tickText = "rgba(255,255,255,0.78)";
-  const gridStroke = "rgba(255,255,255,0.08)";
+  const axisText = darkMode ? "rgba(255,255,255,0.92)" : "rgba(12,30,58,0.90)";
+  const tickText = darkMode ? "rgba(255,255,255,0.78)" : "rgba(42,62,93,0.86)";
+  const gridStroke = darkMode ? "rgba(255,255,255,0.08)" : "rgba(26,58,96,0.14)";
 
   // Smooth area generator
   const areaGen = useMemo(() => {
@@ -256,7 +255,7 @@ export function WeeklySightingActivitySvg({ rows, currentWeek }: Props) {
           fill={MARKER_COLOR}
           dominantBaseline="hanging"
           paintOrder="stroke"
-          stroke="rgba(10,15,30,0.65)"
+          stroke={darkMode ? "rgba(10,15,30,0.65)" : "rgba(250,252,255,0.85)"}
           strokeWidth={3}
         >
           {labelText}

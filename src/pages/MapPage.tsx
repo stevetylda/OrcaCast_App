@@ -36,17 +36,51 @@ import {
 } from "../core/time/forecastPeriodToIsoWeek";
 import { loadPeriods } from "../data/periods";
 import { loadActualActivitySeries, loadExpectedCountSeries } from "../data/expectedCount";
-import { loadForecast, loadForecastModelIds } from "../data/forecastIO";
+import { loadForecast, loadForecastModelIds, loadGrid } from "../data/forecastIO";
 import type { ModelInfo } from "../features/models/data/dummyModels";
 import type { Period } from "../data/periods";
 import { useMenu } from "../state/MenuContext";
 import { useMapState } from "../state/MapStateContext";
 import { startMapTour } from "../tour/startMapTour";
 import { DEFAULT_PALETTE_ID } from "../constants/palettes";
+import {
+  DEFAULT_DELTA_LEGEND,
+  LruCache,
+  buildDeltaCacheKey,
+  buildDeltaFillExpr,
+  computeDeltaPercentilesByCell,
+} from "../map/deltaMap";
 import "../features/models/models.css";
 
 type LastWeekMode = "none" | "previous" | "selected" | "both";
 type NonNoneLastWeekMode = Exclude<LastWeekMode, "none">;
+type DeltaMapData = {
+  deltaByCell: Record<string, number>;
+  valueAByCell: Record<string, number>;
+  valueBByCell: Record<string, number>;
+  percentileAByCell: Record<string, number>;
+  percentileBByCell: Record<string, number>;
+  domainSize: number;
+  deltaMin: number;
+  deltaMax: number;
+};
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatCellValue(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  if (value === 0) return "0";
+  if (Math.abs(value) >= 0.1) return value.toFixed(3);
+  if (Math.abs(value) >= 0.01) return value.toFixed(4);
+  return value.toFixed(5);
+}
 
 export function MapPage() {
   const {
@@ -103,10 +137,12 @@ export function MapPage() {
   } | null>(null);
   const [mapResetNonce, setMapResetNonce] = useState(0);
   const [periods, setPeriods] = useState<Period[]>([]);
+  const [deltaMapData, setDeltaMapData] = useState<DeltaMapData | null>(null);
   const [selectedPeriodHasForecast, setSelectedPeriodHasForecast] = useState<boolean | null>(null);
   const [showNoForecastNotice, setShowNoForecastNotice] = useState(false);
   const lastMissingNoticePeriodKeyRef = useRef<string | null>(null);
   const didInitializeForecastIndexRef = useRef(false);
+  const deltaCacheRef = useRef(new LruCache<string, DeltaMapData>(20));
   const [expectedSeries, setExpectedSeries] = useState<
     Array<{
       year: number;
@@ -540,14 +576,145 @@ export function MapPage() {
 
   const comparePeriodAObj = periods.find((p) => p.periodKey === resolvedComparePeriodA) ?? selectedForecast ?? configPeriod;
   const comparePeriodBObj = periods.find((p) => p.periodKey === resolvedComparePeriodB) ?? selectedForecast ?? configPeriod;
+  const deltaMode = compareEnabled && compareSettings.showDelta;
+  const effectiveCompareResolutionB = deltaMode ? compareResolutionA : compareResolutionB;
   const comparePathA = resolveForecastPathByPeriodKey(comparePeriodAObj.periodKey, compareResolutionA);
-  const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey, compareResolutionB);
-  const compareRenderMode: "single" | "dual" = compareEnabled
-    ? compareSettings.dualMapMode
-      ? "dual"
-      : "single"
+  const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey, effectiveCompareResolutionB);
+  const deltaFillExpr = useMemo(() => buildDeltaFillExpr("delta_pctl"), []);
+  const compareRenderMode: "single" | "dual" | "delta" = compareEnabled
+    ? deltaMode
+      ? "delta"
+      : compareSettings.dualMapMode
+        ? "dual"
+        : "single"
     : "single";
   const syncEnabled = true;
+  const deltaCellPopupHtmlBuilder = useMemo(() => {
+    if (!deltaMapData) return undefined;
+    return (cellId: string) => {
+      const valueA = Number(deltaMapData.valueAByCell[cellId] ?? 0);
+      const valueB = Number(deltaMapData.valueBByCell[cellId] ?? 0);
+      const pA = Number(deltaMapData.percentileAByCell[cellId] ?? 0.5);
+      const pB = Number(deltaMapData.percentileBByCell[cellId] ?? 0.5);
+      const delta = Number(deltaMapData.deltaByCell[cellId] ?? 0);
+
+      const modelA = escapeHtml(resolvedCompareModelA || modelId);
+      const modelB = escapeHtml(resolvedCompareModelB || modelId);
+
+      return `
+        <div class="sparkPopup">
+          <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
+          <div class="sparkPopup__meta">A (${modelA}): value ${formatCellValue(valueA)} · percentile ${(pA * 100).toFixed(1)}%</div>
+          <div class="sparkPopup__meta">B (${modelB}): value ${formatCellValue(valueB)} · percentile ${(pB * 100).toFixed(1)}%</div>
+          <div class="sparkPopup__meta">Δ Percentile (A − B): ${delta.toFixed(3)}</div>
+        </div>
+      `;
+    };
+  }, [deltaMapData, modelId, resolvedCompareModelA, resolvedCompareModelB]);
+
+  useEffect(() => {
+    if (!compareEnabled || !deltaMode) return;
+    if (compareResolutionB !== compareResolutionA) {
+      setCompareResolutionB(compareResolutionA);
+    }
+  }, [compareEnabled, compareResolutionA, compareResolutionB, deltaMode]);
+
+  useEffect(() => {
+    if (!compareEnabled || !deltaMode) {
+      setDeltaMapData(null);
+      return;
+    }
+
+    let active = true;
+
+    const computeDelta = async () => {
+      const cacheKey = buildDeltaCacheKey({
+        weekA: comparePeriodAObj.periodKey,
+        weekB: comparePeriodBObj.periodKey,
+        resolutionA: compareResolutionA,
+        resolutionB: effectiveCompareResolutionB,
+        modelA: resolvedCompareModelA || modelId,
+        modelB: resolvedCompareModelB || modelId,
+      });
+
+      const cached = deltaCacheRef.current.get(cacheKey);
+      if (cached) {
+        setDeltaMapData(cached);
+        return;
+      }
+
+      const [gridA, forecastA, forecastB] = await Promise.all([
+        loadGrid(compareResolutionA),
+        comparePathA
+          ? loadForecast(compareResolutionA, {
+              kind: "explicit",
+              explicitPath: comparePathA,
+              modelId: resolvedCompareModelA || modelId,
+            }).catch(() => ({ values: {} }))
+          : Promise.resolve({ values: {} }),
+        comparePathB
+          ? loadForecast(effectiveCompareResolutionB, {
+              kind: "explicit",
+              explicitPath: comparePathB,
+              modelId: resolvedCompareModelB || modelId,
+            }).catch(() => ({ values: {} }))
+          : Promise.resolve({ values: {} }),
+      ]);
+
+      if (!active) return;
+
+      const valuesA = forecastA.values ?? {};
+      const valuesB = forecastB.values ?? {};
+      const domainCellIds = new Set<string>();
+      // Use visible A-grid cells plus all A/B value keys so both layers rank against one shared domain.
+      // Missing values are interpreted as 0 by the rank transform utility.
+      (gridA.features ?? []).forEach((feature) => {
+        const props = (feature.properties ?? {}) as Record<string, unknown>;
+        const cellIdRaw = props.h3 ?? props.H3 ?? props.h3_id ?? props.H3_ID;
+        const cellId = String(cellIdRaw ?? "");
+        if (cellId) domainCellIds.add(cellId);
+      });
+      Object.keys(valuesA).forEach((id) => domainCellIds.add(id));
+      Object.keys(valuesB).forEach((id) => domainCellIds.add(id));
+
+      const delta = computeDeltaPercentilesByCell(valuesA, valuesB, Array.from(domainCellIds));
+      const result: DeltaMapData = {
+        deltaByCell: delta.deltaByCell,
+        valueAByCell: valuesA,
+        valueBByCell: valuesB,
+        percentileAByCell: delta.percentileA,
+        percentileBByCell: delta.percentileB,
+        domainSize: delta.domainSize,
+        deltaMin: delta.deltaMin,
+        deltaMax: delta.deltaMax,
+      };
+      deltaCacheRef.current.set(cacheKey, result);
+      setDeltaMapData(result);
+    };
+
+    computeDelta().catch((err) => {
+      if (!active) return;
+      // eslint-disable-next-line no-console
+      console.warn("[DeltaMap] Failed to compute delta layer", err);
+      setDeltaMapData(null);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    compareEnabled,
+    comparePathA,
+    comparePathB,
+    comparePeriodAObj.periodKey,
+    comparePeriodBObj.periodKey,
+    compareResolutionA,
+    effectiveCompareResolutionB,
+    deltaMode,
+    modelId,
+    resolvedCompareModelA,
+    resolvedCompareModelB,
+  ]);
 
   const handleResetMap = () => {
     setCompareEnabled(false);
@@ -655,7 +822,43 @@ export function MapPage() {
           />
         ) : (
           <div className="compareModeStage compareModeStage--map">
-            {compareRenderMode === "dual" ? (
+            {compareRenderMode === "delta" ? (
+              <div className="compareMapPane">
+                <ForecastMap
+                  key={`map-delta-${selectedPaletteId}-${mapResetNonce}-${comparePeriodAObj.periodKey}-${comparePeriodBObj.periodKey}-${compareResolutionA}-${effectiveCompareResolutionB}-${resolvedCompareModelA}-${resolvedCompareModelB}`}
+                  darkMode={darkMode}
+                  paletteId={selectedPaletteId}
+                  resolution={compareResolutionA}
+                  showLastWeek={showLastWeek}
+                  lastWeekMode={lastWeekMode}
+                  poiFilters={poiFilters}
+                  modelId={resolvedCompareModelA || modelId}
+                  periods={periods}
+                  selectedWeek={comparePeriodAObj.stat_week}
+                  selectedWeekYear={comparePeriodAObj.year}
+                  timeseriesOpen={timeseriesOpen}
+                  hotspotsEnabled={hotspotsEnabled}
+                  hotspotMode={hotspotMode}
+                  hotspotPercentile={hotspotPercentile}
+                  hotspotModeledCount={expectedSummary.current}
+                  onHotspotsEnabledChange={setHotspotsEnabled}
+                  onGridCellCount={setHotspotTotalCells}
+                  onGridCellSelect={setSelectedCompareH3}
+                  resizeTick={mapResizeTick}
+                  derivedValuesByCell={deltaMapData?.deltaByCell ?? {}}
+                  derivedValueProperty="delta_pctl"
+                  derivedFillExpr={deltaFillExpr}
+                  deltaLegend={DEFAULT_DELTA_LEGEND}
+                  disableHotspots
+                  enableSparklinePopup={false}
+                  cellPopupHtmlBuilder={deltaCellPopupHtmlBuilder}
+                  useExternalColorScale={false}
+                  syncViewState={syncEnabled ? compareViewState : null}
+                  onMoveViewState={setCompareViewState}
+                  onMoveEndViewState={setCompareViewState}
+                />
+              </div>
+            ) : compareRenderMode === "dual" ? (
               <DualMapCompare
                 childrenLeft={
                   <div className="compareMapPane">
@@ -681,9 +884,9 @@ export function MapPage() {
                       onGridCellSelect={setSelectedCompareH3}
                       resizeTick={mapResizeTick}
                       forecastPath={comparePathA}
-                    useExternalColorScale={false}
-                    syncViewState={syncEnabled ? compareViewState : null}
-                    onMoveViewState={setCompareViewState}
+                      useExternalColorScale={false}
+                      syncViewState={syncEnabled ? compareViewState : null}
+                      onMoveViewState={setCompareViewState}
                       onMoveEndViewState={setCompareViewState}
                     />
                   </div>
@@ -712,9 +915,9 @@ export function MapPage() {
                       onGridCellSelect={setSelectedCompareH3}
                       resizeTick={mapResizeTick}
                       forecastPath={comparePathB}
-                    useExternalColorScale={false}
-                    syncViewState={syncEnabled ? compareViewState : null}
-                    onMoveViewState={setCompareViewState}
+                      useExternalColorScale={false}
+                      syncViewState={syncEnabled ? compareViewState : null}
+                      onMoveViewState={setCompareViewState}
                       onMoveEndViewState={setCompareViewState}
                     />
                   </div>
@@ -793,16 +996,26 @@ export function MapPage() {
               periodLeft={comparePeriodAObj.periodKey}
               periodRight={comparePeriodBObj.periodKey}
               resolutionLeft={compareResolutionA}
-              resolutionRight={compareResolutionB}
+              resolutionRight={effectiveCompareResolutionB}
               periodOptions={periodOptions}
               models={compareModels}
               dualMapMode={compareSettings.dualMapMode}
+              deltaMode={deltaMode}
               onChangeModelLeft={setCompareModelA}
               onChangeModelRight={setCompareModelB}
               onChangePeriodLeft={setComparePeriodA}
               onChangePeriodRight={setComparePeriodB}
-              onChangeResolutionLeft={setCompareResolutionA}
+              onChangeResolutionLeft={(next) => {
+                setCompareResolutionA(next);
+                if (deltaMode) setCompareResolutionB(next);
+              }}
               onChangeResolutionRight={setCompareResolutionB}
+              onToggleDeltaMode={() =>
+                setCompareSettings((prev) => ({
+                  ...prev,
+                  showDelta: !prev.showDelta,
+                }))
+              }
               onToggleLocked={() =>
                 setCompareSettings((prev) => ({
                   ...prev,

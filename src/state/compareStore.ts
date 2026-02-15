@@ -21,6 +21,6 @@ export const DEFAULT_COMPARE_SETTINGS: CompareSettings = {
   syncDrag: true,
   fixedSplit: true,
   overlayOpacity: 0.5,
-  showDelta: true,
+  showDelta: false,
   splitPct: 50,
 };
