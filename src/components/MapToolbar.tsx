@@ -235,58 +235,6 @@ export function MapToolbar({
       >
         <span className="material-symbols-rounded">compare_arrows</span>
       </button>
-      <div ref={paletteRef} className={`toolMenu toolDrawer__paletteMenu${paletteOpen ? " toolMenu--open" : ""}`}>
-        <button
-          className="toolBtn toolDrawer__paletteToggle"
-          onClick={() => setPaletteOpen((v) => !v)}
-          aria-label="Color palette"
-          title="Color palette"
-          data-tour="palette-picker"
-        >
-          <span className="material-symbols-rounded" style={{ color: activePalette.dominant }}>
-            palette
-          </span>
-        </button>
-        {paletteOpen && (
-          <div
-            className="toolMenu__popover toolMenu__popover--stack toolDrawer__palettePopover"
-            role="menu"
-            aria-label="Sighting outlook palettes"
-            onWheel={(event) => event.stopPropagation()}
-          >
-            {Object.values(PALETTES).map((palette) => {
-              const selected = palette.id === selectedPaletteId;
-              return (
-                <button
-                  key={palette.id}
-                  type="button"
-                  className={`toolDrawer__paletteRow${selected ? " isSelected" : ""}`}
-                  onClick={() => {
-                    onPaletteChange(palette.id);
-                    setPaletteOpen(false);
-                  }}
-                  role="menuitemradio"
-                  aria-checked={selected}
-                >
-                  <span className="toolDrawer__paletteChips" aria-hidden="true">
-                    {palette.colors.map((color, idx) => (
-                      <span
-                        key={`${palette.id}-chip-${idx}`}
-                        className="toolDrawer__paletteChip"
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </span>
-                  <span className="toolDrawer__paletteLabel">{palette.name}</span>
-                  <span className="toolDrawer__paletteCheck" aria-hidden="true">
-                    {selected ? "check" : ""}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
       <div ref={poiRef} className={`toolMenu${poiOpen ? " toolMenu--open" : ""}`}>
         <button
           className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}
@@ -360,6 +308,64 @@ export function MapToolbar({
               totalCells={hotspotTotalCells}
               modeledCount={hotspotModeledCount}
             />
+          </div>
+        )}
+      </div>
+      <div ref={paletteRef} className={`toolMenu toolDrawer__paletteMenu${paletteOpen ? " toolMenu--open" : ""}`}>
+        <button
+          className="toolBtn toolDrawer__paletteToggle"
+          onClick={() => setPaletteOpen((v) => !v)}
+          aria-label="Color palette"
+          title="Color palette"
+          data-tour="palette-picker"
+        >
+          <span className="toolBtn__iconStack" aria-hidden="true">
+            <span
+              className="material-symbols-rounded toolBtn__iconBase toolBtn__iconBase--palette"
+              style={{ color: activePalette.dominant }}
+            >
+              palette
+            </span>
+            <span className="material-symbols-rounded toolBtn__iconBadge">settings</span>
+          </span>
+        </button>
+        {paletteOpen && (
+          <div
+            className="toolMenu__popover toolMenu__popover--stack toolDrawer__palettePopover"
+            role="menu"
+            aria-label="Sighting outlook palettes"
+            onWheel={(event) => event.stopPropagation()}
+          >
+            {Object.values(PALETTES).map((palette) => {
+              const selected = palette.id === selectedPaletteId;
+              return (
+                <button
+                  key={palette.id}
+                  type="button"
+                  className={`toolDrawer__paletteRow${selected ? " isSelected" : ""}`}
+                  onClick={() => {
+                    onPaletteChange(palette.id);
+                    setPaletteOpen(false);
+                  }}
+                  role="menuitemradio"
+                  aria-checked={selected}
+                >
+                  <span className="toolDrawer__paletteChips" aria-hidden="true">
+                    {palette.colors.map((color, idx) => (
+                      <span
+                        key={`${palette.id}-chip-${idx}`}
+                        className="toolDrawer__paletteChip"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </span>
+                  <span className="toolDrawer__paletteLabel">{palette.name}</span>
+                  <span className="toolDrawer__paletteCheck" aria-hidden="true">
+                    {selected ? "check" : ""}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -129,9 +129,13 @@ export function TimeseriesModal({
   if (!open) return null;
 
   return (
-    <div className="overlay overlay--blur" onClick={onClose} role="presentation">
+    <div
+      className={`overlay overlay--blur${darkMode ? "" : " overlay--light"}`}
+      onClick={onClose}
+      role="presentation"
+    >
       <section
-        className="modal modal--timeseries"
+        className={`modal modal--timeseries${darkMode ? "" : " modal--light"}`}
         onClick={(e) => e.stopPropagation()}
         aria-label="Weekly Sighting Activity - Average # of Active Grids by Week"
       >

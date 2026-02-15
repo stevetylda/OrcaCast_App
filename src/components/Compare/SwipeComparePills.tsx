@@ -10,6 +10,7 @@ type Props = {
   resolutionLeft: H3Resolution;
   resolutionRight: H3Resolution;
   dualMapMode: boolean;
+  deltaMode: boolean;
   periodOptions: string[];
   models: ModelInfo[];
   onChangeModelLeft: (id: string) => void;
@@ -19,6 +20,7 @@ type Props = {
   onChangeResolutionLeft: (resolution: H3Resolution) => void;
   onChangeResolutionRight: (resolution: H3Resolution) => void;
   onToggleLocked: () => void;
+  onToggleDeltaMode: () => void;
 };
 
 function formatModelLabel(value: string): string {
@@ -35,6 +37,7 @@ export function SwipeComparePills({
   resolutionLeft,
   resolutionRight,
   dualMapMode,
+  deltaMode,
   periodOptions,
   models,
   onChangeModelLeft,
@@ -44,6 +47,7 @@ export function SwipeComparePills({
   onChangeResolutionLeft,
   onChangeResolutionRight,
   onToggleLocked,
+  onToggleDeltaMode,
 }: Props) {
   const safeLeftModelId = modelLeftId || models[0]?.id || "";
   const safeRightModelId = modelRightId || models[0]?.id || "";
@@ -54,110 +58,132 @@ export function SwipeComparePills({
   const rightModelExists = models.some((model) => model.id === safeRightModelId);
   const leftPeriodExists = periodOptions.includes(safePeriodLeft);
   const rightPeriodExists = periodOptions.includes(safePeriodRight);
+  const lockIsActive = dualMapMode && !deltaMode;
 
   return (
     <div className="swipeComparePills" aria-label="Swipe compare lenses">
       <div className="swipeComparePills__surface">
         <div className="swipeComparePills__grid">
-          <div className="swipeComparePills__field swipeComparePills__field--model">
-            <select aria-label="Left model" value={safeLeftModelId} onChange={(event) => onChangeModelLeft(event.target.value)}>
-              {!leftModelExists && safeLeftModelId ? (
-                <option value={safeLeftModelId}>{formatModelLabel(safeLeftModelId)}</option>
-              ) : null}
-              {models.map((model) => (
-                <option value={model.id} key={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="swipeComparePills__lane">
+            <div className="swipeComparePills__field swipeComparePills__field--model">
+              <select aria-label="Left model" value={safeLeftModelId} onChange={(event) => onChangeModelLeft(event.target.value)}>
+                {!leftModelExists && safeLeftModelId ? (
+                  <option value={safeLeftModelId}>{formatModelLabel(safeLeftModelId)}</option>
+                ) : null}
+                {models.map((model) => (
+                  <option value={model.id} key={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
-            <span className="material-symbols-rounded" aria-hidden="true">
-              calendar_month
-            </span>
-            <select
-              aria-label="Left period"
-              title={`Left period: ${safePeriodLeft}`}
-              value={safePeriodLeft}
-              onChange={(event) => onChangePeriodLeft(event.target.value)}
-            >
-              {!leftPeriodExists && safePeriodLeft ? (
-                <option value={safePeriodLeft}>{safePeriodLeft}</option>
-              ) : null}
-              {periodOptions.map((option) => (
-                <option value={option} key={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                calendar_month
+              </span>
+              <select
+                aria-label="Left period"
+                title={`Left period: ${safePeriodLeft}`}
+                value={safePeriodLeft}
+                onChange={(event) => onChangePeriodLeft(event.target.value)}
+              >
+                {!leftPeriodExists && safePeriodLeft ? (
+                  <option value={safePeriodLeft}>{safePeriodLeft}</option>
+                ) : null}
+                {periodOptions.map((option) => (
+                  <option value={option} key={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="swipeComparePills__resolution" aria-label="Left hex resolution">
-            <H3ResolutionPill
-              value={resolutionLeft === "H4" ? 4 : resolutionLeft === "H5" ? 5 : 6}
-              onChange={(next) =>
-                onChangeResolutionLeft(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
-              }
-              compact
-            />
-          </div>
+            <div className="swipeComparePills__resolution" aria-label="Left hex resolution">
+              <H3ResolutionPill
+                value={resolutionLeft === "H4" ? 4 : resolutionLeft === "H5" ? 5 : 6}
+                onChange={(next) =>
+                  onChangeResolutionLeft(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
+                }
+                compact
+              />
+            </div>
+            <div className="swipeComparePills__field swipeComparePills__field--model">
+              <select aria-label="Right model" value={safeRightModelId} onChange={(event) => onChangeModelRight(event.target.value)}>
+                {!rightModelExists && safeRightModelId ? (
+                  <option value={safeRightModelId}>{formatModelLabel(safeRightModelId)}</option>
+                ) : null}
+                {models.map((model) => (
+                  <option value={model.id} key={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="swipeComparePills__field swipeComparePills__field--model">
-            <select aria-label="Right model" value={safeRightModelId} onChange={(event) => onChangeModelRight(event.target.value)}>
-              {!rightModelExists && safeRightModelId ? (
-                <option value={safeRightModelId}>{formatModelLabel(safeRightModelId)}</option>
-              ) : null}
-              {models.map((model) => (
-                <option value={model.id} key={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                calendar_month
+              </span>
+              <select
+                aria-label="Right period"
+                title={`Right period: ${safePeriodRight}`}
+                value={safePeriodRight}
+                onChange={(event) => onChangePeriodRight(event.target.value)}
+              >
+                {!rightPeriodExists && safePeriodRight ? (
+                  <option value={safePeriodRight}>{safePeriodRight}</option>
+                ) : null}
+                {periodOptions.map((option) => (
+                  <option value={option} key={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
-            <span className="material-symbols-rounded" aria-hidden="true">
-              calendar_month
-            </span>
-            <select
-              aria-label="Right period"
-              title={`Right period: ${safePeriodRight}`}
-              value={safePeriodRight}
-              onChange={(event) => onChangePeriodRight(event.target.value)}
-            >
-              {!rightPeriodExists && safePeriodRight ? (
-                <option value={safePeriodRight}>{safePeriodRight}</option>
-              ) : null}
-              {periodOptions.map((option) => (
-                <option value={option} key={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="swipeComparePills__resolution" aria-label="Right hex resolution">
-            <H3ResolutionPill
-              value={resolutionRight === "H4" ? 4 : resolutionRight === "H5" ? 5 : 6}
-              onChange={(next) =>
-                onChangeResolutionRight(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
-              }
-              compact
-            />
+            <div className="swipeComparePills__resolution" aria-label="Right hex resolution">
+              <H3ResolutionPill
+                value={resolutionRight === "H4" ? 4 : resolutionRight === "H5" ? 5 : 6}
+                onChange={(next) =>
+                  onChangeResolutionRight(next === 4 ? "H4" : next === 5 ? "H5" : "H6")
+                }
+                disabled={deltaMode}
+                compact
+              />
+            </div>
           </div>
 
           <div className="swipeComparePills__tools" role="toolbar" aria-label="Compare tools">
             <button
               type="button"
-              className={`iconBtn swipeComparePills__toolBtn${dualMapMode ? " isActive" : ""}`}
+              className={`iconBtn swipeComparePills__toolBtn${lockIsActive ? " isActive" : ""}`}
               onClick={onToggleLocked}
               aria-label="Lock"
-              aria-pressed={dualMapMode}
-              data-tooltip={dualMapMode ? "Locked: dual-map compare" : "Unlock: single-map swipe"}
+              aria-pressed={lockIsActive}
+              disabled={deltaMode}
+              data-tooltip={
+                deltaMode
+                  ? "Lock disabled in delta mode"
+                  : dualMapMode
+                    ? "Locked: dual-map compare"
+                    : "Unlock: single-map swipe"
+              }
             >
               <span className="material-symbols-rounded" aria-hidden="true">
-                {dualMapMode ? "lock" : "lock_open"}
+                {lockIsActive ? "lock" : "lock_open"}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`iconBtn swipeComparePills__toolBtn swipeComparePills__toolBtn--delta${deltaMode ? " isActive" : ""}`}
+              onClick={onToggleDeltaMode}
+              aria-label="Delta map"
+              aria-pressed={deltaMode}
+              data-tooltip={"Delta map (relative hotspot shift)\nShows change in percentile rank: A − B"}
+            >
+              <span className="swipeComparePills__deltaGlyph" aria-hidden="true">
+                Δ
               </span>
             </button>
           </div>

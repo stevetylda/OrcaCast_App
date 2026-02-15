@@ -29,6 +29,7 @@ import { isoWeekToDateRange } from "../core/time/forecastPeriodToIsoWeek";
 import { ProbabilityLegend } from "./ProbabilityLegend";
 import type { DataDrivenPropertyValueSpecification } from "maplibre-gl";
 import { getPaletteOrDefault, type PaletteId } from "../constants/palettes";
+import type { DeltaLegendSpec } from "../map/deltaMap";
 
 type FillColorSpec = DataDrivenPropertyValueSpecification<string>;
 type LastWeekMode = "none" | "previous" | "selected" | "both";
@@ -157,6 +158,13 @@ type Props = {
   fallbackForecastPath?: string;
   colorScaleValues?: Record<string, number>;
   useExternalColorScale?: boolean;
+  derivedValuesByCell?: Record<string, number>;
+  derivedValueProperty?: string;
+  derivedFillExpr?: unknown[];
+  deltaLegend?: DeltaLegendSpec | null;
+  disableHotspots?: boolean;
+  enableSparklinePopup?: boolean;
+  cellPopupHtmlBuilder?: (cellId: string) => string | null | undefined;
   syncViewState?: CompareMapViewState | null;
   onMoveViewState?: (viewState: CompareMapViewState) => void;
   onMoveEndViewState?: (viewState: CompareMapViewState) => void;
@@ -287,6 +295,13 @@ export function ForecastMap({
   fallbackForecastPath,
   colorScaleValues,
   useExternalColorScale = false,
+  derivedValuesByCell,
+  derivedValueProperty = "prob",
+  derivedFillExpr,
+  deltaLegend = null,
+  disableHotspots = false,
+  enableSparklinePopup = true,
+  cellPopupHtmlBuilder,
   syncViewState,
   onMoveViewState,
   onMoveEndViewState,
@@ -306,6 +321,8 @@ export function ForecastMap({
   const modeledHotspotCountRef = useRef<number | null>(hotspotModeledCount);
   const valuesByCellRef = useRef<Record<string, number>>({});
   const colorScaleValuesRef = useRef<Record<string, number> | undefined>(colorScaleValues);
+  const derivedValuePropertyRef = useRef(derivedValueProperty);
+  const derivedFillExprRef = useRef<FillColorSpec | undefined>(derivedFillExpr as FillColorSpec | undefined);
   const sortedValuesDescRef = useRef<number[]>([]);
   const totalCellsRef = useRef(0);
   const shimmerThresholdRef = useRef<number | undefined>(undefined);
@@ -330,7 +347,7 @@ export function ForecastMap({
   >(null);
   const hotspotsOnlyRef = useRef(false);
   const showKdeContoursRef = useRef(false);
-  const hasForecastLegend = legendSpec !== null;
+  const hasForecastLegend = legendSpec !== null || deltaLegend !== null;
   const showLastWeekRef = useRef(false);
   const lastWeekKeyRef = useRef<string | null>(null);
   const lastWeekModeRef = useRef<LastWeekMode>(lastWeekMode);
@@ -377,6 +394,14 @@ export function ForecastMap({
   useEffect(() => {
     colorScaleValuesRef.current = colorScaleValues;
   }, [colorScaleValues]);
+
+  useEffect(() => {
+    derivedValuePropertyRef.current = derivedValueProperty;
+  }, [derivedValueProperty]);
+
+  useEffect(() => {
+    derivedFillExprRef.current = derivedFillExpr as FillColorSpec | undefined;
+  }, [derivedFillExpr]);
 
   useEffect(() => {
     legendSpecRef.current = legendSpec;
@@ -651,8 +676,8 @@ export function ForecastMap({
   }, [poiFilters, styleUrl, mapReady]);
 
   useEffect(() => {
-    hotspotsOnlyRef.current = hotspotsEnabled;
-  }, [hotspotsEnabled]);
+    hotspotsOnlyRef.current = disableHotspots ? false : hotspotsEnabled;
+  }, [hotspotsEnabled, disableHotspots]);
 
   useEffect(() => {
     showKdeContoursRef.current = KDE_ENABLED && showKdeContours;
@@ -693,8 +718,9 @@ export function ForecastMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    if (disableHotspots) return;
     renderForecastLayer(map);
-  }, [hotspotMode, hotspotPercentile, hotspotModeledCount, hotspotsEnabled, mapReady]);
+  }, [hotspotMode, hotspotPercentile, hotspotModeledCount, hotspotsEnabled, mapReady, disableHotspots]);
 
   useEffect(() => {
     selectedWeekRef.current = selectedWeek;
@@ -831,6 +857,21 @@ export function ForecastMap({
       const cellId = getFeatureCellId(feature as { properties?: Record<string, unknown> });
       if (!cellId) return;
       onGridCellSelect?.(cellId);
+      if (cellPopupHtmlBuilder) {
+        const popupHtml = cellPopupHtmlBuilder(cellId);
+        if (popupHtml) {
+          if (!sparkPopupRef.current) {
+            sparkPopupRef.current = new maplibregl.Popup({
+              closeButton: false,
+              closeOnClick: true,
+              offset: 10,
+            });
+          }
+          sparkPopupRef.current.setLngLat(event.lngLat).setHTML(popupHtml).addTo(map);
+          return;
+        }
+      }
+      if (!enableSparklinePopup) return;
 
       const periodsList = periodsRef.current ?? [];
       if (periodsList.length === 0) return;
@@ -1044,14 +1085,14 @@ export function ForecastMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [onGridCellSelect, onMoveEndViewState, onMoveViewState]);
+  }, [cellPopupHtmlBuilder, enableSparklinePopup, onGridCellSelect, onMoveEndViewState, onMoveViewState]);
 
   const renderForecastLayer = (map: MapLibreMap) => {
     if (!overlayRef.current) return;
 
     const scale = legendSpecRef.current;
-    const threshold = resolveHotspotThreshold();
-    const hotspots = hotspotsOnlyRef.current;
+    const threshold = disableHotspots ? undefined : resolveHotspotThreshold();
+    const hotspots = disableHotspots ? false : hotspotsOnlyRef.current;
 
     const fillExpr: FillColorSpec | undefined =
       hotspots && threshold !== undefined
@@ -1284,48 +1325,63 @@ export function ForecastMap({
       try {
         const grid = await loadGrid(resolution);
         let values: Record<string, number> = {};
+        const usingDerivedValues = Boolean(derivedValuesByCell);
+        const valueProperty = derivedValuePropertyRef.current || "prob";
 
-        try {
-          let forecast;
-          if (forecastPath) {
-            try {
-              forecast = await loadForecast(resolution, {
-                kind: "explicit",
-                explicitPath: forecastPath,
-                modelId,
-              });
-            } catch (err) {
-              if (fallbackForecastPath && fallbackForecastPath !== forecastPath) {
-                // eslint-disable-next-line no-console
-                console.warn("[Forecast] explicit path failed, falling back to latest period", err);
+        if (usingDerivedValues) {
+          values = derivedValuesByCell ?? {};
+        } else {
+          try {
+            let forecast;
+            if (forecastPath) {
+              try {
                 forecast = await loadForecast(resolution, {
                   kind: "explicit",
-                  explicitPath: fallbackForecastPath,
+                  explicitPath: forecastPath,
                   modelId,
                 });
-              } else {
-                throw err;
+              } catch (err) {
+                if (fallbackForecastPath && fallbackForecastPath !== forecastPath) {
+                  // eslint-disable-next-line no-console
+                  console.warn("[Forecast] explicit path failed, falling back to latest period", err);
+                  forecast = await loadForecast(resolution, {
+                    kind: "explicit",
+                    explicitPath: fallbackForecastPath,
+                    modelId,
+                  });
+                } else {
+                  throw err;
+                }
               }
+            } else if (fallbackForecastPath) {
+              forecast = await loadForecast(resolution, {
+                kind: "explicit",
+                explicitPath: fallbackForecastPath,
+                modelId,
+              });
             }
-          } else if (fallbackForecastPath) {
-            forecast = await loadForecast(resolution, {
-              kind: "explicit",
-              explicitPath: fallbackForecastPath,
-              modelId,
-            });
+            values = forecast?.values ?? {};
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn("[Forecast] failed to load, rendering empty layer", err);
           }
-          values = forecast?.values ?? {};
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[Forecast] failed to load, rendering empty layer", err);
         }
 
         if (cancelled) return;
 
-        const joined = attachProbabilities(grid, values);
-        applyScaleToCurrentValues(values);
+        const joined = attachProbabilities(grid, values, "h3", valueProperty);
+        if (usingDerivedValues) {
+          legendSpecRef.current = null;
+          setLegendSpec(null);
+          fillExprRef.current = derivedFillExprRef.current ?? fillExprRef.current;
+          hotspotThresholdRef.current = undefined;
+          modeledHotspotThresholdRef.current = undefined;
+          shimmerThresholdRef.current = undefined;
+        } else {
+          applyScaleToCurrentValues(values);
+        }
         const featureValues = (joined.features ?? [])
-          .map((feature) => Number((feature.properties as Record<string, unknown> | null)?.prob ?? 0))
+          .map((feature) => Number((feature.properties as Record<string, unknown> | null)?.[valueProperty] ?? 0))
           .filter((v) => Number.isFinite(v));
         sortedValuesDescRef.current = [...featureValues].sort((a, b) => b - a);
         totalCellsRef.current = featureValues.length;
@@ -1353,16 +1409,17 @@ export function ForecastMap({
     return () => {
       cancelled = true;
     };
-  }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId]);
+  }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId, derivedValuesByCell, derivedValueProperty, derivedFillExpr]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !overlayRef.current) return;
+    if (derivedValuesByCell) return;
     const values = valuesByCellRef.current ?? {};
     applyScaleToCurrentValues(values);
     renderForecastLayer(map);
     moveLastWeekToTop(map);
-  }, [colorScaleValues, mapReady, useExternalColorScale, activePalette]);
+  }, [colorScaleValues, mapReady, useExternalColorScale, activePalette, derivedValuesByCell]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1555,7 +1612,7 @@ export function ForecastMap({
       map.triggerRepaint();
     }, 50);
     return () => window.clearTimeout(id);
-  }, [legendSpec]);
+  }, [legendSpec, deltaLegend]);
 
   type MapMouseEventWithFeatures = maplibregl.MapMouseEvent & {
     features?: Array<{ properties?: { datetime?: string } }>;
@@ -1598,7 +1655,7 @@ export function ForecastMap({
 
     renderForecastLayer(map);
     moveLastWeekToTop(map);
-  }, [hotspotsEnabled, legendSpec]);
+  }, [hotspotsEnabled, legendSpec, deltaLegend, disableHotspots]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1610,20 +1667,25 @@ export function ForecastMap({
     }
     if (KDE_ENABLED && showKdeContours) {
       setGridVisibility(map, false);
-    } else if (hotspotsEnabled) {
+    } else if (!disableHotspots && hotspotsEnabled) {
       setGridBaseVisibility(map, false);
       setHotspotVisibility(map, true);
     } else {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [showKdeContours, hotspotsEnabled, mapReady, hasForecastLegend]);
+  }, [showKdeContours, hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots]);
 
   useEffect(() => {
     if (hasForecastLegend) return;
     if (KDE_ENABLED && showKdeContours) setShowKdeContours(false);
     if (hotspotsEnabled) onHotspotsEnabledChange(false);
   }, [hasForecastLegend, showKdeContours, hotspotsEnabled, onHotspotsEnabledChange]);
+
+  useEffect(() => {
+    if (!disableHotspots) return;
+    if (hotspotsEnabled) onHotspotsEnabledChange(false);
+  }, [disableHotspots, hotspotsEnabled, onHotspotsEnabledChange]);
 
   useEffect(() => {
     if (!KDE_ENABLED) {
@@ -1726,16 +1788,17 @@ export function ForecastMap({
           <button
             className={
               hotspotsEnabled
-                ? `iconBtn legendClusterBtn legendHotspots legendHotspots--active${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
-                : `iconBtn legendClusterBtn legendHotspots${!hasForecastLegend ? " legendClusterBtn--disabled" : ""}`
+                ? `iconBtn legendClusterBtn legendHotspots legendHotspots--active${(!hasForecastLegend || disableHotspots) ? " legendClusterBtn--disabled" : ""}`
+                : `iconBtn legendClusterBtn legendHotspots${(!hasForecastLegend || disableHotspots) ? " legendClusterBtn--disabled" : ""}`
             }
             onClick={() => {
+              if (disableHotspots) return;
               const next = !hotspotsEnabled;
               onHotspotsEnabledChange(next);
             }}
             aria-label="Toggle hotspots"
             data-tour="hotspots"
-            disabled={!hasForecastLegend}
+            disabled={!hasForecastLegend || disableHotspots}
           >
             <span className="material-symbols-rounded">local_fire_department</span>
           </button>
@@ -1750,7 +1813,7 @@ export function ForecastMap({
           <span className="material-symbols-rounded">legend_toggle</span>
         </button>
       </div>
-      {legendSpec && legendOpen && <ProbabilityLegend scale={legendSpec} />}
+      {legendOpen && <ProbabilityLegend scale={legendSpec} deltaLegend={deltaLegend} />}
       {KDE_ENABLED && kdeWarning && (
         <div className="map__kdeWarning" role="status" aria-live="polite">
           <span className="material-symbols-rounded" aria-hidden="true">
