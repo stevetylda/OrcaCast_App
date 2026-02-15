@@ -62,6 +62,7 @@ type NavItem = {
   label: string;
   path: string;
   icon: string; // material symbol name
+  comingSoon?: boolean;
 };
 
 type Props = {
@@ -76,7 +77,7 @@ export function SideDrawer({ open, onClose }: Props) {
   const items: NavItem[] = [
     { label: "Map", path: "/", icon: "map_search" },
     { label: "Models", path: "/models", icon: "neurology" },
-    { label: "Insights / Analysis", path: "/insights", icon: "insights" },
+    { label: "Insights", path: "/insights", icon: "insights", comingSoon: true },
     // { label: "Performance", path: "/performance", icon: "analytics" },
     { label: "Data", path: "/data", icon: "data_table" },
     { label: "About", path: "/about", icon: "info" },
@@ -107,15 +108,23 @@ export function SideDrawer({ open, onClose }: Props) {
 
         <nav className="sideDrawer__nav" aria-label="Primary navigation">
           {items.map((item) => {
-            const isActive = item.path === "/" ? pathname === "/" : pathname === item.path;
+            const isDisabled = Boolean(item.comingSoon);
+            const isActive = !isDisabled && (item.path === "/" ? pathname === "/" : pathname === item.path);
 
             return (
               <button
                 key={item.path}
-                className={`sideDrawer__item${isActive ? " sideDrawer__item--active" : ""}`}
+                className={`sideDrawer__item${isActive ? " sideDrawer__item--active" : ""}${
+                  isDisabled ? " sideDrawer__item--disabled" : ""
+                }`}
                 type="button"
                 aria-current={isActive ? "page" : undefined}
+                aria-disabled={isDisabled}
+                disabled={isDisabled}
                 onClick={() => {
+                  if (isDisabled) {
+                    return;
+                  }
                   navigate(item.path);
                   onClose();
                 }}
@@ -126,7 +135,12 @@ export function SideDrawer({ open, onClose }: Props) {
                 >
                   {item.icon}
                 </span>
-                <span className="sideDrawer__itemLabel">{item.label}</span>
+                <span className="sideDrawer__itemLabel">
+                  <span className={isDisabled ? "sideDrawer__itemLabelText sideDrawer__itemLabelText--soon" : "sideDrawer__itemLabelText"}>
+                    {item.label}
+                  </span>
+                  {isDisabled && <span className="sideDrawer__soonTag">Coming soon</span>}
+                </span>
               </button>
             );
           })}
