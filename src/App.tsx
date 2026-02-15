@@ -7,7 +7,6 @@ import { MapPage } from "./pages/MapPage";
 import { ModelsPage } from "./pages/ModelsPage";
 // import { PerformancePage } from "./pages/PerformancePage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { TestPage } from "./pages/TestPage";
 import { MenuProvider, useMenu } from "./state/MenuContext";
 import { MapStateProvider, useMapState } from "./state/MapStateContext";
 import "./styles.css";
@@ -25,7 +24,6 @@ function AppFrame() {
         <Route path="/insights" element={<InsightsPage />} />
         {/* <Route path="/performance" element={<PerformancePage />} /> */}
         <Route path="/data" element={<DataPage />} />
-        <Route path="/test-page" element={<TestPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
 
