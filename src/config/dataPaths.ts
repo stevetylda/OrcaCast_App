@@ -31,6 +31,12 @@ export function getForecastPathForPeriod(resolution: H3Resolution, periodFileId:
   );
 }
 
+export function getActualsPathForPeriod(resolution: H3Resolution, periodFileId: string): string {
+  return withForecastCacheBust(
+    withBase(`data/forecasts/latest/actuals/${periodFileId}_${resolution}.json`)
+  );
+}
+
 function h3ResolutionToNumber(resolution: H3Resolution): number {
   return Number(resolution.replace("H", ""));
 }

@@ -1122,6 +1122,181 @@ body {
   color: #eaffff;
 }
 
+#portal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.orcaDropdown {
+  width: 100%;
+}
+
+.orcaDropdown__trigger {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.orcaDropdown__trigger:hover,
+.orcaDropdown.isOpen .orcaDropdown__trigger {
+  background: rgba(0, 178, 202, 0.14);
+  border-color: rgba(0, 178, 202, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(0, 178, 202, 0.28);
+}
+
+.orcaDropdown__trigger:focus-visible {
+  outline: 2px solid rgba(25, 240, 215, 0.72);
+  outline-offset: 2px;
+}
+
+.orcaDropdown__label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(234, 242, 255, 0.62);
+}
+
+.orcaDropdown__value {
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orcaDropdown__iconLeft,
+.orcaDropdown__iconRight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.orcaDropdown__chevron {
+  margin-left: auto;
+  opacity: 0.75;
+  transform: translateY(-1px);
+}
+
+.orcaDropdown.isOpen .orcaDropdown__chevron {
+  transform: translateY(-1px) rotate(180deg);
+}
+
+.orcaDropdown__menu {
+  pointer-events: auto;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(25, 240, 215, 0.42);
+  background: linear-gradient(180deg, rgba(8, 18, 44, 0.96), rgba(4, 11, 28, 0.96));
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(34, 224, 222, 0.22) inset;
+  backdrop-filter: blur(16px);
+  overflow: auto;
+}
+
+.orcaDropdown__item {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: rgba(18, 33, 73, 0.72);
+  color: var(--panel-text);
+  padding: 10px 12px;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.orcaDropdown__item:hover,
+.orcaDropdown__item.isActive {
+  transform: translateY(-1px);
+  border-color: rgba(0, 178, 202, 0.45);
+  background: rgba(27, 51, 106, 0.86);
+  box-shadow: 0 0 0 1px rgba(0, 178, 202, 0.18);
+}
+
+.orcaDropdown__item.isSelected {
+  border-color: rgba(34, 224, 222, 0.85);
+  background: linear-gradient(180deg, rgba(21, 102, 129, 0.74), rgba(19, 83, 108, 0.74));
+  box-shadow:
+    0 0 0 1px rgba(34, 224, 222, 0.36),
+    inset 0 1px 0 rgba(208, 250, 255, 0.18);
+}
+
+.orcaDropdown__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.orcaDropdown__itemLabel {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.orcaDropdown__itemDescription {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(214, 230, 255, 0.72);
+}
+
+.orcaDropdown__menu--light {
+  border-color: rgba(138, 174, 221, 0.9);
+  background: rgba(248, 253, 255, 0.98);
+  box-shadow:
+    0 18px 34px rgba(19, 39, 66, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.orcaDropdown__menu--light .orcaDropdown__item,
+.orcaDropdown__item--light {
+  background: rgba(236, 246, 255, 0.95);
+  border-color: rgba(174, 202, 236, 0.45);
+  color: rgba(17, 39, 69, 0.96);
+}
+
+.orcaDropdown__menu--light .orcaDropdown__item:hover,
+.orcaDropdown__menu--light .orcaDropdown__item.isActive,
+.orcaDropdown__item--light:hover,
+.orcaDropdown__item--light.isActive {
+  border-color: rgba(88, 138, 206, 0.58);
+  background: rgba(224, 239, 255, 0.98);
+  box-shadow: 0 0 0 1px rgba(88, 138, 206, 0.18);
+}
+
+.orcaDropdown__menu--light .orcaDropdown__item.isSelected,
+.orcaDropdown__item--light.isSelected {
+  border-color: rgba(63, 164, 198, 0.82);
+  background: rgba(194, 238, 248, 0.96);
+  color: rgba(14, 48, 76, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(63, 164, 198, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.orcaDropdown__menu--light .orcaDropdown__itemDescription,
+.orcaDropdown__item--light .orcaDropdown__itemDescription {
+  color: rgba(46, 77, 114, 0.74);
+}
+
 .footer__chip {
   display: flex;
   align-items: center;
@@ -5535,6 +5710,18 @@ body {
   color: var(--ink-tertiary);
 }
 
+.app:not(.app--dark) .footer__segment--compareMode {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(251, 254, 255, 0.97), rgba(237, 246, 255, 0.97));
+  border: 1px solid rgba(120, 157, 206, 0.75);
+  box-shadow: 0 2px 7px rgba(18, 40, 69, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.app:not(.app--dark) .footer__segment--compareMode .footer__segmentValue {
+  color: rgba(17, 44, 78, 0.98);
+  text-shadow: none;
+}
+
 .app:not(.app--dark) .footer__menu {
   background: rgba(241, 248, 255, 0.98);
   border-color: var(--ctrl-border);
@@ -5549,6 +5736,51 @@ body {
 .app:not(.app--dark) .footer__menuButton:hover,
 .app:not(.app--dark) .footer__menuButton:focus-visible {
   background: rgba(0, 178, 202, 0.12);
+}
+
+.app:not(.app--dark) .orcaDropdown__trigger {
+  border-color: rgba(138, 174, 221, 0.9);
+  background: rgba(252, 255, 255, 0.98);
+  color: rgba(17, 39, 69, 0.96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.app:not(.app--dark) .orcaDropdown__trigger:hover,
+.app:not(.app--dark) .orcaDropdown.isOpen .orcaDropdown__trigger {
+  border-color: rgba(88, 138, 206, 0.95);
+  background: rgba(242, 249, 255, 0.99);
+}
+
+.app:not(.app--dark) .orcaDropdown__label {
+  color: rgba(30, 58, 93, 0.66);
+}
+
+.app:not(.app--dark) .orcaDropdown__menu {
+  border-color: rgba(138, 174, 221, 0.9);
+  background: rgba(248, 253, 255, 0.98);
+  box-shadow:
+    0 18px 34px rgba(19, 39, 66, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.app:not(.app--dark) .orcaDropdown__item {
+  background: rgba(236, 246, 255, 0.95);
+  color: rgba(17, 39, 69, 0.96);
+}
+
+.app:not(.app--dark) .orcaDropdown__item:hover,
+.app:not(.app--dark) .orcaDropdown__item.isActive {
+  border-color: rgba(88, 138, 206, 0.58);
+  background: rgba(224, 239, 255, 0.98);
+  box-shadow: 0 0 0 1px rgba(88, 138, 206, 0.18);
+}
+
+.app:not(.app--dark) .orcaDropdown__item.isSelected {
+  border-color: rgba(63, 164, 198, 0.82);
+  background: rgba(194, 238, 248, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(63, 164, 198, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .app:not(.app--dark) .legend {

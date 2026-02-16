@@ -1,6 +1,7 @@
 import type { ModelInfo } from "../../features/models/data/dummyModels";
 import type { H3Resolution } from "../../config/dataPaths";
 import { H3ResolutionPill } from "../controls/H3ResolutionPill";
+import { OrcaDropdown, type OrcaDropdownItem } from "../ui/OrcaDropdown";
 
 type Props = {
   modelLeftId: string;
@@ -25,8 +26,15 @@ type Props = {
 
 function formatModelLabel(value: string): string {
   return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+    .split("_")
+    .map((part) => {
+      const lowered = part.toLowerCase();
+      if (lowered === "srkw") return "SRKW";
+      if (lowered === "kw") return "KW";
+      if (lowered === "idw") return "IDW";
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
 }
 
 export function SwipeComparePills({
@@ -59,44 +67,76 @@ export function SwipeComparePills({
   const leftPeriodExists = periodOptions.includes(safePeriodLeft);
   const rightPeriodExists = periodOptions.includes(safePeriodRight);
   const lockIsActive = dualMapMode && !deltaMode;
+  const leftModelLabel =
+    models.find((model) => model.id === safeLeftModelId)?.name ??
+    formatModelLabel(safeLeftModelId);
+  const rightModelLabel =
+    models.find((model) => model.id === safeRightModelId)?.name ??
+    formatModelLabel(safeRightModelId);
+
+  const leftModelItems: OrcaDropdownItem[] = [
+    ...(!leftModelExists && safeLeftModelId
+      ? [{ id: safeLeftModelId, label: formatModelLabel(safeLeftModelId) }]
+      : []),
+    ...models.map((model) => ({ id: model.id, label: model.name })),
+  ];
+
+  const rightModelItems: OrcaDropdownItem[] = [
+    ...(!rightModelExists && safeRightModelId
+      ? [{ id: safeRightModelId, label: formatModelLabel(safeRightModelId) }]
+      : []),
+    ...models.map((model) => ({ id: model.id, label: model.name })),
+  ];
+
+  const sortedPeriodOptions = [...periodOptions].reverse();
+
+  const leftPeriodItems: OrcaDropdownItem[] = [
+    ...(!leftPeriodExists && safePeriodLeft ? [{ id: safePeriodLeft, label: safePeriodLeft }] : []),
+    ...sortedPeriodOptions.map((option) => ({ id: option, label: option })),
+  ];
+
+  const rightPeriodItems: OrcaDropdownItem[] = [
+    ...(!rightPeriodExists && safePeriodRight ? [{ id: safePeriodRight, label: safePeriodRight }] : []),
+    ...sortedPeriodOptions.map((option) => ({ id: option, label: option })),
+  ];
 
   return (
     <div className="swipeComparePills" aria-label="Swipe compare lenses">
       <div className="swipeComparePills__surface">
         <div className="swipeComparePills__grid">
           <div className="swipeComparePills__lane">
-            <div className="swipeComparePills__field swipeComparePills__field--model">
-              <select aria-label="Left model" value={safeLeftModelId} onChange={(event) => onChangeModelLeft(event.target.value)}>
-                {!leftModelExists && safeLeftModelId ? (
-                  <option value={safeLeftModelId}>{formatModelLabel(safeLeftModelId)}</option>
-                ) : null}
-                {models.map((model) => (
-                  <option value={model.id} key={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            <div className="swipeComparePills__field swipeComparePills__field--modelDropdown">
+              <OrcaDropdown
+                label="Model"
+                valueLabel={leftModelLabel}
+                items={leftModelItems}
+                selectedId={safeLeftModelId}
+                onSelect={onChangeModelLeft}
+                ariaLabel={`Left model: ${leftModelLabel}`}
+                triggerClassName="swipeComparePills__dropdownTrigger swipeComparePills__dropdownTrigger--model"
+                menuClassName="swipeComparePills__dropdownMenu swipeComparePills__dropdownMenu--model"
+              />
             </div>
 
-            <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
-              <span className="material-symbols-rounded" aria-hidden="true">
-                calendar_month
-              </span>
-              <select
-                aria-label="Left period"
-                title={`Left period: ${safePeriodLeft}`}
-                value={safePeriodLeft}
-                onChange={(event) => onChangePeriodLeft(event.target.value)}
-              >
-                {!leftPeriodExists && safePeriodLeft ? (
-                  <option value={safePeriodLeft}>{safePeriodLeft}</option>
-                ) : null}
-                {periodOptions.map((option) => (
-                  <option value={option} key={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+            <div className="swipeComparePills__field swipeComparePills__field--periodDropdown">
+              <OrcaDropdown
+                valueLabel={safePeriodLeft}
+                items={leftPeriodItems}
+                selectedId={safePeriodLeft}
+                onSelect={onChangePeriodLeft}
+                ariaLabel={`Left period: ${safePeriodLeft}`}
+                iconOnly
+                showChevron={false}
+                iconLeft={
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    calendar_month
+                  </span>
+                }
+                minMenuWidth={240}
+                matchTriggerWidth={false}
+                triggerClassName="swipeComparePills__dropdownTrigger swipeComparePills__dropdownTrigger--period"
+                menuClassName="swipeComparePills__dropdownMenu swipeComparePills__dropdownMenu--period"
+              />
             </div>
 
             <div className="swipeComparePills__resolution" aria-label="Left hex resolution">
@@ -108,38 +148,38 @@ export function SwipeComparePills({
                 compact
               />
             </div>
-            <div className="swipeComparePills__field swipeComparePills__field--model">
-              <select aria-label="Right model" value={safeRightModelId} onChange={(event) => onChangeModelRight(event.target.value)}>
-                {!rightModelExists && safeRightModelId ? (
-                  <option value={safeRightModelId}>{formatModelLabel(safeRightModelId)}</option>
-                ) : null}
-                {models.map((model) => (
-                  <option value={model.id} key={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            <div className="swipeComparePills__field swipeComparePills__field--modelDropdown">
+              <OrcaDropdown
+                label="Model"
+                valueLabel={rightModelLabel}
+                items={rightModelItems}
+                selectedId={safeRightModelId}
+                onSelect={onChangeModelRight}
+                ariaLabel={`Right model: ${rightModelLabel}`}
+                triggerClassName="swipeComparePills__dropdownTrigger swipeComparePills__dropdownTrigger--model"
+                menuClassName="swipeComparePills__dropdownMenu swipeComparePills__dropdownMenu--model"
+              />
             </div>
 
-            <div className="swipeComparePills__field swipeComparePills__field--periodIcon">
-              <span className="material-symbols-rounded" aria-hidden="true">
-                calendar_month
-              </span>
-              <select
-                aria-label="Right period"
-                title={`Right period: ${safePeriodRight}`}
-                value={safePeriodRight}
-                onChange={(event) => onChangePeriodRight(event.target.value)}
-              >
-                {!rightPeriodExists && safePeriodRight ? (
-                  <option value={safePeriodRight}>{safePeriodRight}</option>
-                ) : null}
-                {periodOptions.map((option) => (
-                  <option value={option} key={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+            <div className="swipeComparePills__field swipeComparePills__field--periodDropdown">
+              <OrcaDropdown
+                valueLabel={safePeriodRight}
+                items={rightPeriodItems}
+                selectedId={safePeriodRight}
+                onSelect={onChangePeriodRight}
+                ariaLabel={`Right period: ${safePeriodRight}`}
+                iconOnly
+                showChevron={false}
+                iconLeft={
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    calendar_month
+                  </span>
+                }
+                minMenuWidth={240}
+                matchTriggerWidth={false}
+                triggerClassName="swipeComparePills__dropdownTrigger swipeComparePills__dropdownTrigger--period"
+                menuClassName="swipeComparePills__dropdownMenu swipeComparePills__dropdownMenu--period"
+              />
             </div>
 
             <div className="swipeComparePills__resolution" aria-label="Right hex resolution">

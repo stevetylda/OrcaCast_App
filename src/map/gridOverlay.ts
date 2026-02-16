@@ -205,6 +205,9 @@ const HOT_FILL_HALO_ID = "grid-hot-fill-halo";
 const HALO_ID = "grid-halo";
 const SHIMMER_ID = "grid-shimmer-fill";
 const PEAK_SHINE_ID = "grid-peak-shine";
+const BIO_GLOW_FILL_ID = "grid-bio-glow-fill";
+const BIO_CORE_FILL_ID = "grid-bio-core-fill";
+const BIO_EDGE_ID = "grid-bio-edge";
 const HOVER_FILL_ID = "grid-hover-fill";
 const HOVER_GLOW_ID = "grid-hover-glow";
 const HOVER_CORE_ID = "grid-hover-core";
@@ -455,9 +458,99 @@ export function addGridOverlay(
         map.addLayer(layer);
       }
     }
+
+    if (map.getLayer(BIO_GLOW_FILL_ID)) {
+      map.setFilter(BIO_GLOW_FILL_ID, filter);
+      map.setPaintProperty(BIO_GLOW_FILL_ID, "fill-color", "rgba(88,248,230,0.52)");
+      map.setPaintProperty(BIO_GLOW_FILL_ID, "fill-opacity", 0.16);
+    } else {
+      const layer: FillLayerSpecification = {
+        id: BIO_GLOW_FILL_ID,
+        type: "fill" as const,
+        source: sourceId,
+        filter,
+        paint: {
+          "fill-color": "rgba(88,248,230,0.52)",
+          "fill-opacity": 0.16,
+        },
+      };
+      if (map.getLayer(lineId)) {
+        map.addLayer(layer, lineId);
+      } else {
+        map.addLayer(layer);
+      }
+    }
+
+    if (map.getLayer(BIO_CORE_FILL_ID)) {
+      map.setFilter(BIO_CORE_FILL_ID, filter);
+      map.setPaintProperty(BIO_CORE_FILL_ID, "fill-color", "rgba(190,255,247,0.55)");
+      map.setPaintProperty(BIO_CORE_FILL_ID, "fill-opacity", 0.08);
+    } else {
+      const layer: FillLayerSpecification = {
+        id: BIO_CORE_FILL_ID,
+        type: "fill" as const,
+        source: sourceId,
+        filter,
+        paint: {
+          "fill-color": "rgba(190,255,247,0.55)",
+          "fill-opacity": 0.08,
+        },
+      };
+      if (map.getLayer(lineId)) {
+        map.addLayer(layer, lineId);
+      } else {
+        map.addLayer(layer);
+      }
+    }
+
+    if (map.getLayer(BIO_EDGE_ID)) {
+      map.setFilter(BIO_EDGE_ID, filter);
+      map.setPaintProperty(BIO_EDGE_ID, "line-opacity", 0.78);
+    } else {
+      const layer = {
+        id: BIO_EDGE_ID,
+        type: "line" as const,
+        source: sourceId,
+        filter,
+        paint: {
+          "line-color": "rgba(198,255,249,0.92)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.9, 9, 1.25, 12, 1.8] as ExpressionSpecification,
+          "line-opacity": 0.78,
+          "line-blur": 0.35,
+        },
+      };
+      if (map.getLayer(lineId)) {
+        map.addLayer(layer, lineId);
+      } else {
+        map.addLayer(layer);
+      }
+    }
+
+    map.setPaintProperty(lineId, "line-width", [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      6,
+      ["case", [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold], 0.72, 0.38],
+      9,
+      ["case", [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold], 0.96, 0.44],
+      12,
+      ["case", [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold], 1.24, 0.56],
+    ] as ExpressionSpecification);
+    map.setPaintProperty(lineId, "line-color", [
+      "case",
+      [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold],
+      "rgba(176,242,248,0.52)",
+      borderColor,
+    ] as ExpressionSpecification);
   } else {
     removeLayerIfExists(map, SHIMMER_ID);
     removeLayerIfExists(map, PEAK_SHINE_ID);
+    removeLayerIfExists(map, BIO_GLOW_FILL_ID);
+    removeLayerIfExists(map, BIO_CORE_FILL_ID);
+    removeLayerIfExists(map, BIO_EDGE_ID);
+    map.setPaintProperty(lineId, "line-color", borderColor);
+    map.setPaintProperty(lineId, "line-width", 0.4);
   }
 
   if (hotspotThreshold !== undefined) {
@@ -541,6 +634,15 @@ export function setGridBaseVisibility(
   if (map.getLayer(PEAK_SHINE_ID)) {
     map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", visible ? 0.6 : 0);
   }
+  if (map.getLayer(BIO_GLOW_FILL_ID)) {
+    map.setPaintProperty(BIO_GLOW_FILL_ID, "fill-opacity", visible ? 0.16 : 0);
+  }
+  if (map.getLayer(BIO_CORE_FILL_ID)) {
+    map.setPaintProperty(BIO_CORE_FILL_ID, "fill-opacity", visible ? 0.08 : 0);
+  }
+  if (map.getLayer(BIO_EDGE_ID)) {
+    map.setPaintProperty(BIO_EDGE_ID, "line-opacity", visible ? 0.78 : 0);
+  }
   if (map.getLayer(HOVER_FILL_ID)) {
     map.setPaintProperty(HOVER_FILL_ID, "fill-opacity", visible ? 0.2 : 0);
   }
@@ -578,6 +680,9 @@ export function removeGridOverlay(
 ) {
   removeLayerIfExists(map, PEAK_SHINE_ID);
   removeLayerIfExists(map, SHIMMER_ID);
+  removeLayerIfExists(map, BIO_EDGE_ID);
+  removeLayerIfExists(map, BIO_CORE_FILL_ID);
+  removeLayerIfExists(map, BIO_GLOW_FILL_ID);
   removeLayerIfExists(map, HOVER_CORE_ID);
   removeLayerIfExists(map, HOVER_GLOW_ID);
   removeLayerIfExists(map, HOVER_FILL_ID);

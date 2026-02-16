@@ -25,7 +25,7 @@ const TimeseriesModal = lazy(() =>
 
 
 import { appConfig, formatForecastPeriod } from "../config/appConfig";
-import { getForecastPathForPeriod } from "../config/dataPaths";
+import { getActualsPathForPeriod, getForecastPathForPeriod } from "../config/dataPaths";
 import type { H3Resolution } from "../config/dataPaths";
 import {
   forecastPeriodToIsoWeek,
@@ -82,6 +82,19 @@ function formatCellValue(value: number): string {
   return value.toFixed(5);
 }
 
+function toLabel(value: string): string {
+  return value
+    .split("_")
+    .map((part) => {
+      const lowered = part.toLowerCase();
+      if (lowered === "srkw") return "SRKW";
+      if (lowered === "kw") return "KW";
+      if (lowered === "idw") return "IDW";
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
 export function MapPage() {
   const {
     darkMode,
@@ -122,6 +135,10 @@ export function MapPage() {
     Ferry: false,
   });
   const [modelOptions, setModelOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [compareModelOptions, setCompareModelOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [actualCompareModelIds, setActualCompareModelIds] = useState<string[]>([]);
   const [compareModelA, setCompareModelA] = useState("");
   const [compareModelB, setCompareModelB] = useState("");
   const [comparePeriodA, setComparePeriodA] = useState("");
@@ -304,6 +321,23 @@ export function MapPage() {
     return getForecastPathForPeriod(resolution, latest.fileId);
   }, [periods, resolution]);
 
+  const actualsPathCandidates = useMemo(() => {
+    const seen = new Set<string>();
+    const candidates: string[] = [];
+    const pushPath = (period: Period | null | undefined) => {
+      if (!period) return;
+      const path = getActualsPathForPeriod(resolution, period.fileId);
+      if (seen.has(path)) return;
+      seen.add(path);
+      candidates.push(path);
+    };
+    pushPath(selectedForecast);
+    for (let idx = periods.length - 1; idx >= 0; idx -= 1) {
+      pushPath(periods[idx]);
+    }
+    return candidates;
+  }, [resolution, selectedForecast, periods]);
+
   useEffect(() => {
     let active = true;
     Promise.all([
@@ -391,14 +425,10 @@ export function MapPage() {
   useEffect(() => {
     let active = true;
 
-    const toLabel = (value: string) =>
-      value
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (match) => match.toUpperCase());
-
     const loadModels = async () => {
       try {
-        let ids: string[] = [];
+        let forecastIds: string[] = [];
+        let actualIds: string[] = [];
         let hasForecastForSelectedPeriod: boolean | null = null;
 
         if (forecastPath) {
@@ -409,7 +439,7 @@ export function MapPage() {
               modelId,
             });
             hasForecastForSelectedPeriod = true;
-            ids = await loadForecastModelIds(resolution, {
+            forecastIds = await loadForecastModelIds(resolution, {
               kind: "explicit",
               explicitPath: forecastPath,
             });
@@ -417,33 +447,60 @@ export function MapPage() {
             hasForecastForSelectedPeriod = false;
           }
         }
-        if (ids.length === 0 && latestForecastPath && latestForecastPath !== forecastPath) {
+        if (forecastIds.length === 0 && latestForecastPath && latestForecastPath !== forecastPath) {
           try {
-            ids = await loadForecastModelIds(resolution, {
+            forecastIds = await loadForecastModelIds(resolution, {
               kind: "explicit",
               explicitPath: latestForecastPath,
             });
           } catch {
-            ids = [];
+            forecastIds = [];
           }
         }
+
+        for (const candidatePath of actualsPathCandidates) {
+          try {
+            const ids = await loadForecastModelIds(resolution, {
+              kind: "explicit",
+              explicitPath: candidatePath,
+            });
+            if (ids.length > 0) {
+              actualIds = ids;
+              break;
+            }
+          } catch {
+            // keep trying older periods
+          }
+        }
+
         if (!active) return;
         setSelectedPeriodHasForecast(hasForecastForSelectedPeriod);
-        const unique = Array.from(new Set(ids.filter((id) => Boolean(id?.trim()))));
-        const options = unique.map((id) => ({ value: id, label: toLabel(id) }));
-        setModelOptions(options);
+        const forecastUnique = Array.from(new Set(forecastIds.filter((id) => Boolean(id?.trim()))));
+        const actualUnique = Array.from(new Set(actualIds.filter((id) => Boolean(id?.trim()))));
 
-        if (options.length > 0) {
-          const hasCurrent = options.some((opt) => opt.value === modelId);
+        const forecastOptions = forecastUnique.map((id) => ({ value: id, label: toLabel(id) }));
+        const compareOptions = Array.from(new Set([...forecastUnique, ...actualUnique])).map((id) => ({
+          value: id,
+          label: toLabel(id),
+        }));
+
+        setModelOptions(forecastOptions);
+        setCompareModelOptions(compareOptions);
+        setActualCompareModelIds(actualUnique);
+
+        if (forecastOptions.length > 0) {
+          const hasCurrent = forecastOptions.some((opt) => opt.value === modelId);
           if (!hasCurrent) {
-            const best = options.find((opt) => opt.value === appConfig.bestModelId);
-            setModelId(best?.value ?? options[0].value);
+            const best = forecastOptions.find((opt) => opt.value === appConfig.bestModelId);
+            setModelId(best?.value ?? forecastOptions[0].value);
           }
         }
       } catch {
         if (!active) return;
         setSelectedPeriodHasForecast(false);
         setModelOptions([]);
+        setCompareModelOptions([]);
+        setActualCompareModelIds([]);
       }
     };
 
@@ -451,7 +508,14 @@ export function MapPage() {
     return () => {
       active = false;
     };
-  }, [forecastPath, latestForecastPath, resolution, modelId, setModelId]);
+  }, [
+    forecastPath,
+    latestForecastPath,
+    actualsPathCandidates,
+    resolution,
+    modelId,
+    setModelId,
+  ]);
 
   useEffect(() => {
     if (selectedPeriodHasForecast === true) {
@@ -474,7 +538,7 @@ export function MapPage() {
 
   const compareModels = useMemo<ModelInfo[]>(
     () =>
-      modelOptions.map((option) => ({
+      compareModelOptions.map((option) => ({
         id: option.value,
         name: option.label,
         family: "baseline",
@@ -483,14 +547,14 @@ export function MapPage() {
         rows: [],
         blurb: "",
       })),
-    [modelOptions]
+    [compareModelOptions]
   );
 
   useEffect(() => {
-    if (modelOptions.length === 0) return;
-    setCompareModelA((prev) => prev || modelOptions[0].value);
-    setCompareModelB((prev) => prev || modelOptions[Math.min(1, modelOptions.length - 1)].value);
-  }, [modelOptions]);
+    if (compareModelOptions.length === 0) return;
+    setCompareModelA((prev) => prev || compareModelOptions[0].value);
+    setCompareModelB((prev) => prev || compareModelOptions[Math.min(1, compareModelOptions.length - 1)].value);
+  }, [compareModelOptions]);
 
   useEffect(() => {
     if (periods.length === 0) return;
@@ -505,8 +569,8 @@ export function MapPage() {
   }, [compareEnabled, resolution]);
 
   const periodOptions = useMemo(() => periods.map((p) => p.periodKey), [periods]);
-  const compareDisabled = modelOptions.length === 0 || periods.length === 0;
-  const compareDisabledReason = compareDisabled ? "Compare will enable after forecast options load" : undefined;
+  const compareDisabled = compareModelOptions.length === 0 || periods.length === 0;
+  const compareDisabledReason = compareDisabled ? "Compare will enable after compare options load" : undefined;
   const compareModelIds = useMemo(() => compareModels.map((model) => model.id), [compareModels]);
   const resolvedCompareModelA = useMemo(() => {
     if (compareModelIds.length === 0) return "";
@@ -558,9 +622,21 @@ export function MapPage() {
     }
   }, [comparePeriodB, resolvedComparePeriodB]);
 
-  const resolveForecastPathByPeriodKey = (periodKey: string, targetResolution: H3Resolution) => {
+  const actualCompareModelIdSet = useMemo(
+    () => new Set(actualCompareModelIds),
+    [actualCompareModelIds]
+  );
+
+  const resolveComparePathByPeriodKey = (
+    periodKey: string,
+    targetResolution: H3Resolution,
+    compareModelId: string
+  ) => {
     const period = periods.find((item) => item.periodKey === periodKey);
     if (!period) return undefined;
+    if (actualCompareModelIdSet.has(compareModelId)) {
+      return getActualsPathForPeriod(targetResolution, period.fileId);
+    }
     return getForecastPathForPeriod(targetResolution, period.fileId);
   };
 
@@ -578,8 +654,16 @@ export function MapPage() {
   const comparePeriodBObj = periods.find((p) => p.periodKey === resolvedComparePeriodB) ?? selectedForecast ?? configPeriod;
   const deltaMode = compareEnabled && compareSettings.showDelta;
   const effectiveCompareResolutionB = deltaMode ? compareResolutionA : compareResolutionB;
-  const comparePathA = resolveForecastPathByPeriodKey(comparePeriodAObj.periodKey, compareResolutionA);
-  const comparePathB = resolveForecastPathByPeriodKey(comparePeriodBObj.periodKey, effectiveCompareResolutionB);
+  const comparePathA = resolveComparePathByPeriodKey(
+    comparePeriodAObj.periodKey,
+    compareResolutionA,
+    resolvedCompareModelA || modelId
+  );
+  const comparePathB = resolveComparePathByPeriodKey(
+    comparePeriodBObj.periodKey,
+    effectiveCompareResolutionB,
+    resolvedCompareModelB || modelId
+  );
   const deltaFillExpr = useMemo(() => buildDeltaFillExpr("delta_pctl"), []);
   const compareRenderMode: "single" | "dual" | "delta" = compareEnabled
     ? deltaMode
