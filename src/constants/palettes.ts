@@ -3,7 +3,8 @@ export type PaletteId =
   | "amethyst"
   | "rose_noir"
   | "basalt_fire"
-  | "cividis_safe";
+  | "cividis_safe"
+  | "forest_greens";
 
 export type PaletteDef = {
   id: PaletteId;
@@ -89,6 +90,21 @@ export const PALETTES: Record<PaletteId, PaletteDef> = {
       "#FDE945",
     ],
     dominant: "#8FA56B",
+  },
+  forest_greens: {
+    id: "forest_greens",
+    name: "Forest Greens",
+    colors: [
+      "#081C15",
+      "#1B4332",
+      "#2D6A4F",
+      "#3C7A5E",
+      "#4F936D",
+      "#74A57F",
+      "#95BC8F",
+      "#B7D8A6",
+    ],
+    dominant: "#4F936D",
   },
 };
 
