@@ -1136,6 +1136,9 @@ export function ForecastMap({
     let lastTick = 0;
     const shimmerId = "grid-shimmer-fill";
     const peakId = "grid-peak-shine";
+    const bioGlowId = "grid-bio-glow-fill";
+    const bioCoreId = "grid-bio-core-fill";
+    const bioEdgeId = "grid-bio-edge";
     const hoverFillId = "grid-hover-fill";
     const hoverGlowId = "grid-hover-glow";
     const hoverCoreId = "grid-hover-core";
@@ -1146,10 +1149,17 @@ export function ForecastMap({
         const t = time / 1000;
         const shimmerOpacity = 0.16 + 0.06 * Math.sin(t * 0.6);
         const glowOpacity = 0.5 + 0.12 * Math.sin(t * 0.5 + 0.8);
+        const bioGlowOpacity = 0.13 + 0.06 * Math.sin(t * 1.35 + 0.4);
+        const bioCoreOpacity = 0.06 + 0.035 * Math.sin(t * 1.9 + 1.2);
+        const bioEdgeOpacity = 0.68 + 0.14 * Math.sin(t * 1.4 + 0.2);
         const wandFillOpacity = 0.16 + 0.06 * Math.sin(t * 1.5 + 0.2);
         const wandGlowOpacity = 0.42 + 0.18 * Math.sin(t * 1.9);
         const wandCoreOpacity = 0.72 + 0.18 * Math.sin(t * 1.2 + 0.9);
         const hideGrid = showKdeContoursRef.current || hotspotsOnlyRef.current;
+        const z = map.getZoom();
+        const edgeBaseWidth =
+          z <= 6 ? 0.9 : z <= 9 ? 0.9 + ((z - 6) / 3) * 0.35 : z <= 12 ? 1.25 + ((z - 9) / 3) * 0.55 : 1.8;
+        const edgePulseWidth = edgeBaseWidth + 0.1 * Math.sin(t * 1.7 + 0.5);
         if (map.getLayer(shimmerId)) {
           map.setPaintProperty(shimmerId, "fill-opacity", hideGrid ? 0 : shimmerOpacity);
           map.setPaintProperty(
@@ -1160,6 +1170,16 @@ export function ForecastMap({
         }
         if (map.getLayer(peakId)) {
           map.setPaintProperty(peakId, "line-opacity", hideGrid ? 0 : glowOpacity);
+        }
+        if (map.getLayer(bioGlowId)) {
+          map.setPaintProperty(bioGlowId, "fill-opacity", hideGrid ? 0 : bioGlowOpacity);
+        }
+        if (map.getLayer(bioCoreId)) {
+          map.setPaintProperty(bioCoreId, "fill-opacity", hideGrid ? 0 : bioCoreOpacity);
+        }
+        if (map.getLayer(bioEdgeId)) {
+          map.setPaintProperty(bioEdgeId, "line-opacity", hideGrid ? 0 : bioEdgeOpacity);
+          map.setPaintProperty(bioEdgeId, "line-width", edgePulseWidth);
         }
         if (map.getLayer(hoverFillId)) {
           map.setPaintProperty(hoverFillId, "fill-opacity", hideGrid ? 0 : wandFillOpacity);
