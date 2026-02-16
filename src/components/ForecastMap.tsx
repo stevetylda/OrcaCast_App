@@ -33,6 +33,8 @@ import type { DeltaLegendSpec } from "../map/deltaMap";
 
 type FillColorSpec = DataDrivenPropertyValueSpecification<string>;
 type LastWeekMode = "none" | "previous" | "selected" | "both";
+type LngLat = [number, number];
+type SparklineSeries = { forecast: number[]; sightings: number[] };
 
 function escapeHtml(value: string): string {
   return value
@@ -55,34 +57,119 @@ function getFeatureCellId(feature: { properties?: Record<string, unknown> } | un
   return String(cellIdRaw || "");
 }
 
+function pointInRing([lng, lat]: LngLat, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = Number(ring[i]?.[0]);
+    const yi = Number(ring[i]?.[1]);
+    const xj = Number(ring[j]?.[0]);
+    const yj = Number(ring[j]?.[1]);
+    const intersects =
+      yi > lat !== yj > lat &&
+      lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygon([lng, lat]: LngLat, rings: number[][][]): boolean {
+  if (rings.length === 0) return false;
+  if (!pointInRing([lng, lat], rings[0])) return false;
+  for (let i = 1; i < rings.length; i += 1) {
+    if (pointInRing([lng, lat], rings[i])) return false;
+  }
+  return true;
+}
+
+function extractCellPolygons(cellId: string, fc: FeatureCollection | null): number[][][][] {
+  if (!fc) return [];
+  for (const feature of fc.features ?? []) {
+    const featureCellId = getFeatureCellId(feature as { properties?: Record<string, unknown> });
+    if (!featureCellId || featureCellId !== cellId) continue;
+    const geometry = feature.geometry;
+    if (!geometry) return [];
+    if (geometry.type === "Polygon") {
+      return [geometry.coordinates as number[][][]];
+    }
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates as number[][][][];
+    }
+    return [];
+  }
+  return [];
+}
+
+function withBase(url: string): string {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalized = base.endsWith("/") ? base : `${base}/`;
+  const trimmed = url.startsWith("/") ? url.slice(1) : url;
+  return `${normalized}${trimmed}`;
+}
+
+async function loadWeeklySightingPoints(year: number, week: number): Promise<LngLat[]> {
+  const response = await fetch(
+    withBase(`data/last_week_sightings/last_week_sightings_${year}-W${week}.geojson`),
+    { cache: "force-cache" }
+  );
+  if (!response.ok) return [];
+  const payload = (await response.json()) as FeatureCollection;
+  const points: LngLat[] = [];
+  for (const feature of payload.features ?? []) {
+    if (feature.geometry?.type === "Point") {
+      const [lng, lat] = feature.geometry.coordinates as number[];
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        points.push([lng, lat]);
+        continue;
+      }
+    }
+    const props = feature.properties as Record<string, unknown> | null;
+    const lng = Number(props?.LONGITUDE);
+    const lat = Number(props?.LATITUDE);
+    if (Number.isFinite(lng) && Number.isFinite(lat)) points.push([lng, lat]);
+  }
+  return points;
+}
+
 function buildSparklineSvg(
   values: number[],
+  sightings: number[],
   selectedIndex: number,
   periods: Period[],
   width = 270,
   height = 72
 ): string {
-  const paddingX = 6;
+  const paddingLeft = 6;
+  const paddingRight = 20;
   const paddingY = 6;
   const labelHeight = 12;
-  const innerW = Math.max(1, width - paddingX * 2);
+  const innerW = Math.max(1, width - paddingLeft - paddingRight);
   const chartTop = paddingY;
   const chartBottom = height - paddingY - labelHeight;
+  const chartRight = width - paddingRight;
   const innerH = Math.max(1, chartBottom - chartTop);
   const safeValues = values.map((v) => (Number.isFinite(v) ? v : 0));
+  const safeSightings = sightings.map((v) => (v >= 1 ? 1 : 0));
   const max = safeValues.length ? Math.max(...safeValues) : 0;
   const min = safeValues.length ? Math.min(...safeValues) : 0;
   const range = max - min || 1;
 
   const step = safeValues.length > 1 ? innerW / (safeValues.length - 1) : 0;
   const points = safeValues.map((v, i) => {
-    const x = paddingX + step * i;
+    const x = paddingLeft + step * i;
     const t = (v - min) / range;
     const y = chartTop + innerH * (1 - t);
     return [x, y] as const;
   });
+  const sightingPoints = safeSightings.map((v, i) => {
+    const x = paddingLeft + step * i;
+    const y = v >= 1 ? chartTop : chartBottom;
+    return [x, y] as const;
+  });
 
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const sightingsPath = sightingPoints
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+    .join(" ");
   const marker =
     selectedIndex >= 0 && selectedIndex < points.length
       ? points[selectedIndex]
@@ -90,11 +177,15 @@ function buildSparklineSvg(
 
   const markerX =
     selectedIndex >= 0 && selectedIndex < points.length
-      ? (paddingX + step * selectedIndex).toFixed(1)
+      ? (paddingLeft + step * selectedIndex).toFixed(1)
       : null;
 
   const axisY = chartBottom + 3;
-  const ticks: Array<{ x: number; label: string }> = [];
+  const weekTicks = periods.map((period, i) => ({
+    x: paddingLeft + step * i,
+    label: String(period.stat_week),
+  }));
+  const monthTicks: Array<{ x: number; label: string }> = [];
   let lastMonth = -1;
   let lastYear = -1;
   periods.forEach((period, i) => {
@@ -103,23 +194,34 @@ function buildSparklineSvg(
     const month = date.getUTCMonth();
     const year = date.getUTCFullYear();
     if (month !== lastMonth || year !== lastYear) {
-      ticks.push({ x: paddingX + step * i, label: String(month + 1) });
+      monthTicks.push({ x: paddingLeft + step * i, label: String(month + 1) });
       lastMonth = month;
       lastYear = year;
     }
   });
 
   return `
-    <svg class="sparkPopup__chart" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Probability sparkline">
+    <svg class="sparkPopup__chart" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Forecast probability with sightings line">
       ${markerX ? `<line class="sparkPopup__current" x1="${markerX}" x2="${markerX}" y1="${chartTop}" y2="${chartBottom}" />` : ""}
+      <path class="sparkPopup__lineSightings" d="${sightingsPath}" />
       <path class="sparkPopup__line" d="${path}" />
       ${marker ? `<circle class="sparkPopup__dot" cx="${marker[0].toFixed(1)}" cy="${marker[1].toFixed(1)}" r="2.4" />` : ""}
-      <line class="sparkPopup__axisLine" x1="${paddingX}" x2="${width - paddingX}" y1="${axisY}" y2="${axisY}" />
-      ${ticks
+      <line class="sparkPopup__axisLine" x1="${paddingLeft}" x2="${chartRight}" y1="${axisY}" y2="${axisY}" />
+      <line class="sparkPopup__axisRight" x1="${chartRight}" x2="${chartRight}" y1="${chartTop}" y2="${chartBottom}" />
+      <text class="sparkPopup__axisLabelRight" x="${(chartRight + 4).toFixed(1)}" y="${(chartTop + 3).toFixed(1)}">1</text>
+      <text class="sparkPopup__axisLabelRight" x="${(chartRight + 4).toFixed(1)}" y="${(chartBottom + 3).toFixed(1)}">0</text>
+      ${monthTicks
+        .map(
+          (tick) => `
+        <text class="sparkPopup__axisLabelMonth" x="${tick.x.toFixed(1)}" y="${(chartTop - 1).toFixed(1)}" text-anchor="middle">${tick.label}</text>
+      `.trim()
+        )
+        .join("")}
+      ${weekTicks
         .map(
           (tick) => `
         <line class="sparkPopup__axisTick" x1="${tick.x.toFixed(1)}" x2="${tick.x.toFixed(1)}" y1="${axisY}" y2="${axisY + 3}" />
-        <text class="sparkPopup__axisLabel" x="${tick.x.toFixed(1)}" y="${height - paddingY}" text-anchor="middle">${tick.label}</text>
+        <text class="sparkPopup__axisLabelWeek" x="${tick.x.toFixed(1)}" y="${height - paddingY}" text-anchor="middle">${tick.label}</text>
       `.trim()
         )
         .join("")}
@@ -364,8 +466,8 @@ export function ForecastMap({
   const periodsRef = useRef<Period[]>(periods);
   const modelIdRef = useRef(modelId);
   const resolutionRef = useRef(resolution);
-  const periodsSignatureRef = useRef("");
-  const sparklineCacheRef = useRef<Map<string, number[]>>(new Map());
+  const sparklineCacheRef = useRef<Map<string, SparklineSeries>>(new Map());
+  const sightingsWeekCacheRef = useRef<Map<string, LngLat[]>>(new Map());
   const DEBUG_MAP =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -699,7 +801,6 @@ export function ForecastMap({
 
   useEffect(() => {
     periodsRef.current = periods;
-    periodsSignatureRef.current = periods.map((p) => p.periodKey).join("|");
   }, [periods]);
 
   useEffect(() => {
@@ -873,12 +974,17 @@ export function ForecastMap({
       }
       if (!enableSparklinePopup) return;
 
-      const periodsList = periodsRef.current ?? [];
-      if (periodsList.length === 0) return;
+      const fullPeriods = periodsRef.current ?? [];
+      if (fullPeriods.length === 0) return;
 
-      const selectedIndex = periodsList.findIndex(
+      const selectedFullIndex = fullPeriods.findIndex(
         (p) => p.year === selectedWeekYearRef.current && p.stat_week === selectedWeekRef.current
       );
+      const endIndex = selectedFullIndex >= 0 ? selectedFullIndex : fullPeriods.length - 1;
+      const startIndex = Math.max(0, endIndex - 11);
+      const periodsList = fullPeriods.slice(startIndex, endIndex + 1);
+      const selectedIndex =
+        selectedFullIndex >= 0 ? selectedFullIndex - startIndex : periodsList.length - 1;
 
       if (!sparkPopupRef.current) {
         sparkPopupRef.current = new maplibregl.Popup({
@@ -893,6 +999,7 @@ export function ForecastMap({
         <div class="sparkPopup">
           <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
           <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+          <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
           <div class="sparkPopup__loading">Loading sparkline…</div>
         </div>
       `;
@@ -904,16 +1011,17 @@ export function ForecastMap({
         resolutionRef.current,
         modelIdRef.current,
         cellId,
-        periodsSignatureRef.current,
+        periodsList.map((p) => p.periodKey).join("|"),
       ].join("|");
 
       const cached = sparklineCacheRef.current.get(cacheKey);
       if (cached) {
-        const svg = buildSparklineSvg(cached, selectedIndex, periodsList);
+        const svg = buildSparklineSvg(cached.forecast, cached.sightings, selectedIndex, periodsList);
         const html = `
           <div class="sparkPopup">
             <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
             <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+            <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
             ${svg}
           </div>
         `;
@@ -921,8 +1029,8 @@ export function ForecastMap({
         return;
       }
 
-      const fetchSeries = async () => {
-        const values = await Promise.all(
+      const fetchSeries = async (): Promise<SparklineSeries> => {
+        const forecastValues = await Promise.all(
           periodsList.map(async (period) => {
             const path = getForecastPathForPeriod(resolutionRef.current, period.fileId);
             try {
@@ -938,18 +1046,42 @@ export function ForecastMap({
             }
           })
         );
-        return values;
+        const cellPolygons = extractCellPolygons(cellId, overlayRef.current);
+        const sightings =
+          cellPolygons.length === 0
+            ? periodsList.map(() => 0)
+            : await Promise.all(
+              periodsList.map(async (period) => {
+                  const weekKey = `${period.year}-W${period.stat_week}`;
+                  const cachedWeek = sightingsWeekCacheRef.current.get(weekKey);
+                  let weekPoints = cachedWeek;
+                  if (!weekPoints) {
+                    try {
+                      weekPoints = await loadWeeklySightingPoints(period.year, period.stat_week);
+                    } catch {
+                      weekPoints = [];
+                    }
+                    sightingsWeekCacheRef.current.set(weekKey, weekPoints);
+                  }
+                  const hasSighting = weekPoints.some((point) =>
+                    cellPolygons.some((polygon) => pointInPolygon(point, polygon))
+                  );
+                  return hasSighting ? 1 : 0;
+                })
+              );
+        return { forecast: forecastValues, sightings };
       };
 
       fetchSeries()
         .then((series) => {
           if (sparkRequestIdRef.current !== requestId) return;
           sparklineCacheRef.current.set(cacheKey, series);
-          const svg = buildSparklineSvg(series, selectedIndex, periodsList);
+          const svg = buildSparklineSvg(series.forecast, series.sightings, selectedIndex, periodsList);
           const html = `
             <div class="sparkPopup">
               <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
               <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+              <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
               ${svg}
             </div>
           `;
@@ -961,6 +1093,7 @@ export function ForecastMap({
             <div class="sparkPopup">
               <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
               <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
+              <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
               <div class="sparkPopup__loading">Unable to load sparkline.</div>
             </div>
           `;
@@ -1148,10 +1281,10 @@ export function ForecastMap({
         lastTick = time;
         const t = time / 1000;
         const shimmerOpacity = 0.16 + 0.06 * Math.sin(t * 0.6);
-        const glowOpacity = 0.5 + 0.12 * Math.sin(t * 0.5 + 0.8);
+        const glowOpacity = 0.22 + 0.06 * Math.sin(t * 0.5 + 0.8);
         const bioGlowOpacity = 0.13 + 0.06 * Math.sin(t * 1.35 + 0.4);
         const bioCoreOpacity = 0.06 + 0.035 * Math.sin(t * 1.9 + 1.2);
-        const bioEdgeOpacity = 0.68 + 0.14 * Math.sin(t * 1.4 + 0.2);
+        const bioEdgeOpacity = 0.28 + 0.08 * Math.sin(t * 1.4 + 0.2);
         const wandFillOpacity = 0.16 + 0.06 * Math.sin(t * 1.5 + 0.2);
         const wandGlowOpacity = 0.42 + 0.18 * Math.sin(t * 1.9);
         const wandCoreOpacity = 0.72 + 0.18 * Math.sin(t * 1.2 + 0.9);

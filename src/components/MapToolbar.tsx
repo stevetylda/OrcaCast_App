@@ -230,6 +230,7 @@ export function MapToolbar({
         onClick={onToggleCompare}
         title={compareDisabled ? compareDisabledReason ?? "Compare unavailable" : "Compare mode"}
         aria-label="Compare mode"
+        aria-pressed={compareEnabled}
         data-tour="tools-compare-toggle"
         disabled={compareDisabled}
       >

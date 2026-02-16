@@ -438,7 +438,7 @@ export function addGridOverlay(
 
     if (map.getLayer(PEAK_SHINE_ID)) {
       map.setFilter(PEAK_SHINE_ID, filter);
-      map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", 0.6);
+      map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", 0.24);
     } else {
       const layer = {
         id: PEAK_SHINE_ID,
@@ -446,9 +446,9 @@ export function addGridOverlay(
         source: sourceId,
         filter,
         paint: {
-          "line-color": "rgba(180,255,252,0.9)",
+          "line-color": "rgba(96,190,204,0.38)",
           "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.4, 9, 2.2, 12, 3.0] as ExpressionSpecification,
-          "line-opacity": 0.6,
+          "line-opacity": 0.24,
           "line-blur": 2.0,
         },
       };
@@ -505,7 +505,7 @@ export function addGridOverlay(
 
     if (map.getLayer(BIO_EDGE_ID)) {
       map.setFilter(BIO_EDGE_ID, filter);
-      map.setPaintProperty(BIO_EDGE_ID, "line-opacity", 0.78);
+      map.setPaintProperty(BIO_EDGE_ID, "line-opacity", 0.26);
     } else {
       const layer = {
         id: BIO_EDGE_ID,
@@ -513,9 +513,9 @@ export function addGridOverlay(
         source: sourceId,
         filter,
         paint: {
-          "line-color": "rgba(198,255,249,0.92)",
+          "line-color": "rgba(112,198,210,0.42)",
           "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.9, 9, 1.25, 12, 1.8] as ExpressionSpecification,
-          "line-opacity": 0.78,
+          "line-opacity": 0.26,
           "line-blur": 0.35,
         },
       };
@@ -540,7 +540,7 @@ export function addGridOverlay(
     map.setPaintProperty(lineId, "line-color", [
       "case",
       [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold],
-      "rgba(176,242,248,0.52)",
+      "rgba(96,186,200,0.34)",
       borderColor,
     ] as ExpressionSpecification);
   } else {
@@ -632,7 +632,7 @@ export function setGridBaseVisibility(
     map.setPaintProperty(SHIMMER_ID, "fill-opacity", visible ? 0.2 : 0);
   }
   if (map.getLayer(PEAK_SHINE_ID)) {
-    map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", visible ? 0.6 : 0);
+    map.setPaintProperty(PEAK_SHINE_ID, "line-opacity", visible ? 0.24 : 0);
   }
   if (map.getLayer(BIO_GLOW_FILL_ID)) {
     map.setPaintProperty(BIO_GLOW_FILL_ID, "fill-opacity", visible ? 0.16 : 0);
@@ -641,7 +641,7 @@ export function setGridBaseVisibility(
     map.setPaintProperty(BIO_CORE_FILL_ID, "fill-opacity", visible ? 0.08 : 0);
   }
   if (map.getLayer(BIO_EDGE_ID)) {
-    map.setPaintProperty(BIO_EDGE_ID, "line-opacity", visible ? 0.78 : 0);
+    map.setPaintProperty(BIO_EDGE_ID, "line-opacity", visible ? 0.26 : 0);
   }
   if (map.getLayer(HOVER_FILL_ID)) {
     map.setPaintProperty(HOVER_FILL_ID, "fill-opacity", visible ? 0.2 : 0);

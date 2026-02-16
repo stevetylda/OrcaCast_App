@@ -141,6 +141,12 @@ body {
 .sparkPopup__meta {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.sparkPopup__seriesMeta {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.58);
   margin-bottom: 6px;
 }
 
@@ -162,6 +168,13 @@ body {
   stroke-width: 1.8;
 }
 
+.sparkPopup__lineSightings {
+  fill: none;
+  stroke: rgba(255, 166, 43, 0.95);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 2;
+}
+
 .sparkPopup__current {
   stroke: rgba(255, 255, 255, 0.65);
   stroke-width: 1;
@@ -173,6 +186,11 @@ body {
   stroke-width: 1;
 }
 
+.sparkPopup__axisRight {
+  stroke: rgba(255, 166, 43, 0.45);
+  stroke-width: 1;
+}
+
 .sparkPopup__axisTick {
   stroke: rgba(255, 255, 255, 0.3);
   stroke-width: 1;
@@ -181,6 +199,24 @@ body {
 .sparkPopup__axisLabel {
   fill: rgba(255, 255, 255, 0.6);
   font-size: 9px;
+}
+
+.sparkPopup__axisLabelMonth {
+  fill: rgba(255, 255, 255, 0.5);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.sparkPopup__axisLabelWeek {
+  fill: rgba(255, 255, 255, 0.68);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.sparkPopup__axisLabelRight {
+  fill: rgba(255, 199, 120, 0.9);
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .sparkPopup__dot {
@@ -1546,9 +1582,8 @@ body {
   transform: none;
   bottom: calc(100% + 8px);
   min-width: 252px;
-  max-height: min(320px, calc(100vh - 140px));
-  overflow-y: auto;
-  overflow-x: hidden;
+  max-height: none;
+  overflow: visible;
   padding: 8px;
 }
 
@@ -1946,11 +1981,17 @@ body {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.toolBtn--compare.toolBtn--active {
+.toolBtn--compare.toolBtn--active,
+.toolBtn--compare[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--compare-accent) 72%, #ffffff 28%);
   box-shadow: 0 0 16px rgba(255, 92, 122, 0.45);
   background: rgba(255, 92, 122, 0.2);
   color: #fff4f6;
+}
+
+.toolBtn--compare.toolBtn--active .material-symbols-rounded,
+.toolBtn--compare[aria-pressed="true"] .material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 22;
 }
 
 .toolBtn--activePrev {
@@ -5574,6 +5615,19 @@ body {
 
 .app:not(.app--dark) .toolBtn:focus-visible {
   border-color: var(--ctrl-border-hover);
+}
+
+.app:not(.app--dark) .toolBtn--compare.toolBtn--active,
+.app:not(.app--dark) .toolBtn--compare[aria-pressed="true"] {
+  border-color: #da4f80;
+  box-shadow: 0 0 0 1px rgba(255, 140, 186, 0.52), 0 0 18px rgba(255, 92, 122, 0.42);
+  background: rgba(255, 92, 122, 0.32);
+  color: #fff4f6;
+}
+
+.app:not(.app--dark) .toolBtn--compare.toolBtn--active .material-symbols-rounded,
+.app:not(.app--dark) .toolBtn--compare[aria-pressed="true"] .material-symbols-rounded {
+  color: #fff4f6;
 }
 
 .app:not(.app--dark) .toolMenu__popover {
