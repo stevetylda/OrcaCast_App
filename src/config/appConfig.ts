@@ -12,8 +12,8 @@ export const appConfig: {
 } = {
   forecastPeriod: {
     mode: "range",
-    start: "2026-02-09",
-    end: "2026-02-15",
+    start: "2026-02-16",
+    end: "2026-02-22",
   },
   kdeBandsRunId: "latest",
   kdeBandsFolder: "forecasts/latest/weekly_blurred",
