@@ -77,7 +77,7 @@ export function SideDrawer({ open, onClose }: Props) {
   const items: NavItem[] = [
     { label: "Map", path: "/", icon: "map_search" },
     { label: "Models", path: "/models", icon: "neurology" },
-    { label: "Insights", path: "/insights", icon: "insights", comingSoon: true },
+    { label: "Explainability", path: "/explainability", icon: "query_stats" },
     // { label: "Performance", path: "/performance", icon: "analytics" },
     { label: "Data", path: "/data", icon: "data_table" },
     { label: "About", path: "/about", icon: "info" },

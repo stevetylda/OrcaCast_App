@@ -41,7 +41,7 @@ const ALL_STEPS: TourStepDef[] = [
   {
     id: "menu",
     title: "Menu",
-    description: "Open pages like About, Models, Insights, and Data.",
+    description: "Open pages like About, Models, Explainability, and Data.",
     detail: "Best when you want model context or data sources.",
     targetSelector: '[data-tour="menu"]',
     side: "right",

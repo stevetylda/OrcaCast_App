@@ -16,16 +16,18 @@ export function AttributionHover({ className }: Props) {
   );
 
   const inlineText =
-    extraCount > 0
-      ? `${attribution.inlineText} · +${extraCount} sources`
-      : attribution.inlineText;
+    extraCount > 0 ? `Sources +${extraCount}` : "Sources";
 
   useEffect(() => {
     if (!open || !wrapperRef.current) return;
     const rect = wrapperRef.current.getBoundingClientRect();
+    const portalWidth = 320;
+    const minLeft = 8;
+    const maxLeft = Math.max(minLeft, window.innerWidth - portalWidth - 8);
+    const left = Math.min(Math.max(minLeft, rect.left), maxLeft);
     setPortalStyle({
       position: "fixed",
-      left: rect.left,
+      left,
       bottom: window.innerHeight - rect.top + 10,
       zIndex: 1000,
     });
