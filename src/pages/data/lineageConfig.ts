@@ -66,7 +66,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "sightings",
     status: "included",
     description:
-      "Regional whale observation reports contributing sighting records for model inputs.",
+      "Regional whale observation reports submitted by field teams and trusted partners, used as one of the primary observed-sightings feeds into OrcaCast. Records from this source are normalized with other providers before weekly spatial aggregation.",
     cadence: "Weekly / monthly",
     coverage: "Pacific Northwest",
     access: "Partner dataset",
@@ -87,7 +87,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "sightings",
     status: "included",
     description:
-      "Community and stewardship-led whale sighting reports used in OrcaCast observations.",
+      "Community- and stewardship-led whale sightings that broaden nearshore and volunteer-observed coverage in the Salish Sea. These reports are harmonized with other observation partners to build a single weekly sightings signal.",
     cadence: "Weekly / monthly",
     coverage: "Salish Sea",
     access: "Partner dataset",
@@ -108,7 +108,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "sightings",
     status: "included",
     description:
-      "Public biodiversity observations that provide additional sightings and temporal context.",
+      "Public biodiversity observation stream used to supplement direct partner reports with additional temporal and geographic context. iNaturalist entries are deduplicated and time-aligned before they contribute to model-ready sighting counts.",
     cadence: "Rolling",
     coverage: "Global",
     access: "Public platform API",
@@ -129,7 +129,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "water",
     status: "included",
     description:
-      "Regional coastline boundary polygons used to constrain marine forecast domain geometry.",
+      "Regional coastline and shoreline boundary polygons used to define where marine forecasts are valid. These boundaries are merged with hydrographic layers to prevent terrestrial cells from being treated as forecast water domain.",
     cadence: "Periodic refresh",
     coverage: "Pacific Northwest",
     access: "Public / partner geodata",
@@ -143,7 +143,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "water",
     status: "included",
     description:
-      "Waterbody polygon layers used to define inland and coastal water extents for modeling.",
+      "Hydrographic polygon layers describing inland and coastal waterbodies that help establish the model's valid water mask. They are topologically harmonized with coastline boundaries before projection into H3 cells.",
     cadence: "Periodic refresh",
     coverage: "Pacific Northwest",
     access: "Public geodata",
@@ -157,7 +157,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "bathymetry",
     status: "planned",
     description:
-      "Global bathymetry raster (10-minute grid) used to derive planned depth-informed marine features.",
+      "Global bathymetry raster at 10-minute resolution, planned as the depth baseline for terrain-aware marine features. The raster is intended to support derived depth, slope, and shelf-context covariates for each modeled cell.",
     cadence: "Annual / periodic release",
     coverage: "Global",
     access: "Public geodata",
@@ -177,7 +177,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "sightings",
     description:
-      "Normalize source fields, align timestamps, and remove duplicate reports before modeling.",
+      "Standardizes schema across raw sightings feeds, aligns timestamps to a common temporal convention, and removes duplicate or overlapping reports. This step is critical for temporal integrity before observations are spatially indexed.",
     inputs: ["acartia", "whalemuseum", "inaturalist"],
     outputs: ["spatial_index_h3"],
   },
@@ -189,7 +189,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "sightings",
     description:
-      "Map cleaned observations into H3 cells to create a consistent spatial unit across sources.",
+      "Assigns each cleaned sighting to a consistent H3 spatial index so all sources share the same analysis unit. This allows weekly aggregation and downstream feature generation without coordinate-system drift across providers.",
     inputs: ["normalize_dedupe"],
     outputs: ["aggregation_weekly"],
   },
@@ -201,7 +201,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "water",
     description:
-      "Align polygon CRS/topology, merge multiple hydro sources, and resolve overlaps/gaps.",
+      "Normalizes coordinate reference systems and polygon topology across hydrographic inputs, then merges and repairs overlaps/gaps. The result is a stable, unified water geometry layer suitable for raster-to-hex masking.",
     inputs: ["coastline_boundaries", "hydro_polygons"],
     outputs: ["water_h3_mask"],
   },
@@ -213,7 +213,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "water",
     description:
-      "Project harmonized polygons onto H3 cells to create a marine-domain mask for forecasts.",
+      "Projects harmonized water polygons into H3 space to produce a binary/weighted mask of cells considered valid marine domain. This mask gates feature engineering and forecast output to water-relevant cells only.",
     inputs: ["water_polygon_harmonize"],
     outputs: ["feature_engineering"],
   },
@@ -226,7 +226,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "bathymetry",
     status: "planned",
     description:
-      "Planned derivation of depth-informed features from GEBCO 10M for forecast conditioning.",
+      "Planned depth-feature pipeline that converts GEBCO bathymetry into model covariates such as depth bands, gradients, and nearshore shelf context. These covariates are intended to condition forecasts by persistent habitat structure.",
     inputs: ["gebco_10m"],
     outputs: ["feature_engineering"],
   },
@@ -239,7 +239,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "ocean_state",
     status: "planned",
     description:
-      "Sea surface temperature and anomaly fields for planned ocean-state feature engineering.",
+      "Sea-surface temperature fields and anomaly products intended to capture short-term thermal departures from expected conditions. These signals are planned inputs for ocean-state features that influence weekly habitat suitability context.",
     cadence: "Daily / weekly composites",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -253,7 +253,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "ocean_state",
     status: "planned",
     description:
-      "Productivity proxy layers from chlorophyll concentration for planned habitat context signals.",
+      "Chlorophyll concentration products used as a planned proxy for marine productivity and food-web conditions. Intended to provide spatially and temporally varying ecosystem context in ocean-state feature blocks.",
     cadence: "Daily / weekly composites",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -266,7 +266,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "ocean_state",
     status: "planned",
-    description: "Sea-surface salinity fields for planned environmental-state features.",
+    description:
+      "Sea-surface salinity fields planned to represent freshwater influence, mixing regimes, and broad hydrographic state. These data are expected to be transformed into weekly salinity-derived features by cell.",
     cadence: "Daily / weekly composites",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -280,7 +281,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "ocean_state",
     status: "planned",
     description:
-      "Surface velocity magnitude/direction fields for planned transport and movement context.",
+      "Surface current magnitude and direction products planned to represent advection and transport conditions. These variables are intended to support movement-context features at weekly forecast cadence.",
     cadence: "Daily composites",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -293,7 +294,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "ocean_state",
     status: "planned",
-    description: "Upwelling index and wind stress signals for planned coastal productivity context.",
+    description:
+      "Upwelling index and wind-stress indicators planned to represent coastal nutrient forcing and mixing conditions. These signals provide broader productivity context for ocean-state conditioning.",
     cadence: "Daily / weekly",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -306,7 +308,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "ocean_state",
     status: "planned",
-    description: "Thermal anomaly episode indicators for planned ecosystem-state conditioning.",
+    description:
+      "Marine heatwave indicators and episode flags intended to represent prolonged thermal stress periods. Planned use is to modulate forecast context during anomalous ecosystem-state events.",
     cadence: "Daily / weekly",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -320,7 +323,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "ocean_state",
     status: "planned",
     description:
-      "Near-surface weather drivers (e.g., wind, pressure) for planned environmental covariates.",
+      "Near-surface weather drivers (including wind and pressure aggregates) planned as environmental forcing covariates. These features are intended to capture short-term atmospheric conditions relevant to observed activity patterns.",
     cadence: "Hourly / daily aggregates",
     coverage: "Regional ocean domains",
     access: "Planned ingestion",
@@ -333,7 +336,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "ocean_state",
     status: "planned",
-    description: "Tidal phase/range signals for planned nearshore movement and accessibility context.",
+    description:
+      "Tidal phase, range, and related summaries planned to characterize nearshore accessibility and movement windows. These temporal signals will be synchronized to forecast bins for consistent use in modeling.",
     cadence: "Hourly / daily aggregates",
     coverage: "Regional coastal domains",
     access: "Planned ingestion",
@@ -347,7 +351,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "ocean_state",
     status: "planned",
     description:
-      "Planned harmonization and feature derivation from ocean-state variables for forecast conditioning.",
+      "Planned harmonization pipeline for ocean-state inputs, including temporal binning, spatial alignment, and variable transforms. Output is a coherent ocean covariate set designed for direct use in feature engineering.",
     inputs: [
       "sst_anomalies",
       "chlorophyll_proxy",
@@ -368,7 +372,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "prey_availability",
     status: "planned",
-    description: "Seasonal priors by region for planned prey-availability timing context.",
+    description:
+      "Seasonal regional priors for Chinook timing planned to represent expected prey availability windows. These priors are intended to encode known run-timing structure where direct prey observations are sparse.",
     cadence: "Seasonal / annual",
     coverage: "Regional watersheds/coasts",
     access: "Planned ingestion",
@@ -381,7 +386,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "prey_availability",
     status: "planned",
-    description: "Where available, fishing effort/catch signals for planned prey indicator context.",
+    description:
+      "Fishing catch-card and creel-derived indicators, where available, planned as indirect prey-abundance/availability signals. These data can provide operational temporal cues tied to fish presence and effort.",
     cadence: "Weekly / seasonal",
     coverage: "Region dependent",
     access: "Planned ingestion",
@@ -395,7 +401,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "prey_availability",
     status: "planned",
     description:
-      "Discharge-derived proxies for run timing and plume dynamics in planned prey availability features.",
+      "River discharge-based proxies planned to represent watershed inflow, plume behavior, and run-timing cues related to prey dynamics. These time-varying indicators are intended to complement seasonal prey priors.",
     cadence: "Daily / weekly",
     coverage: "Regional watersheds/coasts",
     access: "Planned ingestion",
@@ -408,7 +414,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "prey_availability",
     status: "planned",
-    description: "Calendar-based human/prey indicator planned for seasonal context features.",
+    description:
+      "Fishery opening/closure calendar features planned to encode management-driven seasonal structure and human-prey interaction timing. Intended as interpretable categorical context in prey-availability modeling.",
     cadence: "Seasonal / annual",
     coverage: "Region dependent",
     access: "Planned ingestion",
@@ -422,7 +429,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "prey_availability",
     status: "planned",
     description:
-      "Planned integration of prey proxies into forecast-ready seasonal and regional feature signals.",
+      "Planned integration and transformation stage for prey-related proxies, combining seasonal, hydrologic, and operational cues into standardized features. Output is a regionalized prey-context block used by shared feature engineering.",
     inputs: [
       "chinook_run_timing_proxies",
       "catch_cards_creel_signals",
@@ -439,7 +446,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "provider",
     pipeline: "disturbance",
     status: "planned",
-    description: "Automatic Identification System vessel traffic signal for planned disturbance features.",
+    description:
+      "Automatic Identification System vessel traffic feed planned to quantify marine traffic intensity and movement corridors. Intended use is disturbance-context feature generation at weekly spatial resolution.",
     cadence: "Near real-time / daily aggregates",
     coverage: "Region dependent",
     access: "Planned ingestion",
@@ -453,7 +461,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "disturbance",
     status: "planned",
     description:
-      "Population density proxy for planned human-effort signal derivation across forecast regions.",
+      "Population density proxy planned to represent background human presence and likely observation effort gradients across the forecast domain. Used as one component in composite human-effort signals.",
     cadence: "Annual / periodic refresh",
     coverage: "Regional / global",
     access: "Planned ingestion",
@@ -467,7 +475,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "disturbance",
     status: "planned",
     description:
-      "POI density and access hubs as planned proxies for human observation and activity effort.",
+      "Points-of-interest density and access-hub indicators planned as proxies for where human visitation and observation effort are likely concentrated. These spatial features complement AIS and population-based effort signals.",
     cadence: "Periodic refresh",
     coverage: "Regional / global",
     access: "Planned ingestion",
@@ -481,7 +489,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "disturbance",
     status: "planned",
     description:
-      "Search-intent signals planned as a supplementary proxy for temporal human effort interest.",
+      "Google Trends search-intent indicators planned as supplemental temporal proxies for public interest and potential effort fluctuations. Intended to capture broad demand-side seasonality not visible in geospatial feeds.",
     cadence: "Weekly",
     coverage: "Region dependent",
     access: "Planned ingestion",
@@ -495,7 +503,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "disturbance",
     status: "planned",
     description:
-      "Planned fusion of population, POI, trends, and AIS signals into a composite human effort proxy.",
+      "Planned fusion stage that combines population, POI, trend, and vessel-traffic inputs into a composite effort index. Output is designed to provide a stable human-activity prior for downstream feature engineering.",
     inputs: ["population_proxy", "points_of_interest", "google_trends", "ais"],
     outputs: ["feature_engineering"],
   },
@@ -508,7 +516,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     pipeline: "disturbance",
     status: "planned",
     description:
-      "Planned derivation of human-activity indicators from AIS and related traffic intensity context.",
+      "Planned derivation of explicit human-activity covariates from AIS intensity, routes, and related traffic context. These features are intended to capture disturbance and overlap dynamics in modeled regions.",
     inputs: ["ais"],
     outputs: ["feature_engineering"],
   },
@@ -520,7 +528,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "shared",
     description:
-      "Combines pipeline features into model-ready tensors and temporal/spatial feature blocks.",
+      "Combines outputs from all active pipelines into aligned temporal and spatial feature matrices consumed by model inference. This stage enforces consistent feature schema, binning, and masking across included and planned inputs.",
     inputs: [
       "aggregation_weekly",
       "water_h3_mask",
@@ -539,7 +547,8 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     category: "processing",
     kind: "processing",
     pipeline: "shared",
-    description: "Runs trained OrcaCast model inference to generate raw probabilistic outputs.",
+    description:
+      "Executes the trained OrcaCast inference workflow on engineered features to produce raw probabilistic scores for each modeled cell and period. This is the core prediction step prior to any post-processing calibration.",
     inputs: ["feature_engineering"],
     outputs: ["calibration"],
   },
@@ -551,7 +560,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "shared",
     description:
-      "Applies post-processing calibration and scaling to produce stable, comparable forecast scores.",
+      "Applies post-inference calibration, scaling, and consistency adjustments so scores remain comparable across forecast cycles. This step prepares raw model outputs for map-facing forecast consumption.",
     inputs: ["model_inference"],
     outputs: ["forecast_layers"],
   },
@@ -563,7 +572,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "processing",
     pipeline: "sightings",
     description:
-      "Aggregate indexed sightings by week to generate observed signals and forecasting features.",
+      "Aggregates H3-indexed sightings into weekly bins to produce both observed-history map layers and temporal model features. This creates the primary historical signal used in current production workflows.",
     inputs: ["spatial_index_h3"],
     outputs: ["observed_layers", "feature_engineering"],
   },
@@ -575,7 +584,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "output",
     pipeline: "sightings",
     description:
-      "Observed sighting layers rendered in the map interface as historical/near-recent context.",
+      "Observed weekly sighting layers rendered in-app as historical and recent context alongside forecasts. These layers reflect aggregated report activity rather than confirmed absolute presence.",
     cadence: "Weekly refresh",
     coverage: "PNW focused",
     access: "In-app",
@@ -588,7 +597,7 @@ export const modelLineageNodes: DataLineageNodeMeta[] = [
     kind: "output",
     pipeline: "shared",
     description:
-      "Forecast probability layers generated from weekly aggregation and model pipelines.",
+      "Forecast probability layers generated from engineered features, model inference, and calibration stages. These are the map-facing predictive outputs refreshed on the production weekly cadence.",
     cadence: "Weekly refresh",
     coverage: "PNW focused",
     access: "In-app",
