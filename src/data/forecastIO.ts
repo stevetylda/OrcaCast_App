@@ -11,6 +11,12 @@ type ForecastPayload = {
 const gridCache = new Map<H3Resolution, FeatureCollection>();
 const forecastCache = new Map<string, ForecastPayload>();
 
+const MAX_GEOJSON_BYTES = 8 * 1024 * 1024;
+
+function exceedsGeojsonBudget(url: string, bytes: number): boolean {
+  return url.toLowerCase().endsWith(".geojson") && bytes > MAX_GEOJSON_BYTES;
+}
+
 function buildUrlCandidates(url: string): string[] {
   const candidates = new Set<string>();
   const base = import.meta.env.BASE_URL || "/";
@@ -45,6 +51,10 @@ async function fetchJson<T>(url: string): Promise<T> {
         continue;
       }
       const text = await res.text();
+      const bytes = new TextEncoder().encode(text).length;
+      if (exceedsGeojsonBudget(candidate, bytes)) {
+        console.warn(`[DataBudget] GeoJSON payload exceeds ${(MAX_GEOJSON_BYTES / (1024 * 1024)).toFixed(1)}MB budget: ${candidate} (${(bytes / (1024 * 1024)).toFixed(2)}MB). Consider vector tiles.`);
+      }
       const trimmed = text.trim();
       if (trimmed.startsWith("<")) {
         lastError = new Error(`Received HTML instead of JSON from ${candidate}`);
