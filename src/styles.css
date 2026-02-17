@@ -40,6 +40,10 @@ body {
 
 .mapPageRoot {
   font-family: "Plus Jakarta Sans", "Sora", "Segoe UI", Tahoma, sans-serif;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .mapPageRoot h1,
@@ -54,9 +58,7 @@ body {
 .mapPageRoot label,
 .mapPageRoot input,
 .mapPageRoot select,
-.mapPageRoot button,
-.mapPageRoot a,
-.mapPageRoot div {
+.mapPageRoot a {
   font-family: "Plus Jakarta Sans", "Sora", "Segoe UI", Tahoma, sans-serif;
 }
 

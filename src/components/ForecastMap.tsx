@@ -368,8 +368,8 @@ function applyBasemapVisualTuning(map: MapLibreMap, isDarkBasemap: boolean) {
   });
 }
 
-const DEFAULT_CENTER: [number, number] = [-122.6, 47.6];
-const DEFAULT_ZOOM = 7;
+const DEFAULT_CENTER: [number, number] = [-123.25, 48.55];
+const DEFAULT_ZOOM = 6.5;
 
 const LAST_WEEK_SOURCE_ID = "last-week-sightings";
 const LAST_WEEK_LAYER_ID = "last-week-sightings-circle";
