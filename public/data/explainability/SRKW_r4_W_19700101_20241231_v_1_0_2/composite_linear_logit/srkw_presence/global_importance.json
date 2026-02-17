@@ -1,0 +1,74 @@
+[
+  {
+    "feature_name": "spatiotemporal_climatology_prob__log",
+    "mean_abs_shap": 0.241815,
+    "mean_shap": -0.102,
+    "p95_abs_shap": 0.533107
+  },
+  {
+    "feature_name": "spatial_climatology__all_time_prob",
+    "mean_abs_shap": 0.186535,
+    "mean_shap": 0.166533,
+    "p95_abs_shap": 0.3903
+  },
+  {
+    "feature_name": "TOTAL_SHORELINE_KM",
+    "mean_abs_shap": 0.180511,
+    "mean_shap": 0.1532,
+    "p95_abs_shap": 0.408791
+  },
+  {
+    "feature_name": "lag_vector_features__all_time_prob",
+    "mean_abs_shap": 0.178627,
+    "mean_shap": 0.155709,
+    "p95_abs_shap": 0.402847
+  },
+  {
+    "feature_name": "PCT_WATER",
+    "mean_abs_shap": 0.171678,
+    "mean_shap": 0.149415,
+    "p95_abs_shap": 0.376289
+  },
+  {
+    "feature_name": "clim_eras__all_time_prob",
+    "mean_abs_shap": 0.168628,
+    "mean_shap": 0.145177,
+    "p95_abs_shap": 0.368411
+  },
+  {
+    "feature_name": "WATER_INDEX",
+    "mean_abs_shap": 0.164067,
+    "mean_shap": 0.12891,
+    "p95_abs_shap": 0.390559
+  },
+  {
+    "feature_name": "DIST_TO_SHORE_KM_LOG1P",
+    "mean_abs_shap": 0.159738,
+    "mean_shap": 0.063554,
+    "p95_abs_shap": 0.374417
+  },
+  {
+    "feature_name": "rolling_mean_w8_prob",
+    "mean_abs_shap": 0.157627,
+    "mean_shap": 0.110638,
+    "p95_abs_shap": 0.375734
+  },
+  {
+    "feature_name": "streak_features__all_time_prob",
+    "mean_abs_shap": 0.143701,
+    "mean_shap": 0.114999,
+    "p95_abs_shap": 0.336002
+  },
+  {
+    "feature_name": "neighbor_climatology_prob__sqrt",
+    "mean_abs_shap": 0.134916,
+    "mean_shap": 0.091156,
+    "p95_abs_shap": 0.32018
+  },
+  {
+    "feature_name": "prior_period_lag8_prob",
+    "mean_abs_shap": 0.132657,
+    "mean_shap": 0.00761,
+    "p95_abs_shap": 0.322128
+  }
+]

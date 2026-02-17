@@ -7,7 +7,7 @@ It combines:
 - Last-week sightings overlays
 - Optional blurred KDE contour overlays
 - Map tools (hotspots, POIs, timeseries, guided tour)
-- Supporting pages (`About`, `Data`, `Models`, `Insights`, `Settings`)
+- Supporting pages (`About`, `Data`, `Models`, `Explainability`, `Settings`)
 
 ## Tech Stack
 
@@ -75,7 +75,7 @@ Configured in `src/App.tsx`:
 - `/` map
 - `/about`
 - `/models`
-- `/insights`
+- `/explainability`
 - `/data`
 - `/settings`
 
@@ -164,6 +164,10 @@ Two helper modules exist for GeoJSON/KDE preprocessing:
 
 - `src/io/load_kde_geojson.py`
 - `src/visualization/geo_prune.py`
+
+Explainability artifact builder CLI:
+
+- `python3 -m src.cli explainability build --run-id ... --model-id ... --target ... --sample-n 50000 --top-k-interactions 50`
 
 These are not required to run the frontend app, but can be used in preprocessing workflows.
 

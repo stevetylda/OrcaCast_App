@@ -28,7 +28,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "sightings",
         status: "included",
-        description: "Aggregated sightings inputs used by the model.",
+        description:
+          "Aggregated sightings inputs compiled from multiple reporting partners and public observations. These records are standardized and binned to provide the core historical signal used by OrcaCast.",
         cadence: "Weekly / monthly",
         coverage: "Pacific Northwest",
         access: "Mixed sources",
@@ -41,7 +42,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "water",
         status: "included",
-        description: "Water-domain and coastline geometry constraints.",
+        description:
+          "Water-domain and coastline geometry constraints used to define where forecasts are valid. This input prevents land cells from entering marine feature generation and output layers.",
         cadence: "Periodic refresh",
         coverage: "Pacific Northwest",
         access: "Geospatial layers",
@@ -54,7 +56,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "bathymetry",
         status: "planned",
-        description: "Planned depth/bathymetry context inputs.",
+        description:
+          "Planned depth and bathymetry context inputs that encode persistent marine terrain structure. Intended features include depth-derived gradients and shelf context at model cell resolution.",
         cadence: "Periodic release",
         coverage: "Regional marine domains",
         access: "Planned ingestion",
@@ -67,7 +70,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "ocean_state",
         status: "planned",
-        description: "Planned ocean condition covariates.",
+        description:
+          "Planned ocean condition covariates such as temperature, productivity, circulation, and weather context. These signals are intended to capture changing environmental state relevant to weekly forecasts.",
         cadence: "Daily / weekly",
         coverage: "Regional ocean domains",
         access: "Planned ingestion",
@@ -80,7 +84,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "prey_availability",
         status: "planned",
-        description: "Planned prey proxy and fishery context signals.",
+        description:
+          "Planned prey proxy and fishery context signals combining seasonal, hydrologic, and operational indicators. These inputs provide indirect prey-availability structure where direct prey observations are limited.",
         cadence: "Seasonal / operational",
         coverage: "Regional",
         access: "Planned ingestion",
@@ -93,7 +98,8 @@ export function DataPage() {
         kind: "provider",
         pipeline: "disturbance",
         status: "planned",
-        description: "Planned human activity and effort-proxy signals.",
+        description:
+          "Planned human activity and effort-proxy signals derived from traffic, access, and population/intention indicators. These features are designed to represent disturbance and observation-effort context.",
         cadence: "Daily / weekly",
         coverage: "Regional",
         access: "Planned ingestion",
@@ -106,7 +112,8 @@ export function DataPage() {
         kind: "processing",
         pipeline: "shared",
         status: "included",
-        description: "Normalize, align, and merge source pipelines into model-ready features.",
+        description:
+          "Normalization and harmonization stage that aligns temporal bins, spatial indexing, and schema across all source pipelines. Produces a coherent processed dataset ready for shared feature engineering.",
         inputs: [
           "hl_sightings",
           "hl_water_extent",
@@ -125,7 +132,8 @@ export function DataPage() {
         kind: "processing",
         pipeline: "shared",
         status: "included",
-        description: "Create model features from processed, aligned inputs.",
+        description:
+          "Builds model-ready feature blocks from processed inputs while enforcing consistent masking and temporal alignment. This stage outputs the final covariate set passed directly to inference.",
         inputs: ["data_processing"],
         outputs: ["model_inference"],
       },
@@ -137,7 +145,8 @@ export function DataPage() {
         kind: "processing",
         pipeline: "shared",
         status: "included",
-        description: "Generate model predictions from engineered features.",
+        description:
+          "Runs the trained OrcaCast model on engineered features to generate probabilistic weekly predictions per spatial cell. These outputs feed downstream calibration and map-layer publishing.",
         inputs: ["feature_engineering"],
       },
     ],
