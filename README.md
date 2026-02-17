@@ -4,6 +4,12 @@ OrcaCast is a static React + TypeScript geospatial application for exploring **w
 
 > **Important interpretation note**  
 > OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance.
+It combines:
+- H3 grid-based forecast layers (`H4`, `H5`, `H6`)
+- Last-week sightings overlays
+- Optional blurred KDE contour overlays
+- Map tools (hotspots, POIs, timeseries, guided tour)
+- Supporting pages (`About`, `Data`, `Models`, `Explainability`, `Settings`)
 
 ---
 
@@ -252,6 +258,12 @@ Because OrcaCast supports scientific/analytical interpretation, guard against si
 - Validate H3 level (`H4/H5/H6`) remains consistent across joins/overlays
 - Confirm no CRS or coordinate-order drift when ingesting GeoJSON
 - Re-check any pruning/smoothing process that could alter hotspot geometry
+- `/` map
+- `/about`
+- `/models`
+- `/explainability`
+- `/data`
+- `/settings`
 
 ### Evaluation integrity
 
@@ -350,6 +362,13 @@ For scientific validation workflows, also maintain a lightweight canary run that
 ## 11. Deployment
 
 ### Cloudflare Pages (recommended static deploy)
+Explainability artifact builder CLI:
+
+- `python3 -m src.cli explainability build --run-id ... --model-id ... --target ... --sample-n 50000 --top-k-interactions 50`
+
+These are not required to run the frontend app, but can be used in preprocessing workflows.
+
+## Deployment (Cloudflare Pages)
 
 - Build command: `npm run build`
 - Output directory: `dist`

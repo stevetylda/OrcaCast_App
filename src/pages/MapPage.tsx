@@ -4,7 +4,7 @@ import { AppFooter } from "../components/AppFooter";
 import { ToolDrawer } from "../components/ToolDrawer";
 import { WelcomeModal } from "../components/WelcomeModal";
 
-import { ForecastMap } from "../components/ForecastMap";
+import { ForecastMap, type ForecastMapHandle } from "../components/ForecastMap";
 import { SwipeComparePills } from "../components/Compare/SwipeComparePills";
 import { DualMapCompare } from "../components/Compare/DualMapCompare";
 import { SingleSwipeMap } from "../components/Compare/SingleSwipeMap";
@@ -160,6 +160,8 @@ export function MapPage() {
   const lastMissingNoticePeriodKeyRef = useRef<string | null>(null);
   const didInitializeForecastIndexRef = useRef(false);
   const deltaCacheRef = useRef(new LruCache<string, DeltaMapData>(20));
+  const primaryMapRef = useRef<ForecastMapHandle | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
   const [expectedSeries, setExpectedSeries] = useState<
     Array<{
       year: number;
@@ -176,6 +178,73 @@ export function MapPage() {
 
   const modelVersion = useMemo(() => "vPhase2", []);
   const showLastWeek = lastWeekMode !== "none";
+
+  const downloadSnapshot = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const toFileSafeToken = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "model";
+
+  const shareSnapshot = async () => {
+    if (shareBusy) return;
+    if (compareEnabled) return;
+    setShareBusy(true);
+    try {
+      const blob = await primaryMapRef.current?.captureSnapshot();
+      if (!blob) throw new Error("Snapshot not available");
+
+      const fileName = `orcacast_${currentWeekYear}-W${String(currentWeek).padStart(2, "0")}_${resolution}_${toFileSafeToken(modelId)}.png`;
+      const snapshotFile = new File([blob], fileName, { type: "image/png" });
+      const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+      const canNativeShareFiles =
+        typeof nav.share === "function" &&
+        (typeof nav.canShare !== "function" || nav.canShare({ files: [snapshotFile] }));
+
+      if (canNativeShareFiles) {
+        await nav.share({
+          title: "OrcaCast snapshot",
+          text: `Forecast week ${currentWeekYear}-W${String(currentWeek).padStart(2, "0")}`,
+          files: [snapshotFile],
+        });
+      } else {
+        downloadSnapshot(blob, fileName);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      // eslint-disable-next-line no-console
+      console.error("[Share] Snapshot failed", error);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const downloadSnapshotAction = async () => {
+    if (shareBusy) return;
+    if (compareEnabled) return;
+    setShareBusy(true);
+    try {
+      const blob = await primaryMapRef.current?.captureSnapshot();
+      if (!blob) throw new Error("Snapshot not available");
+      const fileName = `orcacast_${currentWeekYear}-W${String(currentWeek).padStart(2, "0")}_${resolution}_${toFileSafeToken(modelId)}.png`;
+      downloadSnapshot(blob, fileName);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("[Download] Snapshot failed", error);
+    } finally {
+      setShareBusy(false);
+    }
+  };
   const configForecastWeek = useMemo(
     () => forecastPeriodToIsoWeek(appConfig.forecastPeriod),
     []
@@ -433,16 +502,11 @@ export function MapPage() {
 
         if (forecastPath) {
           try {
-            await loadForecast(resolution, {
-              kind: "explicit",
-              explicitPath: forecastPath,
-              modelId,
-            });
-            hasForecastForSelectedPeriod = true;
             forecastIds = await loadForecastModelIds(resolution, {
               kind: "explicit",
               explicitPath: forecastPath,
             });
+            hasForecastForSelectedPeriod = true;
           } catch {
             hasForecastForSelectedPeriod = false;
           }
@@ -849,7 +913,7 @@ export function MapPage() {
   }, [compareRenderMode, compareEnabled, compareModelA, compareModelB, comparePeriodA, comparePeriodB]);
 
   return (
-    <>
+    <div className="mapPageRoot">
       <AppHeader
         title="OrcaCast"
         subtitle="Orca Sightings Forecast"
@@ -883,6 +947,7 @@ export function MapPage() {
         {/* <Suspense fallback={<div className="mapStage mapLoading">Loading map…</div>}> */}
         {!compareEnabled ? (
           <ForecastMap
+            ref={primaryMapRef}
             key={`map-main-${selectedPaletteId}-${mapResetNonce}`}
             darkMode={darkMode}
             paletteId={selectedPaletteId}
@@ -1172,6 +1237,11 @@ export function MapPage() {
             modelOptions={modelOptions}
             onModelChange={setModelId}
             compareEnabled={compareEnabled}
+            onShareSnapshot={shareSnapshot}
+            onDownloadSnapshot={downloadSnapshotAction}
+            shareBusy={shareBusy}
+            shareDisabled={compareEnabled}
+            shareDisabledReason="Snapshots are available in single-map mode."
           />
         </div>
       </main>
@@ -1211,6 +1281,6 @@ export function MapPage() {
       </Suspense>
 
 
-    </>
+    </div>
   );
 }

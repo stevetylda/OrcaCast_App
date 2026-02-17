@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { GeoJsonLayer } from "@deck.gl/layers";
@@ -272,6 +272,10 @@ type Props = {
   onMoveEndViewState?: (viewState: CompareMapViewState) => void;
 };
 
+export type ForecastMapHandle = {
+  captureSnapshot: () => Promise<Blob | null>;
+};
+
 const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
 const DARK_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
 const KDE_ENABLED = false;
@@ -373,7 +377,7 @@ const LAST_WEEK_HALO_ID = "last-week-sightings-halo";
 const LAST_WEEK_RING_ID = "last-week-sightings-ring";
 const LAST_WEEK_WHITE_ID = "last-week-sightings-white";
 
-export function ForecastMap({
+export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function ForecastMap({
   darkMode,
   paletteId,
   resolution,
@@ -407,7 +411,7 @@ export function ForecastMap({
   syncViewState,
   onMoveViewState,
   onMoveEndViewState,
-}: Props) {
+}: Props, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
@@ -488,6 +492,42 @@ export function ForecastMap({
     // eslint-disable-next-line no-console
     console.info("[MapDebug]", label, { rect, hasCanvas, styleLoaded });
   };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      captureSnapshot: async () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        const sourceCanvas = map.getCanvas();
+
+        await new Promise<void>((resolve) => {
+          map.triggerRepaint();
+          map.once("render", () => {
+            window.requestAnimationFrame(() => resolve());
+          });
+        });
+
+        const outputCanvas = document.createElement("canvas");
+        outputCanvas.width = sourceCanvas.width;
+        outputCanvas.height = sourceCanvas.height;
+
+        const ctx = outputCanvas.getContext("2d");
+        if (!ctx) return null;
+
+        try {
+          ctx.drawImage(sourceCanvas, 0, 0);
+        } catch {
+          return null;
+        }
+
+        return new Promise<Blob | null>((resolve) => {
+          outputCanvas.toBlob((blob) => resolve(blob), "image/png");
+        });
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     styleUrlRef.current = styleUrl;
@@ -896,7 +936,7 @@ export function ForecastMap({
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       attributionControl: false,
-      preserveDrawingBuffer: false,
+      preserveDrawingBuffer: true,
       cooperativeGestures: false,
     };
 
@@ -1977,7 +2017,7 @@ export function ForecastMap({
       )}
     </div>
   );
-}
+});
 
 function getKdeBandColor(
   feature: { properties?: Record<string, unknown> },

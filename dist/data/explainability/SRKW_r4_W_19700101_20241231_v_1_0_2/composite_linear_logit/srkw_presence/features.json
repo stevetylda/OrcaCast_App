@@ -1,0 +1,86 @@
+[
+  {
+    "feature_name": "spatiotemporal_climatology_prob__log",
+    "feature_group": "Environmental",
+    "display_name": "Spatiotemporal climatology",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "prior_period_lag8_prob",
+    "feature_group": "Temporal",
+    "display_name": "Prior period lag-8",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "DIST_TO_SHORE_KM_LOG1P",
+    "feature_group": "Spatial",
+    "display_name": "Distance to shore (log1p)",
+    "unit": "log(km)",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "neighbor_climatology_prob__sqrt",
+    "feature_group": "Spatial",
+    "display_name": "Neighbor climatology sqrt",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "rolling_mean_w8_prob",
+    "feature_group": "Temporal",
+    "display_name": "Rolling mean (8w)",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "streak_features__all_time_prob",
+    "feature_group": "Temporal",
+    "display_name": "Streak features",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "WATER_INDEX",
+    "feature_group": "Environmental",
+    "display_name": "Water index",
+    "unit": null,
+    "is_categorical": false
+  },
+  {
+    "feature_name": "PCT_WATER",
+    "feature_group": "Environmental",
+    "display_name": "Percent water",
+    "unit": "%",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "TOTAL_SHORELINE_KM",
+    "feature_group": "Spatial",
+    "display_name": "Total shoreline km",
+    "unit": "km",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "clim_eras__all_time_prob",
+    "feature_group": "Environmental",
+    "display_name": "Climate eras baseline",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "lag_vector_features__all_time_prob",
+    "feature_group": "Temporal",
+    "display_name": "Lag vector all-time",
+    "unit": "prob",
+    "is_categorical": false
+  },
+  {
+    "feature_name": "spatial_climatology__all_time_prob",
+    "feature_group": "Spatial",
+    "display_name": "Spatial climatology all-time",
+    "unit": "prob",
+    "is_categorical": false
+  }
+]
