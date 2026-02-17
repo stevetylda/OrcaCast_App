@@ -1,0 +1,13 @@
+{
+  "run_id": "SRKW_r4_W_19700101_20241231_v_1_0_2",
+  "model_id": "composite_linear_logit",
+  "target": "srkw_presence",
+  "resolution": "H4",
+  "created_at": "2026-02-17T00:00:00Z",
+  "time_min": "2024-01-01",
+  "time_max": "2025-12-31",
+  "n_total": 460,
+  "units_default": "logit",
+  "supports_interactions": true,
+  "feature_schema_version": "1.0.0"
+}

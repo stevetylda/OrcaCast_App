@@ -1,0 +1,16 @@
+{
+  "default": {
+    "run_id": "SRKW_r4_W_19700101_20241231_v_1_0_2",
+    "model_id": "composite_linear_logit",
+    "target": "srkw_presence",
+    "label": "SRKW H4 composite linear"
+  },
+  "contexts": [
+    {
+      "run_id": "SRKW_r4_W_19700101_20241231_v_1_0_2",
+      "model_id": "composite_linear_logit",
+      "target": "srkw_presence",
+      "label": "SRKW H4 composite linear"
+    }
+  ]
+}

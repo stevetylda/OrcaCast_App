@@ -37,6 +37,18 @@ export function getActualsPathForPeriod(resolution: H3Resolution, periodFileId: 
   );
 }
 
+export function getShapPathForPeriod(
+  resolution: H3Resolution,
+  periodFileId: string,
+  modelId = "composite_linear_logit",
+  kind: "local" | "global" = "local"
+): string {
+  const suffix = kind === "global" ? "_shap_global" : "_shap";
+  return withForecastCacheBust(
+    withBase(`data/forecasts/latest/shap/${periodFileId}_${resolution}_${modelId}${suffix}.json`)
+  );
+}
+
 function h3ResolutionToNumber(resolution: H3Resolution): number {
   return Number(resolution.replace("H", ""));
 }
