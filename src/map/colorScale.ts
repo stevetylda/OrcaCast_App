@@ -64,14 +64,15 @@ function normalizePaletteColors(palette: string[], bins: number): string[] {
 
 export function buildAutoColorExprFromValues(
   probsByH3: Record<string, number>,
-  palette: string[]
+  palette: string[],
+  valueExpr: unknown[] = ["get", "prob"]
 ): ColorScaleResult {
   const values = Object.values(probsByH3)
     .map((v) => Number(v))
     .filter((v) => Number.isFinite(v) && v > 0);
   if (values.length === 0) {
     return {
-      fillColorExpr: ["case", ["<=", ["coalesce", ["get", "prob"], 0], 0], ZERO_COLOR, ZERO_COLOR],
+      fillColorExpr: ["case", ["<=", ["coalesce", valueExpr, 0], 0], ZERO_COLOR, ZERO_COLOR],
       scale: null,
     };
   }
@@ -91,7 +92,7 @@ export function buildAutoColorExprFromValues(
 
   if (thresholds.length === 0) {
     return {
-      fillColorExpr: ["case", ["<=", ["coalesce", ["get", "prob"], 0], 0], ZERO_COLOR, colors[0] ?? ZERO_COLOR],
+      fillColorExpr: ["case", ["<=", ["coalesce", valueExpr, 0], 0], ZERO_COLOR, colors[0] ?? ZERO_COLOR],
       scale: {
         thresholds: [],
         binColorsRgba: colors.length ? colors : [ZERO_COLOR],
@@ -102,12 +103,12 @@ export function buildAutoColorExprFromValues(
     };
   }
 
-  const stepExpr: unknown[] = ["step", ["get", "prob"], colors[0]];
+  const stepExpr: unknown[] = ["step", valueExpr, colors[0]];
   thresholds.forEach((t, i) => {
     stepExpr.push(t, colors[Math.min(i + 1, colors.length - 1)]);
   });
 
-  const expr: unknown[] = ["case", ["<=", ["coalesce", ["get", "prob"], 0], 0], ZERO_COLOR, stepExpr];
+  const expr: unknown[] = ["case", ["<=", ["coalesce", valueExpr, 0], 0], ZERO_COLOR, stepExpr];
 
   return {
     fillColorExpr: expr,
@@ -121,30 +122,35 @@ export function buildAutoColorExprFromValues(
   };
 }
 
-export function buildFillExprFromScale(scale: HeatScale, zeroColor = ZERO_COLOR): unknown[] {
+export function buildFillExprFromScale(
+  scale: HeatScale,
+  zeroColor = ZERO_COLOR,
+  valueExpr: unknown[] = ["get", "prob"]
+): unknown[] {
   if (scale.thresholds.length === 0) {
     return [
       "case",
-      ["<=", ["coalesce", ["get", "prob"], 0], 0],
+      ["<=", ["coalesce", valueExpr, 0], 0],
       zeroColor,
       scale.binColorsRgba[0] ?? zeroColor,
     ];
   }
-  const stepExpr: unknown[] = ["step", ["get", "prob"], scale.binColorsRgba[0]];
+  const stepExpr: unknown[] = ["step", valueExpr, scale.binColorsRgba[0]];
   scale.thresholds.forEach((t, i) => {
     stepExpr.push(t, scale.binColorsRgba[Math.min(i + 1, scale.binColorsRgba.length - 1)]);
   });
-  return ["case", ["<=", ["coalesce", ["get", "prob"], 0], 0], zeroColor, stepExpr];
+  return ["case", ["<=", ["coalesce", valueExpr, 0], 0], zeroColor, stepExpr];
 }
 
 export function buildHotspotOnlyExpr(
   threshold: number,
   hotspotFill = "rgba(255,45,170,0.78)",
-  zeroColor = "rgba(0,0,0,0)"
+  zeroColor = "rgba(0,0,0,0)",
+  valueExpr: unknown[] = ["get", "prob"]
 ): unknown[] {
   return [
     "case",
-    [">=", ["coalesce", ["get", "prob"], 0], threshold],
+    [">=", ["coalesce", valueExpr, 0], threshold],
     hotspotFill,
     zeroColor,
   ];
