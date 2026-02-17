@@ -361,7 +361,7 @@ export function MapToolbar({
                     ))}
                   </span>
                   <span className="toolDrawer__paletteLabel">{palette.name}</span>
-                  <span className="toolDrawer__paletteCheck" aria-hidden="true">
+                  <span className="toolDrawer__paletteCheck material-symbols-rounded" aria-hidden="true">
                     {selected ? "check" : ""}
                   </span>
                 </button>
