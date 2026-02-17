@@ -10,6 +10,7 @@ type ForecastPayload = {
 
 const gridCache = new Map<H3Resolution, FeatureCollection>();
 const forecastCache = new Map<string, ForecastPayload>();
+const forecastRawCache = new Map<string, ForecastPayloadRaw>();
 
 function buildUrlCandidates(url: string): string[] {
   const candidates = new Set<string>();
@@ -77,6 +78,14 @@ type ForecastPayloadRaw = {
   valuesByModel?: Record<string, Record<string, number>>;
 };
 
+async function loadForecastRaw(url: string): Promise<ForecastPayloadRaw> {
+  const cached = forecastRawCache.get(url);
+  if (cached) return cached;
+  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  forecastRawCache.set(url, raw);
+  return raw;
+}
+
 type ModelValuesEntry = {
   id?: string;
   values: Record<string, number>;
@@ -141,7 +150,7 @@ export async function loadForecast(
   const cacheKey = `${resolution}|${url}|${opts.modelId ?? ""}`;
   const cached = forecastCache.get(cacheKey);
   if (cached) return cached;
-  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  const raw = await loadForecastRaw(url);
   const values =
     opts.modelId === "consensus"
       ? buildConsensusMean(collectModelEntries(raw))
@@ -160,7 +169,7 @@ export async function loadForecastModelIds(
   opts: { kind?: "latest" | "explicit"; explicitPath?: string } = {}
 ): Promise<string[]> {
   const url = getForecastPath(resolution, opts);
-  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  const raw = await loadForecastRaw(url);
   let ids: string[] = [];
   let modelCount = 0;
   if (raw.models && raw.models.length > 0) {

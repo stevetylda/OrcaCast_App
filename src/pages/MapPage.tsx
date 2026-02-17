@@ -433,16 +433,11 @@ export function MapPage() {
 
         if (forecastPath) {
           try {
-            await loadForecast(resolution, {
-              kind: "explicit",
-              explicitPath: forecastPath,
-              modelId,
-            });
-            hasForecastForSelectedPeriod = true;
             forecastIds = await loadForecastModelIds(resolution, {
               kind: "explicit",
               explicitPath: forecastPath,
             });
+            hasForecastForSelectedPeriod = true;
           } catch {
             hasForecastForSelectedPeriod = false;
           }
