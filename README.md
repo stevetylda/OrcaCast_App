@@ -1,7 +1,9 @@
 # OrcaCast App
 
-OrcaCast is a static React + TypeScript web app for exploring weekly orca sighting forecast surfaces in the Pacific Northwest.
+OrcaCast is a static React + TypeScript geospatial application for exploring **weekly, H3-indexed, relative likelihood surfaces** for reported orca sightings in the Pacific Northwest. It is designed for transparent spatial analysis workflows where temporal integrity, data provenance, and reproducibility are first-class concerns.
 
+> **Important interpretation note**  
+> OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance.
 It combines:
 - H3 grid-based forecast layers (`H4`, `H5`, `H6`)
 - Last-week sightings overlays
@@ -9,36 +11,302 @@ It combines:
 - Map tools (hotspots, POIs, timeseries, guided tour)
 - Supporting pages (`About`, `Data`, `Models`, `Explainability`, `Settings`)
 
-## Tech Stack
+---
 
-- React 18
-- TypeScript
-- Vite (via `rolldown-vite`)
+## Table of Contents
+
+- [1. Product Overview](#1-product-overview)
+- [2. Key Capabilities](#2-key-capabilities)
+- [3. Application Pages + Screenshot Gallery](#3-application-pages--screenshot-gallery)
+- [4. Architecture at a Glance](#4-architecture-at-a-glance)
+- [5. Data Contracts and Folder Layout](#5-data-contracts-and-folder-layout)
+- [6. Forecast Payload Formats](#6-forecast-payload-formats)
+- [7. Temporal / Spatial / Evaluation Integrity](#7-temporal--spatial--evaluation-integrity)
+- [8. Local Development](#8-local-development)
+- [9. Configuration Reference](#9-configuration-reference)
+- [10. Testing and Validation Checklist](#10-testing-and-validation-checklist)
+- [11. Deployment](#11-deployment)
+- [12. Troubleshooting](#12-troubleshooting)
+- [13. Project Structure](#13-project-structure)
+- [14. Contributing Guidance](#14-contributing-guidance)
+- [15. License / Credits](#15-license--credits)
+
+---
+
+## 1. Product Overview
+
+OrcaCast combines:
+
+- H3 forecast layers at multiple resolutions (`H4`, `H5`, `H6`)
+- Optional overlays for last-week sightings and blurred KDE contours
+- Compare workflows (single swipe and dual-map comparison)
+- User controls for map theme, ecotype, layer mode, and view preferences
+- Supporting pages for About, Data provenance, Model catalog, and app settings
+
+The app is fully static and client-rendered; no backend runtime is required to serve the core experience.
+
+---
+
+## 2. Key Capabilities
+
+### Forecast and map exploration
+
+- Browse weekly forecast periods loaded from `public/data/periods.json`
+- Switch grid resolution (`H4`, `H5`, `H6`) to trade detail for regional context
+- Toggle observed/forecast displays and optional map overlays
+- Open tool drawers and modals for additional exploration workflows
+
+### Comparative analysis workflows
+
+- Compare model outputs across models, periods, and resolutions
+- Use swipe or dual-map interactions for side-by-side interpretation
+- Inspect relative differences without changing source datasets
+
+### Context pages for trust and provenance
+
+- **About**: interpretation guidance, caveats, and responsible use
+- **Data**: lineage diagrams, dynamic/static coverage views, and provider context
+- **Models**: model catalog cards and explanatory metadata
+- **Insights**: diagnostics area (currently in “Coming Soon” state)
+- **Settings**: default view preferences and UX state toggles
+
+---
+
+## 3. Application Pages + Screenshot Gallery
+
+OrcaCast routes are configured in `src/App.tsx`:
+
+- `/` → Map
+- `/about` → About
+- `/models` → Models
+- `/insights` → Insights
+- `/data` → Data
+- `/settings` → Settings
+
+> The gallery below expects screenshots in `docs/screenshots/`.  
+> If images are missing, capture them locally after starting the app (see [Screenshot capture workflow](#screenshot-capture-workflow)).
+
+### Map (`/`)
+
+Interactive forecast map with resolution controls, model/period selection, and compare workflows.
+
+![Map page screenshot](docs/screenshots/map.png)
+
+### About (`/about`)
+
+Interpretation guidance, grid-size explanations, limitations, and responsible-use messaging.
+
+![About page screenshot](docs/screenshots/about.png)
+
+### Models (`/models`)
+
+Model catalog interface with card/carousel presentation and model metadata.
+
+![Models page screenshot](docs/screenshots/models.png)
+
+### Insights (`/insights`)
+
+Diagnostics/analysis section scaffold currently marked as “Coming Soon.”
+
+![Insights page screenshot](docs/screenshots/insights.png)
+
+### Data (`/data`)
+
+Data lineage, coverage matrix, source acknowledgements, and rendering/provider context.
+
+![Data page screenshot](docs/screenshots/data.png)
+
+### Settings (`/settings`)
+
+Theme/default view settings and map behavior preferences.
+
+![Settings page screenshot](docs/screenshots/settings.png)
+
+### Screenshot capture workflow
+
+1. Start the app:
+
+```bash
+npm run dev -- --host 0.0.0.0 --port 4173
+```
+
+2. Navigate each route and save screenshots into:
+
+```text
+docs/screenshots/
+  map.png
+  about.png
+  models.png
+  insights.png
+  data.png
+  settings.png
+```
+
+3. Keep file names stable so README links remain valid.
+
+---
+
+## 4. Architecture at a Glance
+
+### Core runtime flow
+
+1. App bootstraps providers and routes in `src/App.tsx`
+2. `MapPage` orchestrates state, data loading, compare logic, and modal workflows
+3. `ForecastMap` owns rendering lifecycle (MapLibre + deck.gl)
+4. Data loaders in `src/data` fetch grids, forecast payloads, periods, and related inputs
+5. UI state is shared via `MapStateContext` and `MenuContext`
+
+### Main technologies
+
+- React 18 + TypeScript
+- Vite (`rolldown-vite`)
 - MapLibre GL
 - deck.gl
 - React Router
-- Driver.js (guided product tour)
+- Driver.js (guided tour)
 
-## Quick Start
+---
+
+## 5. Data Contracts and Folder Layout
+
+All runtime data is expected under `public/data`.
+
+### Required input files
+
+- `public/data/periods.json`  
+  Array of forecast periods:
+  ```json
+  [{ "year": 2025, "stat_week": 34, "label": "optional" }]
+  ```
+
+- `public/data/grids/H4.geojson`, `H5.geojson`, `H6.geojson`  
+  GeoJSON feature collections keyed by H3 cell identifier (`properties.h3`).
+
+- `public/data/forecasts/latest/weekly/<year>_<week>_<Hn>.json`  
+  Weekly forecast payload files for each period/resolution.
+
+- `public/data/last_week_sightings/last_week_sightings_<year>-W<week>.geojson` (optional)  
+  Observed overlay points for selected weeks.
+
+- `public/data/activity/activity_by_decade_week_SRKW_<Hn>.json`  
+  Time-series modal data.
+
+- `public/data/places_of_interest.json`  
+  Marker definitions for POI overlays.
+
+### Optional overlay files
+
+- `public/data/forecasts/latest/weekly_blurred/<year>_<week>_<Hn>_CONTOUR.geojson`
+
+Used when blurred contour layers are enabled.
+
+---
+
+## 6. Forecast Payload Formats
+
+The loader supports multiple JSON payload variants.
+
+### A) Single-model format
+
+```json
+{
+  "values": {
+    "8928308280fffff": 0.018,
+    "89283082813ffff": 0.024
+  }
+}
+```
+
+### B) Multi-model list format
+
+```json
+{
+  "models": [
+    { "id": "model_a", "values": { "8928308280fffff": 0.02 } },
+    { "id": "model_b", "values": { "8928308280fffff": 0.03 } }
+  ]
+}
+```
+
+### C) Multi-model map format
+
+```json
+{
+  "valuesByModel": {
+    "model_a": { "8928308280fffff": 0.02 },
+    "model_b": { "8928308280fffff": 0.03 }
+  }
+}
+```
+
+When multiple models are present, the app can surface a synthetic `consensus` option (mean by cell).
+
+---
+
+## 7. Temporal / Spatial / Evaluation Integrity
+
+Because OrcaCast supports scientific/analytical interpretation, guard against silent drift in these areas:
+
+### Temporal integrity
+
+- Ensure forecast period indexing remains ISO-week consistent
+- Verify week-shift logic and period-fill logic do not leak future context
+- Confirm train/eval assumptions in model documentation remain causal
+
+### Spatial integrity
+
+- Validate H3 level (`H4/H5/H6`) remains consistent across joins/overlays
+- Confirm no CRS or coordinate-order drift when ingesting GeoJSON
+- Re-check any pruning/smoothing process that could alter hotspot geometry
+- `/` map
+- `/about`
+- `/models`
+- `/explainability`
+- `/data`
+- `/settings`
+
+### Evaluation integrity
+
+- Ensure metrics are computed on intended populations, at intended time windows
+- Keep reporting-effort caveats explicit in interpretation text
+- Treat “forecast likelihood” as relative ranking, not absolute probability of presence
+
+### Reproducibility
+
+- Prefer config-driven behavior over ad-hoc constants
+- Keep file naming deterministic (`<year>_<week>_<Hn>`) for reproducible loads
+- Document any behavior-changing config updates in changelogs/PR notes
+
+---
+
+## 8. Local Development
 
 ### Prerequisites
 
 - Node.js 18+ (Node 20 recommended)
 - npm
 
-### Install and run
+### Install
 
 ```bash
 npm install
+```
+
+### Run development server
+
+```bash
 npm run dev
 ```
 
-Open the printed local URL (typically `http://localhost:5173`).
-
-### Build and preview
+### Build production bundle
 
 ```bash
 npm run build
+```
+
+### Preview production build
+
+```bash
 npm run preview
 ```
 
@@ -48,123 +316,52 @@ npm run preview
 npm run lint
 ```
 
-## Project Scripts
+---
 
-- `npm run dev`: start local dev server
-- `npm run build`: type-check and build production bundle into `dist/`
-- `npm run preview`: preview the production build locally
-- `npm run lint`: run ESLint
-
-## High-Level Architecture
-
-- `src/App.tsx`
-  - Declares app routes and wraps providers (`MapStateProvider`, `MenuProvider`)
-- `src/pages/MapPage.tsx`
-  - Orchestrates map-level UI state, period/model loading, and modal/tool interactions
-- `src/components/ForecastMap.tsx`
-  - Owns MapLibre/deck.gl lifecycle and all map rendering behavior
-- `src/data/*.ts`
-  - Client-side data loaders and lightweight caching for grids, forecasts, periods, and KDE bands
-- `src/map/*.ts`
-  - Color-scale logic and MapLibre layer wiring
-
-## Routes
-
-Configured in `src/App.tsx`:
-
-- `/` map
-- `/about`
-- `/models`
-- `/explainability`
-- `/data`
-- `/settings`
-
-`/performance` exists as a page file but is currently not routed.
-
-## Data Layout and Contracts
-
-All runtime data is served from `public/data`.
-
-### Required files
-
-- `public/data/periods.json`
-  - Array of `{ "year": number, "stat_week": number, "label"?: string }`
-- `public/data/grids/H4.geojson`, `H5.geojson`, `H6.geojson`
-  - GeoJSON feature collections keyed by H3 cell id (property `h3`)
-- `public/data/forecasts/latest/weekly/<year>_<week>_<Hn>.json`
-  - Forecast payload for each period + resolution
-- `public/data/last_week_sightings/last_week_sightings_<year>-W<week>.geojson`
-  - Optional sightings overlay data for selected periods
-- `public/data/activity/activity_by_decade_week_SRKW_<Hn>.json`
-  - Timeseries modal data
-- `public/data/places_of_interest.json`
-  - POI markers used by the map tools
-
-### Forecast payload shapes supported
-
-The loader supports several formats in forecast files:
-
-- Single model:
-  - `{ "values": { "<h3>": number, ... } }`
-- Multi-model list:
-  - `{ "models": [{ "id": "...", "values": { ... } }, ...] }`
-- Multi-model map:
-  - `{ "valuesByModel": { "<modelId>": { ... } } }`
-
-If multiple models are present, a synthetic `consensus` option is exposed in the UI and computed as mean per H3 cell.
-
-### KDE overlay files
-
-By default, blurred contours are loaded from:
-
-- `public/data/forecasts/latest/weekly_blurred/<year>_<week>_<Hn>_CONTOUR.geojson`
-
-This is configured in `src/config/appConfig.ts`.
-
-## Configuration
+## 9. Configuration Reference
 
 ### `src/config/appConfig.ts`
 
-Primary runtime toggles:
+Primary runtime configuration:
 
 - default forecast period
-- default/best model id (`bestModelId`)
-- KDE folder/run id and geometry-pruning thresholds
+- best/default model identifier
+- KDE folder/run ids
+- geometry-pruning and rendering thresholds
 
 ### `src/config/dataPaths.ts`
 
-Defines data path helpers for:
+Path builders for:
 
-- grid GeoJSON
-- forecast JSON
-- KDE contour GeoJSON
+- grids
+- weekly forecasts
+- KDE contour overlays
+- actuals/sightings paths
 
 ### `vite.config.ts`
 
-Currently builds/serves with `base: "/"`.  
-If deploying under a subpath, update this value accordingly.
+Build/serve base path is currently `/`. If deploying under a subpath, adjust `base` accordingly.
 
-## Key UX Behaviors
+---
 
-- Forecast period list comes from `public/data/periods.json`.
-- Selected map state is kept in-memory via `MapStateContext`.
-- First-time welcome modal state uses `localStorage` key `orcacast.welcome.seen`.
-- Guided tour is implemented with Driver.js (`src/tour/startMapTour.ts`).
-- Map attribution text is managed in `src/config/attribution.ts`.
+## 10. Testing and Validation Checklist
 
-## Development Notes
+Before merging behavior-changing updates:
 
-- The app is fully static; no server-side runtime is required.
-- `src/features/models` and parts of `src/features/analysis` are currently UI-first/prototype-oriented (includes dummy/mock content).
-- Some files contain commented legacy code blocks; active implementations are further down in those files.
+1. **Route sanity**: verify all routed pages load (`/`, `/about`, `/models`, `/insights`, `/data`, `/settings`)
+2. **Forecast load sanity**: select multiple periods/resolutions and confirm map layers render
+3. **Overlay sanity**: toggle last-week sightings and KDE contours on/off
+4. **Compare sanity**: test compare mode for at least one period pair and model pair
+5. **Data integrity spot-check**: open one forecast JSON and validate H3 keys align with target grid
+6. **Build/lint**: run `npm run build` and `npm run lint`
 
-## Optional Python Utilities
+For scientific validation workflows, also maintain a lightweight canary run that confirms stable counts/coverage after data refreshes.
 
-Two helper modules exist for GeoJSON/KDE preprocessing:
+---
 
-- `src/io/load_kde_geojson.py`
-- `src/visualization/geo_prune.py`
+## 11. Deployment
 
+### Cloudflare Pages (recommended static deploy)
 Explainability artifact builder CLI:
 
 - `python3 -m src.cli explainability build --run-id ... --model-id ... --target ... --sample-n 50000 --top-k-interactions 50`
@@ -177,13 +374,93 @@ These are not required to run the frontend app, but can be used in preprocessing
 - Output directory: `dist`
 - Node version: 18+
 
-Since this is a static SPA, deployment is straightforward once `dist/` is generated.
+Because OrcaCast is an SPA, ensure host-level fallback routing is configured so deep links resolve to `index.html`.
 
-## Troubleshooting
+---
 
-- Blank map or missing overlays:
-  - Verify required `public/data` files exist for selected period/resolution.
-- Forecast selector shows periods but no data:
-  - Check matching forecast files for every `<year>_<week>_<Hn>` entry in `periods.json`.
-- KDE toggle shows warning:
-  - Expected when contour file for selected period/resolution is not present.
+## 12. Troubleshooting
+
+### Blank map / missing layers
+
+- Confirm required files exist for selected period/resolution
+- Check browser console for GeoJSON or JSON parse errors
+- Validate H3 keys and geometry properties are present
+
+### Forecast selector populated but no rendered values
+
+- Confirm matching `<year>_<week>_<Hn>.json` exists for each configured period
+- Verify model id selection exists in multi-model payloads
+
+### KDE toggle warns or appears empty
+
+- Check contour file availability under `weekly_blurred`
+- Confirm resolution suffix in filename matches active resolution
+
+### Inconsistent behavior between runs
+
+- Re-check config defaults and local storage flags
+- Verify data refresh did not silently remove a period or model
+
+---
+
+## 13. Project Structure
+
+```text
+src/
+  App.tsx
+  components/
+    ForecastMap.tsx
+    SideDrawer.tsx
+    ToolDrawer.tsx
+    ...
+  config/
+    appConfig.ts
+    dataPaths.ts
+    attribution.ts
+  core/
+    time/
+  data/
+    forecastIO.ts
+    periods.ts
+    expectedCount.ts
+  features/
+    models/
+    analysis/
+  map/
+  pages/
+    MapPage.tsx
+    AboutPage.tsx
+    ModelsPage.tsx
+    InsightsPage.tsx
+    DataPage.tsx
+    SettingsPage.tsx
+  state/
+    MapStateContext.tsx
+    MenuContext.tsx
+  tour/
+```
+
+---
+
+## 14. Contributing Guidance
+
+When making model/data-facing changes:
+
+- Prefer minimal diffs that preserve behavior unless behavior change is intended
+- Document whether outputs change and under what conditions
+- Keep temporal/spatial assumptions explicit in code comments and PR notes
+- Avoid broad refactors that complicate traceability for scientific review
+
+When changing UI-only behavior:
+
+- Update screenshots under `docs/screenshots`
+- Ensure route-level README gallery links remain valid
+
+---
+
+## 15. License / Credits
+
+- Basemap and rendering acknowledgements are surfaced in the Data page.
+- OrcaCast is intended for educational and planning use with wildlife-safe practices.
+
+If your deployment requires additional legal notices, include them in the app footer and hosting documentation.
