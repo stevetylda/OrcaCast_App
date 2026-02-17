@@ -26,6 +26,8 @@ import {
 import type { HeatScale } from "../map/colorScale";
 import { isoWeekFromDate } from "../core/time/forecastPeriodToIsoWeek";
 import { isoWeekToDateRange } from "../core/time/forecastPeriodToIsoWeek";
+import { LAST_WEEK_LAYER_CONFIG } from "../config/mapLayers";
+import { debounce, resolveLayerSource, type ResolvedLayerSource } from "../map/sourceBackend";
 import { ProbabilityLegend } from "./ProbabilityLegend";
 import type { DataDrivenPropertyValueSpecification } from "maplibre-gl";
 import { getPaletteOrDefault, type PaletteId } from "../constants/palettes";
@@ -372,6 +374,7 @@ const DEFAULT_CENTER: [number, number] = [-123.25, 48.55];
 const DEFAULT_ZOOM = 6.5;
 
 const LAST_WEEK_SOURCE_ID = "last-week-sightings";
+const LAST_WEEK_VECTOR_SOURCE_ID = "last-week-sightings-vector";
 const LAST_WEEK_LAYER_ID = "last-week-sightings-circle";
 const LAST_WEEK_HALO_ID = "last-week-sightings-halo";
 const LAST_WEEK_RING_ID = "last-week-sightings-ring";
@@ -462,6 +465,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
   const styleUrlRef = useRef(styleUrl);
   const activeStyleUrlRef = useRef(styleUrl);
   const lastWeekDataRef = useRef<Record<string, FeatureCollection | null>>({});
+  const lastWeekSourceRef = useRef<ResolvedLayerSource | null>(null);
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
   const sparkPopupRef = useRef<maplibregl.Popup | null>(null);
@@ -1187,7 +1191,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
         pitch: map.getPitch(),
       });
     };
-    const handleMove = () => {
+    const handleMove = debounce(() => {
       if (!onMoveViewState) return;
       const center = map.getCenter();
       onMoveViewState({
@@ -1196,7 +1200,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
         bearing: map.getBearing(),
         pitch: map.getPitch(),
       });
-    };
+    }, 120);
     map.on("moveend", handleMoveEnd);
     map.on("move", handleMove);
 
@@ -1620,35 +1624,16 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
 
     const applyVisibility = (visible: boolean) => {
       const visibility = visible ? "visible" : "none";
-      if (map.getLayer(LAST_WEEK_LAYER_ID)) {
-        map.setLayoutProperty(LAST_WEEK_LAYER_ID, "visibility", visibility);
-      }
-      if (map.getLayer(LAST_WEEK_HALO_ID)) {
-        map.setLayoutProperty(LAST_WEEK_HALO_ID, "visibility", visibility);
-      }
-      if (map.getLayer(LAST_WEEK_RING_ID)) {
-        map.setLayoutProperty(LAST_WEEK_RING_ID, "visibility", visibility);
-      }
-      if (map.getLayer(LAST_WEEK_WHITE_ID)) {
-        map.setLayoutProperty(LAST_WEEK_WHITE_ID, "visibility", visibility);
-      }
+      if (map.getLayer(LAST_WEEK_LAYER_ID)) map.setLayoutProperty(LAST_WEEK_LAYER_ID, "visibility", visibility);
+      if (map.getLayer(LAST_WEEK_HALO_ID)) map.setLayoutProperty(LAST_WEEK_HALO_ID, "visibility", visibility);
+      if (map.getLayer(LAST_WEEK_RING_ID)) map.setLayoutProperty(LAST_WEEK_RING_ID, "visibility", visibility);
+      if (map.getLayer(LAST_WEEK_WHITE_ID)) map.setLayoutProperty(LAST_WEEK_WHITE_ID, "visibility", visibility);
     };
 
-    if (!showLastWeek) {
+    if (!showLastWeek || lastWeekMode === "none") {
       applyVisibility(false);
       return;
     }
-
-    // ✅ explicit "none" => hide and bail early
-    if (lastWeekMode === "none") {
-      applyVisibility(false);
-      return;
-    }
-
-    const attach = (data: FeatureCollection) => {
-      ensureLastWeekLayer(map, data);
-      applyVisibility(true);
-    };
 
     if (!Number.isFinite(selectedWeekYear) || !Number.isFinite(selectedWeek) || selectedWeek <= 0) {
       applyVisibility(false);
@@ -1659,66 +1644,69 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     const key = `${selectedWeekYear}-W${selectedWeek}`;
     lastWeekKeyRef.current = key;
 
-    ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] });
-    applyVisibility(false);
-
-    const applyTagged = (raw: FeatureCollection | null) => {
-      if (!raw) {
-        applyVisibility(false);
-        return;
-      }
-      const tagged = tagSightings(
-        raw,
-        lastWeekMode,
-        { year: selectedWeekYear, week: selectedWeek },
-        previous
-      );
-      if ((tagged.features ?? []).length === 0) {
-        applyVisibility(false);
-        return;
-      }
-      attach(tagged);
-    };
-
-    if (key in lastWeekDataRef.current) {
-      applyTagged(lastWeekDataRef.current[key] ?? null);
-      return;
-    }
-
     let active = true;
 
-    const load = async () => {
+    const run = async () => {
+      if (!lastWeekSourceRef.current) {
+        lastWeekSourceRef.current = await resolveLayerSource(LAST_WEEK_LAYER_CONFIG);
+      }
+      const resolved = lastWeekSourceRef.current;
+      if (!resolved || !active) return;
+
+      if (resolved.kind === "vector_tiles") {
+        ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] }, LAST_WEEK_VECTOR_SOURCE_ID, resolved.sourceLayer);
+        applyLastWeekModeFilters(
+          map,
+          { year: selectedWeekYear, week: selectedWeek },
+          previous,
+          lastWeekMode,
+          resolved.sourceLayer
+        );
+        applyVisibility(true);
+        return;
+      }
+
+      ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] }, LAST_WEEK_SOURCE_ID);
+      applyVisibility(false);
+
+      const applyTagged = (raw: FeatureCollection | null) => {
+        if (!raw) {
+          applyVisibility(false);
+          return;
+        }
+        const tagged = tagSightings(raw, lastWeekMode, { year: selectedWeekYear, week: selectedWeek }, previous);
+        if ((tagged.features ?? []).length === 0) {
+          applyVisibility(false);
+          return;
+        }
+        ensureLastWeekLayer(map, tagged, LAST_WEEK_SOURCE_ID);
+        applyVisibility(true);
+      };
+
+      if (key in lastWeekDataRef.current) {
+        applyTagged(lastWeekDataRef.current[key] ?? null);
+        return;
+      }
+
       try {
         const url = `${buildLastWeekUrl(key)}?v=${Date.now()}`;
         const res = await fetch(url, { cache: "no-store" });
-
         if (res.status === 404 || res.status === 204) {
           lastWeekDataRef.current[key] = null;
           if (active) applyVisibility(false);
           return;
         }
         if (!res.ok) throw new Error(`Failed to fetch last week sightings: ${res.status}`);
-
         const text = await res.text();
         const trimmed = text.trim();
-
         if (trimmed.startsWith("<") || trimmed.length === 0) {
           lastWeekDataRef.current[key] = null;
           if (active) applyVisibility(false);
           return;
         }
-
         const data = JSON.parse(trimmed) as FeatureCollection;
-
-        // eslint-disable-next-line no-console
-        console.debug("[Sightings] loaded", {
-          url,
-          first: data.features?.[0]?.properties ?? null,
-        });
-
         lastWeekDataRef.current[key] = data;
         if (!active) return;
-
         if (!map.isStyleLoaded()) {
           map.once("styledata", () => {
             if (active) applyTagged(data);
@@ -1727,12 +1715,11 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
           applyTagged(data);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.warn("[Sightings] failed to load last week sightings", err);
       }
     };
 
-    load();
+    run();
 
     return () => {
       active = false;
@@ -2084,19 +2071,36 @@ function rgbaStringToArray(value: string): [number, number, number, number] | nu
   return [Math.round(r), Math.round(g), Math.round(b), Math.round(a * 255)];
 }
 
-function ensureLastWeekLayer(map: MapLibreMap, data: FeatureCollection) {
-  if (map.getSource(LAST_WEEK_SOURCE_ID)) {
-    const source = map.getSource(LAST_WEEK_SOURCE_ID) as maplibregl.GeoJSONSource;
-    source.setData(data);
+function ensureLastWeekLayer(
+  map: MapLibreMap,
+  data: FeatureCollection,
+  sourceId = LAST_WEEK_SOURCE_ID,
+  sourceLayer?: string
+) {
+  if (map.getSource(sourceId)) {
+    if (!sourceLayer) {
+      const source = map.getSource(sourceId) as maplibregl.GeoJSONSource;
+      source.setData(data);
+    }
+  } else if (sourceLayer) {
+    map.addSource(sourceId, {
+      type: "vector",
+      tiles: [LAST_WEEK_LAYER_CONFIG.source_url],
+      minzoom: LAST_WEEK_LAYER_CONFIG.minzoom,
+      maxzoom: LAST_WEEK_LAYER_CONFIG.maxzoom,
+    });
   } else {
-    map.addSource(LAST_WEEK_SOURCE_ID, { type: "geojson", data });
+    map.addSource(sourceId, { type: "geojson", data });
   }
+
+  const sourceLayerProps = sourceLayer ? { "source-layer": sourceLayer } : {};
 
   if (!map.getLayer(LAST_WEEK_HALO_ID)) {
     map.addLayer({
       id: LAST_WEEK_HALO_ID,
       type: "circle",
-      source: LAST_WEEK_SOURCE_ID,
+      source: sourceId,
+      ...sourceLayerProps,
       paint: {
         "circle-color": "rgba(0,255,240,0.18)",
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 2.8, 8, 4, 11, 5],
@@ -2106,69 +2110,28 @@ function ensureLastWeekLayer(map: MapLibreMap, data: FeatureCollection) {
     });
   }
 
-  if (map.getLayer(LAST_WEEK_RING_ID)) {
-    map.setPaintProperty(LAST_WEEK_RING_ID, "circle-stroke-color", [
-      "match",
-      ["get", "sightingMode"],
-      "previous",
-      "#FF3B5C",
-      "selected",
-      "#7CFF6B",
-      "#FF3B5C",
-    ]);
-    map.setPaintProperty(LAST_WEEK_RING_ID, "circle-radius", [
-      "interpolate",
-      ["linear"],
-      ["zoom"],
-      5,
-      2.6,
-      8,
-      3.6,
-      11,
-      4.6,
-    ]);
-    map.setPaintProperty(LAST_WEEK_RING_ID, "circle-stroke-width", 2.2);
-  } else {
+  if (!map.getLayer(LAST_WEEK_RING_ID)) {
     map.addLayer({
       id: LAST_WEEK_RING_ID,
       type: "circle",
-      source: LAST_WEEK_SOURCE_ID,
+      source: sourceId,
+      ...sourceLayerProps,
       paint: {
         "circle-color": "rgba(0,0,0,0)",
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 2.6, 8, 3.6, 11, 4.6],
         "circle-stroke-width": 2.2,
-        "circle-stroke-color": [
-          "match",
-          ["get", "sightingMode"],
-          "previous",
-          "#FF3B5C",
-          "selected",
-          "#7CFF6B",
-          "#FF3B5C",
-        ],
+        "circle-stroke-color": "#FF3B5C",
         "circle-opacity": 0.9,
       },
     });
   }
 
-  if (map.getLayer(LAST_WEEK_WHITE_ID)) {
-    map.setPaintProperty(LAST_WEEK_WHITE_ID, "circle-radius", [
-      "interpolate",
-      ["linear"],
-      ["zoom"],
-      5,
-      3.1,
-      8,
-      4.2,
-      11,
-      5.4,
-    ]);
-    map.setPaintProperty(LAST_WEEK_WHITE_ID, "circle-stroke-width", 1.2);
-  } else {
+  if (!map.getLayer(LAST_WEEK_WHITE_ID)) {
     map.addLayer({
       id: LAST_WEEK_WHITE_ID,
       type: "circle",
-      source: LAST_WEEK_SOURCE_ID,
+      source: sourceId,
+      ...sourceLayerProps,
       paint: {
         "circle-color": "rgba(0,0,0,0)",
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 3.1, 8, 4.2, 11, 5.4],
@@ -2183,7 +2146,8 @@ function ensureLastWeekLayer(map: MapLibreMap, data: FeatureCollection) {
     map.addLayer({
       id: LAST_WEEK_LAYER_ID,
       type: "circle",
-      source: LAST_WEEK_SOURCE_ID,
+      source: sourceId,
+      ...sourceLayerProps,
       paint: {
         "circle-color": "rgba(255,255,255,0.98)",
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 1.2, 8, 1.9, 11, 2.8],
@@ -2195,6 +2159,44 @@ function ensureLastWeekLayer(map: MapLibreMap, data: FeatureCollection) {
   }
 
   moveLastWeekToTop(map);
+}
+
+function applyLastWeekModeFilters(
+  map: MapLibreMap,
+  selected: { year: number; week: number },
+  previous: { year: number; week: number },
+  mode: LastWeekMode,
+  sourceLayer?: string
+) {
+  const toNumber = (property: string) => ["to-number", ["coalesce", ["get", property], 0]];
+  const yearExpr = sourceLayer
+    ? (["coalesce", toNumber("YEAR"), toNumber("year"), toNumber("Year")] as unknown[])
+    : (["to-number", ["coalesce", ["get", "year"], ["get", "YEAR"], selected.year]] as unknown[]);
+  const weekExpr = sourceLayer
+    ? (["coalesce", toNumber("WEEK"), toNumber("week"), toNumber("STAT_WEEK")] as unknown[])
+    : (["to-number", ["coalesce", ["get", "week"], ["get", "WEEK"], selected.week]] as unknown[]);
+
+  const isSelected = ["all", ["==", yearExpr, selected.year], ["==", weekExpr, selected.week]];
+  const isPrevious = ["all", ["==", yearExpr, previous.year], ["==", weekExpr, previous.week]];
+  const modeFilter =
+    mode === "selected" ? isSelected : mode === "previous" ? isPrevious : mode === "both" ? ["any", isSelected, isPrevious] : ["==", ["literal", 1], 0];
+
+  [LAST_WEEK_LAYER_ID, LAST_WEEK_HALO_ID, LAST_WEEK_RING_ID, LAST_WEEK_WHITE_ID].forEach((id) => {
+    if (map.getLayer(id)) {
+      map.setFilter(id, modeFilter as maplibregl.FilterSpecification);
+    }
+  });
+
+  if (map.getLayer(LAST_WEEK_RING_ID)) {
+    map.setPaintProperty(LAST_WEEK_RING_ID, "circle-stroke-color", [
+      "case",
+      isSelected,
+      "#7CFF6B",
+      isPrevious,
+      "#FF3B5C",
+      "#FF3B5C",
+    ]);
+  }
 }
 
 function moveLastWeekToTop(map: MapLibreMap) {

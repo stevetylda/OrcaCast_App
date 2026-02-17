@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tiles:check": "python scripts/tiles/check_large_assets.py --max-mb 8",
+    "tiles:build:last-week": "python scripts/tiles/build_vector_tiles.py --input public/data/last_week_sightings/all_last_week_sightings.geojson --name last_week_sightings --layer last_week_sightings --minzoom 0 --maxzoom 11"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.1.1",
