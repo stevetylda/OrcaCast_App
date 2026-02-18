@@ -14,4 +14,19 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(() => ({
   base: "/",
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 1400,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("maplibre-gl") || id.includes("@deck.gl")) return "map-vendor";
+          if (id.includes("plotly.js") || id.includes("react-plotly.js")) return "plotly-vendor";
+          if (id.includes("reactflow") || id.includes("dagre")) return "flow-vendor";
+          if (id.includes("driver.js")) return "tour-vendor";
+          return "vendor";
+        },
+      },
+    },
+  },
 }));
