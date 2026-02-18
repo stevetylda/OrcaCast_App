@@ -42,10 +42,7 @@ export function ForecastPeriodPill({
 
   useEffect(() => {
     selectedRef.current = selectedIndex;
-    if (!isDragging) {
-      setScrubIndex(selectedIndex);
-    }
-  }, [selectedIndex, isDragging]);
+  }, [selectedIndex]);
 
   useEffect(() => () => {
     if (debounceRef.current) {
@@ -77,18 +74,18 @@ export function ForecastPeriodPill({
 
   useEffect(() => {
     if (!isPlaying || periods.length === 0) return;
-    const maxIndex = periods.length - 1;
-    const current = selectedRef.current;
-    const next = current + playDir;
-    if (next < 0 || next > maxIndex) {
-      setIsPlaying(false);
-      return;
-    }
     const id = window.setTimeout(() => {
+      const maxIndex = periods.length - 1;
+      const current = selectedRef.current;
+      const next = current + playDir;
+      if (next < 0 || next > maxIndex) {
+        setIsPlaying(false);
+        return;
+      }
       onChangeIndex(next);
     }, SPEED_MS[speed]);
     return () => window.clearTimeout(id);
-  }, [isPlaying, playDir, periods.length, speed, onChangeIndex, selectedIndex]);
+  }, [isPlaying, playDir, periods.length, speed, onChangeIndex]);
 
   const currentLabel = useMemo(() => periods[selectedIndex]?.label ?? "Forecast", [
     periods,
@@ -177,7 +174,7 @@ export function ForecastPeriodPill({
             min={0}
             max={Math.max(0, periods.length - 1)}
             step={1}
-            value={periods.length === 0 ? 0 : scrubIndex}
+            value={periods.length === 0 ? 0 : isDragging ? scrubIndex : selectedIndex}
             disabled={disabled || periods.length === 0}
             onChange={(e) => handleSliderChange(Number(e.target.value))}
             onMouseDown={() => setIsDragging(true)}

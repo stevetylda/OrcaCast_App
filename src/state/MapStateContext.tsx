@@ -43,14 +43,22 @@ type MapState = {
 };
 
 const MapStateContext = createContext<MapState | null>(null);
+const THEME_MODE_STORAGE_KEY = "orcacast.themeMode";
 
 const getSystemPrefersDark = () => {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
 };
 
+const getStoredThemeMode = (): ThemeMode => {
+  if (typeof window === "undefined") return "dark";
+  const stored = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  return "dark";
+};
+
 export function MapStateProvider({ children }: { children: ReactNode }) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredThemeMode);
   const [resolution, setResolution] = useState<H3Resolution>("H4");
   const [modelId, setModelId] = useState(appConfig.bestModelId);
   const [forecastIndex, setForecastIndex] = useState(-1);
@@ -77,6 +85,11 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem("orcacast.paletteId", selectedPaletteId);
   }, [selectedPaletteId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
+  }, [themeMode]);
 
   const darkMode = useMemo(() => {
     if (themeMode === "system") return getSystemPrefersDark();
@@ -159,6 +172,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   return <MapStateContext.Provider value={value}>{children}</MapStateContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useMapState() {
   const ctx = useContext(MapStateContext);
   if (!ctx) throw new Error("useMapState must be used within MapStateProvider");

@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -71,10 +72,13 @@ export function OrcaDropdown({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [menuStyle, setMenuStyle] = useState<CSSProperties | undefined>(undefined);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const portalRoot = useMemo(
+    () => (typeof document === "undefined" ? null : ensurePortalRoot()),
+    []
+  );
 
   const enabledIndices = useMemo(
     () => items.map((item, index) => ({ item, index })).filter((entry) => !entry.item.disabled),
@@ -83,11 +87,7 @@ export function OrcaDropdown({
   const isLightTheme =
     typeof document !== "undefined" && !document.querySelector(".app")?.classList.contains("app--dark");
 
-  useEffect(() => {
-    setPortalRoot(ensurePortalRoot());
-  }, []);
-
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     const menu = menuRef.current;
     if (!trigger || !menu) return;
@@ -111,7 +111,7 @@ export function OrcaDropdown({
       maxHeight: `${Math.round(maxHeight)}px`,
       zIndex: 2000,
     });
-  };
+  }, [matchTriggerWidth, minMenuWidth, sideOffset]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -133,15 +133,15 @@ export function OrcaDropdown({
       window.removeEventListener("resize", handleWindowChange);
       window.removeEventListener("scroll", handleWindowChange, true);
     };
-  }, [open]);
+  }, [open, updatePosition]);
 
-  useEffect(() => {
-    if (!open) return;
+  const openMenu = () => {
     const selectedEnabledIndex = enabledIndices.find((entry) => entry.item.id === selectedId)?.index ?? -1;
     const fallbackIndex = enabledIndices[0]?.index ?? -1;
     setActiveIndex(selectedEnabledIndex >= 0 ? selectedEnabledIndex : fallbackIndex);
+    setOpen(true);
     window.requestAnimationFrame(() => menuRef.current?.focus());
-  }, [open, enabledIndices, selectedId]);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -181,7 +181,7 @@ export function OrcaDropdown({
   const onTriggerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      setOpen(true);
+      openMenu();
     }
   };
 
@@ -233,7 +233,7 @@ export function OrcaDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onTriggerKeyDown}
         title={ariaLabel}
       >

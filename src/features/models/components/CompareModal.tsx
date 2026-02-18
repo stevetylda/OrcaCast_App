@@ -42,22 +42,16 @@ export function CompareModal({ open, models, allModels, selectedIds, onAdd, onCl
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    setShowAddList(false);
-    const first = models[0]?.id ?? allModels[0]?.id ?? "";
-    const second = models[1]?.id ?? allModels[1]?.id ?? first;
-    setModelAId(first);
-    setModelBId(second);
-    setSelectionReadout(null);
-  }, [open, models, allModels]);
-
-  const modelA = allModels.find((model) => model.id === modelAId) ?? models[0] ?? null;
-  const modelB = allModels.find((model) => model.id === modelBId) ?? models[1] ?? models[0] ?? null;
+  const firstModelId = models[0]?.id ?? allModels[0]?.id ?? "";
+  const secondModelId = models[1]?.id ?? allModels[1]?.id ?? firstModelId;
+  const effectiveModelAId = modelAId || firstModelId;
+  const effectiveModelBId = modelBId || secondModelId;
+  const modelA = allModels.find((model) => model.id === effectiveModelAId) ?? models[0] ?? null;
+  const modelB = allModels.find((model) => model.id === effectiveModelBId) ?? models[1] ?? models[0] ?? null;
 
   const swapModels = () => {
-    setModelAId(modelBId);
-    setModelBId(modelAId);
+    setModelAId(effectiveModelBId);
+    setModelBId(effectiveModelAId);
     setPeriodA(periodB);
     setPeriodB(periodA);
   };
@@ -153,8 +147,8 @@ export function CompareModal({ open, models, allModels, selectedIds, onAdd, onCl
               />
 
               <CompareTray
-                modelAId={modelAId}
-                modelBId={modelBId}
+                modelAId={effectiveModelAId}
+                modelBId={effectiveModelBId}
                 periodA={periodA}
                 periodB={periodB}
                 sharedScale={settings.sharedScale}
@@ -209,10 +203,10 @@ export function CompareModal({ open, models, allModels, selectedIds, onAdd, onCl
         </aside>
 
         <div className="modelsCompareModal__footerActions">
-          <button type="button" className="modelsCompareCard__remove" onClick={() => onRemove(modelAId)}>
+          <button type="button" className="modelsCompareCard__remove" onClick={() => onRemove(effectiveModelAId)}>
             Remove A
           </button>
-          <button type="button" className="modelsCompareCard__remove" onClick={() => onRemove(modelBId)}>
+          <button type="button" className="modelsCompareCard__remove" onClick={() => onRemove(effectiveModelBId)}>
             Remove B
           </button>
           <button

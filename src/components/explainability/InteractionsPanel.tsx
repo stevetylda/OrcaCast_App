@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { InteractionRankingRow, InteractionSampleRow } from "../../features/explainability/types";
 import { mergeSymmetricInteractionRanking } from "../../features/explainability/utils";
 import { InteractionScatterPlot } from "./plots";
@@ -17,19 +17,16 @@ export function InteractionsPanel({ supported, ranking, samples }: Props) {
     normalizedRanking[0] ? `${normalizedRanking[0].feature_a}::${normalizedRanking[0].feature_b}` : ""
   );
 
-  useEffect(() => {
-    if (!selectedPair && normalizedRanking[0]) {
-      setSelectedPair(`${normalizedRanking[0].feature_a}::${normalizedRanking[0].feature_b}`);
-    }
-  }, [normalizedRanking, selectedPair]);
+  const effectiveSelectedPair =
+    selectedPair || (normalizedRanking[0] ? `${normalizedRanking[0].feature_a}::${normalizedRanking[0].feature_b}` : "");
 
   const selectedSamples = useMemo(() => {
-    if (!selectedPair) return [];
-    const [a, b] = selectedPair.split("::");
+    if (!effectiveSelectedPair) return [];
+    const [a, b] = effectiveSelectedPair.split("::");
     return samples.filter(
       (row) => (row.feature_a === a && row.feature_b === b) || (row.feature_a === b && row.feature_b === a)
     );
-  }, [samples, selectedPair]);
+  }, [samples, effectiveSelectedPair]);
 
   if (!supported) {
     return (
@@ -49,7 +46,7 @@ export function InteractionsPanel({ supported, ranking, samples }: Props) {
         <div className="explainabilityPairList" role="listbox" aria-label="Top interaction pairs">
           {normalizedRanking.slice(0, 50).map((row) => {
             const key = `${row.feature_a}::${row.feature_b}`;
-            const active = key === selectedPair;
+            const active = key === effectiveSelectedPair;
             return (
               <button
                 type="button"

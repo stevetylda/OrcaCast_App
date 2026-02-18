@@ -9,7 +9,7 @@ type Props = {
 export function DualMapCompare({ childrenLeft, childrenRight }: Props) {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    // eslint-disable-next-line no-console
+     
     console.info("DualMapCompare: created mapLeft/mapRight");
     const id = window.setTimeout(() => {
       const n = document.querySelectorAll(".maplibregl-canvas").length;

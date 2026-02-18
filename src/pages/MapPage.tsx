@@ -222,7 +222,7 @@ export function MapPage() {
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      // eslint-disable-next-line no-console
+       
       console.error("[Share] Snapshot failed", error);
     } finally {
       setShareBusy(false);
@@ -239,7 +239,7 @@ export function MapPage() {
       const fileName = `orcacast_${currentWeekYear}-W${String(currentWeek).padStart(2, "0")}_${resolution}_${toFileSafeToken(modelId)}.png`;
       downloadSnapshot(blob, fileName);
     } catch (error) {
-      // eslint-disable-next-line no-console
+       
       console.error("[Download] Snapshot failed", error);
     } finally {
       setShareBusy(false);
@@ -358,6 +358,7 @@ export function MapPage() {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configPeriod, setForecastIndex]);
 
   useEffect(() => {
@@ -842,7 +843,7 @@ export function MapPage() {
 
     computeDelta().catch((err) => {
       if (!active) return;
-      // eslint-disable-next-line no-console
+       
       console.warn("[DeltaMap] Failed to compute delta layer", err);
       setDeltaMapData(null);
     });
@@ -906,7 +907,7 @@ export function MapPage() {
       if (compareRenderMode === "dual" && count < 2) {
         throw new Error(`DualMapCompare invariant failed: expected 2 canvases, found ${count}`);
       }
-      // eslint-disable-next-line no-console
+       
       console.info(`[CompareDebug] mode=${compareRenderMode} canvases=${count}`);
     }, 250);
     return () => window.clearTimeout(id);
@@ -1264,6 +1265,7 @@ export function MapPage() {
             open={infoOpen}
             onClose={() => setInfoOpen(false)}
             onStartTour={() => startMapTour()}
+            darkMode={darkMode}
           />
         )}
 

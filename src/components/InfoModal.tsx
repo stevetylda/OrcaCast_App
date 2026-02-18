@@ -1,12 +1,14 @@
 import { useEffect, useId } from "react";
+import { Link } from "react-router-dom";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onStartTour: () => void;
+  darkMode?: boolean;
 };
 
-export function InfoModal({ open, onClose, onStartTour }: Props) {
+export function InfoModal({ open, onClose, onStartTour, darkMode = true }: Props) {
   const titleId = useId();
 
   // Escape closes modal (tiny UX win)
@@ -23,9 +25,9 @@ export function InfoModal({ open, onClose, onStartTour }: Props) {
   if (!open) return null;
 
   return (
-    <div className="overlay" onClick={onClose} role="presentation">
+    <div className={`overlay${darkMode ? "" : " overlay--light"}`} onClick={onClose} role="presentation">
       <section
-        className="modal modal--info"
+        className={`modal modal--info${darkMode ? "" : " modal--light"}`}
         onClick={(ev) => ev.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -47,9 +49,9 @@ export function InfoModal({ open, onClose, onStartTour }: Props) {
             >
               Take Tour
             </button>
-            <a className="btn btn--ghost btn--soft" href="/about" onClick={onClose}>
+            <Link className="btn btn--ghost btn--soft" to="/about" onClick={onClose}>
               Learn More
-            </a>
+            </Link>
             <button
               className="info__close"
               onClick={onClose}

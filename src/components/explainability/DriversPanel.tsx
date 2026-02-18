@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FeatureDependencePlot, type DependenceRow, ShapSummaryPlot } from "./plots";
 import type { GlobalImportanceRow, ShapSampleRow } from "../../features/explainability/types";
 import {
@@ -174,6 +174,10 @@ export function DriversPanel({
   const baseMaxAvailable = groupFilteredSorted.length;
   const topNOptions = [10, 20, 50];
   const highestAvailableTopN = topNOptions.filter((value) => value <= baseMaxAvailable).at(-1) ?? topNOptions[0];
+  const safeTopN =
+    topNOptions.includes(topN) && (baseMaxAvailable === 0 || topN <= baseMaxAvailable)
+      ? topN
+      : highestAvailableTopN;
 
   const stabilityByFeature = useMemo(() => {
     const months = [...monthlyImportance.keys()];
@@ -189,29 +193,23 @@ export function DriversPanel({
       const mean = average(ranks);
       const variance = average(ranks.map((rank) => (rank - mean) ** 2));
       const stdDev = Math.sqrt(variance);
-      const topShare = ranks.filter((rank) => rank <= Math.max(1, Math.min(topN, baseMaxAvailable))).length / ranks.length;
+      const topShare = ranks.filter((rank) => rank <= Math.max(1, Math.min(safeTopN, baseMaxAvailable))).length / ranks.length;
       const stable = topShare >= 0.7 && stdDev <= 2.5;
       out.set(row.feature_name, { stable, stdDev, topShare, tag: volatilityFromStdDev(stdDev) });
     }
     return out;
-  }, [groupFilteredSorted, monthlyImportance, topN, baseMaxAvailable]);
+  }, [groupFilteredSorted, monthlyImportance, safeTopN, baseMaxAvailable]);
 
   const rankedForView = groupFilteredSorted;
 
   const maxAvailable = rankedForView.length;
-  const effectiveTopN = Math.min(topN, maxAvailable || topN);
+  const effectiveTopN = Math.min(safeTopN, maxAvailable || safeTopN);
   const rankedTop = rankedForView.slice(0, effectiveTopN);
   const rankedTopSet = useMemo(() => new Set(rankedTop.map((row) => row.feature_name)), [rankedTop]);
-
-  useEffect(() => {
-    if (!topNOptions.includes(topN)) {
-      setTopN(highestAvailableTopN);
-      return;
-    }
-    if (topN > baseMaxAvailable && baseMaxAvailable > 0) {
-      setTopN(highestAvailableTopN);
-    }
-  }, [topN, baseMaxAvailable, highestAvailableTopN]);
+  const effectiveSelectedFeature =
+    selectedFeature && rankedTopSet.has(selectedFeature)
+      ? selectedFeature
+      : (rankedTop[0]?.feature_name ?? null);
 
   const rowsByFeature = useMemo(() => {
     const map = new Map<string, ShapSampleRow[]>();
@@ -244,25 +242,14 @@ export function DriversPanel({
     [rankedTop, rowsByFeature, stabilityByFeature]
   );
 
-  useEffect(() => {
-    if (rankedTop.length === 0) {
-      setSelectedFeature(null);
-      return;
-    }
-    if (selectedFeature && rankedTopSet.has(selectedFeature)) return;
-    setSelectedFeature(rankedTop[0].feature_name);
-  }, [rankedTop, selectedFeature, rankedTopSet]);
-
   const colorByOptions = useMemo(
     () => rankedTop.slice(0, 10).map((row) => row.feature_name),
     [rankedTop]
   );
-
-  useEffect(() => {
-    if (colorByFeature !== "__none" && colorByOptions.includes(colorByFeature)) return;
-    const fallback = colorByOptions.find((feature) => feature !== selectedFeature) ?? "__none";
-    setColorByFeature(fallback);
-  }, [colorByFeature, colorByOptions, selectedFeature]);
+  const effectiveColorByFeature =
+    colorByFeature !== "__none" && colorByOptions.includes(colorByFeature)
+      ? colorByFeature
+      : (colorByOptions.find((feature) => feature !== effectiveSelectedFeature) ?? "__none");
 
   const sampleFeatureMatrix = useMemo(() => {
     const bySample = new Map<string, { time: string; byFeature: Map<string, { value: number | null; shap: number }> }>();
@@ -276,15 +263,15 @@ export function DriversPanel({
   }, [groupFilteredSamples]);
 
   const dependenceRows = useMemo<DependenceRow[]>(() => {
-    if (!selectedFeature) return [];
+    if (!effectiveSelectedFeature) return [];
     const rows: DependenceRow[] = [];
     for (const [sampleId, sample] of sampleFeatureMatrix) {
-      const selected = sample.byFeature.get(selectedFeature);
+      const selected = sample.byFeature.get(effectiveSelectedFeature);
       if (!selected || selected.value == null || !Number.isFinite(selected.value)) continue;
       const colorValue =
-        colorByFeature === "__none"
+        effectiveColorByFeature === "__none"
           ? null
-          : (sample.byFeature.get(colorByFeature)?.value ?? null);
+          : (sample.byFeature.get(effectiveColorByFeature)?.value ?? null);
       rows.push({
         sample_id: sampleId,
         time: sample.time,
@@ -294,10 +281,10 @@ export function DriversPanel({
       });
     }
     return takeEvery(rows, 7000);
-  }, [sampleFeatureMatrix, selectedFeature, colorByFeature]);
+  }, [sampleFeatureMatrix, effectiveSelectedFeature, effectiveColorByFeature]);
 
   const takeaway = useMemo(() => {
-    if (!selectedFeature || dependenceRows.length < 12) {
+    if (!effectiveSelectedFeature || dependenceRows.length < 12) {
       return "Not enough samples for a stable directional takeaway yet.";
     }
     const corr = pearsonCorrelation(dependenceRows.map((row) => ({ x: row.x, y: row.y })));
@@ -326,7 +313,7 @@ export function DriversPanel({
           ? " The effect is stronger in summer weeks."
           : " The effect is stronger outside summer weeks.";
     return `${base}${seasonal}`;
-  }, [selectedFeature, dependenceRows]);
+  }, [effectiveSelectedFeature, dependenceRows]);
 
   const toggleGroup = (group: GroupKey) => {
     setActiveGroups((prev) => {
@@ -395,7 +382,7 @@ export function DriversPanel({
           </label>
           <label className="insightsExplorer__field">
             <span>Top N Drivers</span>
-            <select className="select" value={topN} onChange={(event) => setTopN(Number(event.target.value))}>
+            <select className="select" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
               {topNOptions.map((value) => (
                 <option key={value} value={value} disabled={value > baseMaxAvailable}>
                   {value > baseMaxAvailable ? `${value} (unavailable)` : value}
@@ -469,7 +456,7 @@ export function DriversPanel({
             impactAxisLabel={units === "probability" ? "Impact (probability)" : "Impact (log-odds)"}
             renderMode={renderMode}
             onRenderModeChange={setRenderMode}
-            selectedFeature={selectedFeature}
+            selectedFeature={effectiveSelectedFeature}
             onFeatureSelect={handleFeatureSelect}
           />
           <div className="explainabilityPlotFilters explainabilityPlotFilters--bottomRight" role="group" aria-label="Primary driver groups">
@@ -496,13 +483,13 @@ export function DriversPanel({
         </div>
       </section>
 
-      {selectedFeature && drilldownOpen && (
+      {effectiveSelectedFeature && drilldownOpen && (
         <section className="explainabilitySectionBlock" aria-label="SHAP dependence">
           <h4 className="explainabilitySectionTitle">SHAP Depedence</h4>
           <section className="explainabilityDrilldown explainabilityDependenceCard">
           <div className="explainabilityDrilldown__head">
             <div>
-              <h4>{featureLabelByName.get(selectedFeature) ?? selectedFeature}</h4>
+              <h4>{featureLabelByName.get(effectiveSelectedFeature) ?? effectiveSelectedFeature}</h4>
               <p>Dependence plot and narrative takeaway for the selected driver.</p>
             </div>
             <button type="button" className="ghostBtn" onClick={() => setDrilldownOpen(false)}>
@@ -524,10 +511,10 @@ export function DriversPanel({
             </button>
             <label className="insightsExplorer__field">
               <span>Colored by</span>
-              <select className="select" value={colorByFeature} onChange={(event) => setColorByFeature(event.target.value)}>
+              <select className="select" value={effectiveColorByFeature} onChange={(event) => setColorByFeature(event.target.value)}>
                 <option value="__none">None</option>
                 {colorByOptions
-                  .filter((feature) => feature !== selectedFeature)
+                  .filter((feature) => feature !== effectiveSelectedFeature)
                   .map((feature) => (
                     <option key={feature} value={feature}>
                       {featureLabelByName.get(feature) ?? feature}
@@ -538,8 +525,8 @@ export function DriversPanel({
           </div>
           <FeatureDependencePlot
             rows={dependenceRows}
-            xLabel={`${featureLabelByName.get(selectedFeature) ?? selectedFeature} value`}
-            colorLabel={colorByFeature === "__none" ? "None" : featureLabelByName.get(colorByFeature) ?? colorByFeature}
+            xLabel={`${featureLabelByName.get(effectiveSelectedFeature) ?? effectiveSelectedFeature} value`}
+            colorLabel={effectiveColorByFeature === "__none" ? "None" : featureLabelByName.get(effectiveColorByFeature) ?? effectiveColorByFeature}
             showTrend={showDependenceTrend}
             showBand={showDependenceBand}
           />

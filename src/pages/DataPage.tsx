@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { DataLineageGraph } from "../components/data/DataLineageGraph";
 import { PageShell } from "../components/PageShell";
 import {
@@ -13,10 +13,6 @@ import { coverageRows, coverageYears } from "./data/coverageMatrix";
 export function DataPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [lineageView, setLineageView] = useState<"high-level" | "full-feature">("high-level");
-
-  useEffect(() => {
-    setSelectedNodeId(null);
-  }, [lineageView]);
 
   const highLevelNodes = useMemo<DataLineageNodeMeta[]>(
     () => [
@@ -212,7 +208,10 @@ export function DataPage() {
                   className={`lineageViewToggle__option ${
                     lineageView === "high-level" ? "isActive" : ""
                   }`}
-                  onClick={() => setLineageView("high-level")}
+                  onClick={() => {
+                    setSelectedNodeId(null);
+                    setLineageView("high-level");
+                  }}
                 >
                   High-Level View
                 </button>
@@ -223,7 +222,10 @@ export function DataPage() {
                   className={`lineageViewToggle__option ${
                     lineageView === "full-feature" ? "isActive" : ""
                   }`}
-                  onClick={() => setLineageView("full-feature")}
+                  onClick={() => {
+                    setSelectedNodeId(null);
+                    setLineageView("full-feature");
+                  }}
                 >
                   Full-Feature View
                 </button>

@@ -486,14 +486,14 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     if (!DEBUG_MAP) return;
     const el = containerRef.current;
     if (!el) {
-      // eslint-disable-next-line no-console
+       
       console.info("[MapDebug]", label, { container: "missing" });
       return;
     }
     const rect = el.getBoundingClientRect();
     const hasCanvas = !!el.querySelector("canvas");
     const styleLoaded = mapRef.current?.isStyleLoaded();
-    // eslint-disable-next-line no-console
+     
     console.info("[MapDebug]", label, { rect, hasCanvas, styleLoaded });
   };
 
@@ -720,7 +720,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
 
           poiLoadedRef.current = true;
           poiDataRef.current = items;
-          // eslint-disable-next-line no-console
+           
           console.info(`[POI] loaded ${items.length} items from ${url}`);
           return poiDataRef.current;
         } catch (err) {
@@ -777,12 +777,12 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
           el.className = "poiMarker";
           el.setAttribute("aria-label", poi.name);
           const icon = poi.filterKey ? iconMap[poi.filterKey] : "directions_boat";
-          el.innerHTML = `<span class=\"material-symbols-rounded\">${icon}</span>`;
+          el.innerHTML = `<span class="material-symbols-rounded">${icon}</span>`;
 
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: true }).setHTML(
-            `<div class=\"poiPopup\">` +
-              `<div class=\"poiPopup__title\">${poi.name}</div>` +
-              `<div class=\"poiPopup__meta\">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div>` +
+            `<div class="poiPopup">` +
+              `<div class="poiPopup__title">${poi.name}</div>` +
+              `<div class="poiPopup__meta">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div>` +
               `</div>`
           );
 
@@ -793,7 +793,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
         });
 
       poiMarkersRef.current = markers;
-      // eslint-disable-next-line no-console
+       
       console.info(
         `[POI] rendered ${markers.length} markers (valid=${safeItems.length}, matchedFilters=${filteredItems.length})`
       );
@@ -812,7 +812,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       })
       .catch((err) => {
         if (cancelled) return;
-        // eslint-disable-next-line no-console
+         
         console.warn("[POI] failed to load places_of_interest.json", err);
       });
 
@@ -865,6 +865,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     if (!map || !mapReady) return;
     if (disableHotspots) return;
     renderForecastLayer(map);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotspotMode, hotspotPercentile, hotspotModeledCount, hotspotsEnabled, mapReady, disableHotspots]);
 
   useEffect(() => {
@@ -949,7 +950,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-left");
 
     map.on("error", (e: { error?: unknown }) => {
-      // eslint-disable-next-line no-console
+       
       console.error("[MapLibre] error:", e?.error || e);
     });
 
@@ -962,11 +963,11 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     const canvas = map.getCanvas();
     const onContextLost = (event: Event) => {
       event.preventDefault();
-      // eslint-disable-next-line no-console
+       
       console.warn("[MapLibre] WebGL context lost");
     };
     const onContextRestored = () => {
-      // eslint-disable-next-line no-console
+       
       console.warn("[MapLibre] WebGL context restored");
       if (!mapRef.current) return;
 
@@ -1216,7 +1217,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     const t2 = window.setTimeout(() => map.resize(), 250);
     const t3 = window.setTimeout(() => {
       if (!DEBUG_MAP) return;
-      // eslint-disable-next-line no-console
+       
       console.info("[MapDebug] style status", {
         styleLoaded: map.isStyleLoaded(),
         styleName: map.getStyle()?.name ?? null,
@@ -1262,6 +1263,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       map.remove();
       mapRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellPopupHtmlBuilder, enableSparklinePopup, onGridCellSelect, onMoveEndViewState, onMoveViewState]);
 
   const renderForecastLayer = (map: MapLibreMap) => {
@@ -1400,6 +1402,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       renderForecastLayer(map);
       applyLastWeekFromCache(map);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleUrl, mapReady]);
 
   const getPreviousWeek = (year: number, week: number) => {
@@ -1450,12 +1453,12 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       return { feature, props, year, week };
     });
 
-    // eslint-disable-next-line no-console
+     
     console.debug(
       "[Sightings] sample rows",
       rows.slice(0, 5).map((r) => ({ year: r.year, week: r.week }))
     );
-    // eslint-disable-next-line no-console
+     
     console.debug("[Sightings] first props", rows[0]?.props ?? null);
 
     const counts = rows.reduce(
@@ -1469,7 +1472,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       { selected: 0, previous: 0 }
     );
 
-    // eslint-disable-next-line no-console
+     
     console.debug("[Sightings] classify", {
       selected,
       previous,
@@ -1539,7 +1542,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
                 });
               } catch (err) {
                 if (fallbackForecastPath && fallbackForecastPath !== forecastPath) {
-                  // eslint-disable-next-line no-console
+                   
                   console.warn("[Forecast] explicit path failed, falling back to latest period", err);
                   forecast = await loadForecast(resolution, {
                     kind: "explicit",
@@ -1559,7 +1562,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
             }
             values = forecast?.values ?? {};
           } catch (err) {
-            // eslint-disable-next-line no-console
+             
             console.warn("[Forecast] failed to load, rendering empty layer", err);
           }
         }
@@ -1596,7 +1599,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
           scheduleForecastRender(map, () => cancelled);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn("[Forecast] failed to load grid", err);
       }
     };
@@ -1606,6 +1609,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolution, mapReady, forecastPath, fallbackForecastPath, modelId, derivedValuesByCell, derivedValueProperty, derivedFillExpr]);
 
   useEffect(() => {
@@ -1616,6 +1620,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     applyScaleToCurrentValues(values);
     renderForecastLayer(map);
     moveLastWeekToTop(map);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorScaleValues, mapReady, useExternalColorScale, activePalette, derivedValuesByCell]);
 
   useEffect(() => {
@@ -1788,6 +1793,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeseriesOpen]);
 
   useEffect(() => {
@@ -1841,6 +1847,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
 
     renderForecastLayer(map);
     moveLastWeekToTop(map);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotspotsEnabled, legendSpec, deltaLegend, disableHotspots]);
 
   useEffect(() => {
