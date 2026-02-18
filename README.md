@@ -2,6 +2,8 @@
 
 OrcaCast is a static React + TypeScript application for exploring **weekly, H3-indexed, relative likelihood surfaces** for reported orca sightings in the Pacific Northwest. It is designed for transparent spatial analysis workflows where temporal integrity, data provenance, and reproducibility are first-class concerns.
 
+<b>Application Available Here:</b> [orcacast-app.pages.dev](https://orcacast-app.pages.dev)
+
 **Important interpretation note**  
 OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance. 
 
