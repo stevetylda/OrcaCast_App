@@ -32,7 +32,7 @@ export function WelcomeModal({ open, onClose, onStartTour, onLearnMore }: Props)
       >
         <div className="modal__header welcome__header">
           <div className="welcome__titleWrap">
-            <img src="/OrcaHex_Logo.png" alt="OrcaCast logo" className="welcome__logo" />
+            <img src="/images/OrcaHex_Logo.png" alt="OrcaCast logo" className="welcome__logo" />
             <div className="modal__title welcome__title" id={titleId}>
               Welcome to OrcaCast!
             </div>
