@@ -121,7 +121,7 @@ if (import.meta.env.DEV) {
   Object.values(PALETTES).forEach((palette) => {
     if (palette.colors.length !== 8) {
       const message = `[palettes] Palette "${palette.id}" must define exactly 8 colors, got ${palette.colors.length}.`;
-      // eslint-disable-next-line no-console
+       
       console.warn(message);
       throw new Error(message);
     }

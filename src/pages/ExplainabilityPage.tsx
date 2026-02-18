@@ -76,8 +76,6 @@ export function ExplainabilityPage() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     loadExplainabilityIndex()
       .then(async (index) => {

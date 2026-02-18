@@ -64,7 +64,7 @@ export async function resolveLayerSource(config: LayerSourceConfig): Promise<Res
   }
 
   if (config.fallback_source_kind && config.fallback_source_url) {
-    // eslint-disable-next-line no-console
+     
     console.warn(`[MapData] Missing ${config.source_kind} source for ${config.id}; falling back to ${config.fallback_source_kind}.`);
     return {
       kind: config.fallback_source_kind,

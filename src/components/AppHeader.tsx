@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { H3Resolution } from "../config/dataPaths";
 import type { Period } from "../data/periods";
 import { ExpectedActivityPill } from "./ExpectedActivityPill";
@@ -60,10 +60,6 @@ export function AppHeader({
   onExitCompareMode,
 }: Props) {
   const [compareModeHovered, setCompareModeHovered] = useState(false);
-
-  useEffect(() => {
-    setCompareModeHovered(false);
-  }, [compareEnabled]);
 
   return (
     <header className="header" data-tour="top-bar">

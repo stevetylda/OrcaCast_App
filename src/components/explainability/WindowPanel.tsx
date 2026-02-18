@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DateWindow, GlobalImportanceRow, ShapSampleRow } from "../../features/explainability/types";
 import {
   buildPresetWindow,
@@ -50,17 +50,11 @@ export function WindowPanel({
   const maxAvailable = (importance.length > 0 ? importance : allImportanceForUnits).length;
   const topNOptions = [10, 20, 50];
   const highestAvailableTopN = topNOptions.filter((value) => value <= maxAvailable).at(-1) ?? topNOptions[0];
-  const effectiveTopN = Math.min(topN, maxAvailable || topN);
-
-  useEffect(() => {
-    if (!topNOptions.includes(topN)) {
-      setTopN(highestAvailableTopN);
-      return;
-    }
-    if (topN > maxAvailable && maxAvailable > 0) {
-      setTopN(highestAvailableTopN);
-    }
-  }, [topN, maxAvailable, highestAvailableTopN]);
+  const safeTopN =
+    topNOptions.includes(topN) && (maxAvailable === 0 || topN <= maxAvailable)
+      ? topN
+      : highestAvailableTopN;
+  const effectiveTopN = Math.min(safeTopN, maxAvailable || safeTopN);
 
   const applyWindow = (next: DateWindow) => {
     const normalized = clampWindow(next, minIso, maxIso);
@@ -75,7 +69,7 @@ export function WindowPanel({
         <div className="explainabilityPanel__controls">
           <label className="insightsExplorer__field">
             <span>Top N Drivers</span>
-            <select className="select" value={topN} onChange={(event) => setTopN(Number(event.target.value))}>
+            <select className="select" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
               {topNOptions.map((value) => (
                 <option key={value} value={value} disabled={value > maxAvailable}>
                   {value > maxAvailable ? `${value} (unavailable)` : value}

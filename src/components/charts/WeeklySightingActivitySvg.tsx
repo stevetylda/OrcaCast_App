@@ -63,9 +63,16 @@ export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props
   const size = useResizeObserver(wrapRef);
 
   const chart = useMemo(() => buildChart(rows), [rows]);
-  if (!chart) return null;
-
-  const { decades, weeks, valuesByDecade, maxY } = chart;
+  const chartData = useMemo(
+    () => ({
+      decades: chart?.decades ?? [],
+      weeks: chart?.weeks ?? [],
+      valuesByDecade: chart?.valuesByDecade ?? new Map<number, number[]>(),
+      maxY: chart?.maxY ?? 1,
+    }),
+    [chart]
+  );
+  const { decades, weeks, valuesByDecade, maxY } = chartData;
 
   // Responsive dimensions
   const width = Math.max(320, Math.floor(size.width || 720));
@@ -127,6 +134,8 @@ export function WeeklySightingActivitySvg({ rows, currentWeek, darkMode }: Props
   const labelOnLeft = currentX > margin.left + plotWidth - 160;
   const labelX = labelOnLeft ? currentX - 10 : currentX + 10;
   const labelAnchor: "start" | "end" = labelOnLeft ? "end" : "start";
+
+  if (!chart) return null;
 
   return (
     <div

@@ -82,7 +82,7 @@ export function TimeseriesModal({
         setPayload(data);
         setPlotError(null);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn("[Timeseries] failed to load activity data", err);
         setPlotError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -122,7 +122,7 @@ export function TimeseriesModal({
       }
     };
     loadForecastWeek();
-  }, [open, resolution]);
+  }, [open, resolution, forecastPath]);
 
   const activeWeek = forecastWeek ?? currentWeek;
 
