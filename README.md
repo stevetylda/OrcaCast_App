@@ -1,15 +1,9 @@
 # OrcaCast App
 
-OrcaCast is a static React + TypeScript geospatial application for exploring **weekly, H3-indexed, relative likelihood surfaces** for reported orca sightings in the Pacific Northwest. It is designed for transparent spatial analysis workflows where temporal integrity, data provenance, and reproducibility are first-class concerns.
+OrcaCast is a static React + TypeScript application for exploring **weekly, H3-indexed, relative likelihood surfaces** for reported orca sightings in the Pacific Northwest. It is designed for transparent spatial analysis workflows where temporal integrity, data provenance, and reproducibility are first-class concerns.
 
-> **Important interpretation note**  
-> OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance.
-It combines:
-- H3 grid-based forecast layers (`H4`, `H5`, `H6`)
-- Last-week sightings overlays
-- Optional blurred KDE contour overlays
-- Map tools (hotspots, POIs, timeseries, guided tour)
-- Supporting pages (`About`, `Data`, `Models`, `Explainability`, `Settings`)
+**Important interpretation note**  
+OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance. 
 
 ---
 
@@ -35,15 +29,14 @@ It combines:
 
 ## 1. Product Overview
 
-OrcaCast combines:
+This application combines:
 
 - H3 forecast layers at multiple resolutions (`H4`, `H5`, `H6`)
-- Optional overlays for last-week sightings and blurred KDE contours
-- Compare workflows (single swipe and dual-map comparison)
-- User controls for map theme, ecotype, layer mode, and view preferences
-- Supporting pages for About, Data provenance, Model catalog, and app settings
+- Model Compare (single swipe and dual-map comparison)
+- User controls for map theme, layer mode, and view preferences
+- Supporting pages for About, Data provenance, Model catalog, and Model Explainability
 
-The app is fully static and client-rendered; no backend runtime is required to serve the core experience.
+The app is fully static and client-rendered; no backend runtime is required to serve the core experience. This is to reduce operational costs at the drawback of slower load times on client side.
 
 ---
 
@@ -58,17 +51,17 @@ The app is fully static and client-rendered; no backend runtime is required to s
 
 ### Comparative analysis workflows
 
-- Compare model outputs across models, periods, and resolutions
+- Compare outputs across models, periods, and resolutions
 - Use swipe or dual-map interactions for side-by-side interpretation
 - Inspect relative differences without changing source datasets
+- Compare actuals to model outputs
 
-### Context pages for trust and provenance
+### Context Pages
 
 - **About**: interpretation guidance, caveats, and responsible use
 - **Data**: lineage diagrams, dynamic/static coverage views, and provider context
-- **Models**: model catalog cards and explanatory metadata
-- **Insights**: diagnostics area (currently in “Coming Soon” state)
-- **Settings**: default view preferences and UX state toggles
+- **Models**: model catalog cards and performance metrics (currently in progress state)
+- **Explainability**: model diagnostics area (currently in progress state)
 
 ---
 
@@ -79,72 +72,38 @@ OrcaCast routes are configured in `src/App.tsx`:
 - `/` → Map
 - `/about` → About
 - `/models` → Models
-- `/insights` → Insights
+- `/explainability` → Explainability
 - `/data` → Data
-- `/settings` → Settings
-
-> The gallery below expects screenshots in `docs/screenshots/`.  
-> If images are missing, capture them locally after starting the app (see [Screenshot capture workflow](#screenshot-capture-workflow)).
 
 ### Map (`/`)
 
 Interactive forecast map with resolution controls, model/period selection, and compare workflows.
 
-![Map page screenshot](docs/screenshots/map.png)
+![Map page screenshot](docs/screenshots/OrcaCast_Map.png)
 
 ### About (`/about`)
 
 Interpretation guidance, grid-size explanations, limitations, and responsible-use messaging.
 
-![About page screenshot](docs/screenshots/about.png)
+![About page screenshot](docs/screenshots/OrcaCast_About.png)
 
-### Models (`/models`)
+### Models (`/models`) [Coming Soon]
 
 Model catalog interface with card/carousel presentation and model metadata.
 
-![Models page screenshot](docs/screenshots/models.png)
+![Models page screenshot](docs/screenshots/OrcaCast_Models.png)
 
-### Insights (`/insights`)
+### Insights (`/explainability`) [Coming Soon]
 
-Diagnostics/analysis section scaffold currently marked as “Coming Soon.”
+Model diagnostics section scaffold
 
-![Insights page screenshot](docs/screenshots/insights.png)
+![Explainability page screenshot](docs/screenshots/OrcaCast_Explainability.png)
 
 ### Data (`/data`)
 
 Data lineage, coverage matrix, source acknowledgements, and rendering/provider context.
 
-![Data page screenshot](docs/screenshots/data.png)
-
-### Settings (`/settings`)
-
-Theme/default view settings and map behavior preferences.
-
-![Settings page screenshot](docs/screenshots/settings.png)
-
-### Screenshot capture workflow
-
-1. Start the app:
-
-```bash
-npm run dev -- --host 0.0.0.0 --port 4173
-```
-
-2. Navigate each route and save screenshots into:
-
-```text
-docs/screenshots/
-  map.png
-  about.png
-  models.png
-  insights.png
-  data.png
-  settings.png
-```
-
-3. Keep file names stable so README links remain valid.
-
----
+![Data page screenshot](docs/screenshots/OrcaCast_Data.png)
 
 ## 4. Architecture at a Glance
 
@@ -239,13 +198,13 @@ The loader supports multiple JSON payload variants.
 }
 ```
 
-When multiple models are present, the app can surface a synthetic `consensus` option (mean by cell).
+When multiple models are present, the app can surface a synthetic `consensus` option (mean by cell). Note: this is not a valid verified forecast but can be helpful to see where all models agree.
 
 ---
 
 ## 7. Temporal / Spatial / Evaluation Integrity
 
-Because OrcaCast supports scientific/analytical interpretation, guard against silent drift in these areas:
+Guard against silent drift in these areas:
 
 ### Temporal integrity
 
@@ -263,7 +222,6 @@ Because OrcaCast supports scientific/analytical interpretation, guard against si
 - `/models`
 - `/explainability`
 - `/data`
-- `/settings`
 
 ### Evaluation integrity
 
@@ -335,7 +293,6 @@ Path builders for:
 
 - grids
 - weekly forecasts
-- KDE contour overlays
 - actuals/sightings paths
 
 ### `vite.config.ts`
@@ -348,20 +305,18 @@ Build/serve base path is currently `/`. If deploying under a subpath, adjust `ba
 
 Before merging behavior-changing updates:
 
-1. **Route sanity**: verify all routed pages load (`/`, `/about`, `/models`, `/insights`, `/data`, `/settings`)
+1. **Route sanity**: verify all routed pages load (`/`, `/about`, `/models`, `/explainability`, `/data`)
 2. **Forecast load sanity**: select multiple periods/resolutions and confirm map layers render
 3. **Overlay sanity**: toggle last-week sightings and KDE contours on/off
 4. **Compare sanity**: test compare mode for at least one period pair and model pair
 5. **Data integrity spot-check**: open one forecast JSON and validate H3 keys align with target grid
 6. **Build/lint**: run `npm run build` and `npm run lint`
 
-For scientific validation workflows, also maintain a lightweight canary run that confirms stable counts/coverage after data refreshes.
-
 ---
 
 ## 11. Deployment
 
-### Cloudflare Pages (recommended static deploy)
+### Cloudflare Pages
 Explainability artifact builder CLI:
 
 - `python3 -m src.cli explainability build --run-id ... --model-id ... --target ... --sample-n 50000 --top-k-interactions 50`
@@ -390,11 +345,6 @@ Because OrcaCast is an SPA, ensure host-level fallback routing is configured so 
 
 - Confirm matching `<year>_<week>_<Hn>.json` exists for each configured period
 - Verify model id selection exists in multi-model payloads
-
-### KDE toggle warns or appears empty
-
-- Check contour file availability under `weekly_blurred`
-- Confirm resolution suffix in filename matches active resolution
 
 ### Inconsistent behavior between runs
 
@@ -431,7 +381,7 @@ src/
     MapPage.tsx
     AboutPage.tsx
     ModelsPage.tsx
-    InsightsPage.tsx
+    ExplainabilityPage.tsx
     DataPage.tsx
     SettingsPage.tsx
   state/
@@ -449,7 +399,7 @@ When making model/data-facing changes:
 - Prefer minimal diffs that preserve behavior unless behavior change is intended
 - Document whether outputs change and under what conditions
 - Keep temporal/spatial assumptions explicit in code comments and PR notes
-- Avoid broad refactors that complicate traceability for scientific review
+- Avoid broad refactors that complicate traceability for review
 
 When changing UI-only behavior:
 
@@ -462,5 +412,3 @@ When changing UI-only behavior:
 
 - Basemap and rendering acknowledgements are surfaced in the Data page.
 - OrcaCast is intended for educational and planning use with wildlife-safe practices.
-
-If your deployment requires additional legal notices, include them in the app footer and hosting documentation.
