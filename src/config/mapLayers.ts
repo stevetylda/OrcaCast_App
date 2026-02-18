@@ -23,11 +23,8 @@ function withBase(path: string): string {
 export const LAST_WEEK_LAYER_CONFIG: LayerConfig = {
   id: "last-week-sightings",
   type: "circle",
-  source_kind: "vector_tiles",
-  source_url: withBase("tiles/last_week_sightings/{z}/{x}/{y}.pbf"),
-  source_layer: "last_week_sightings",
-  fallback_source_kind: "geojson",
-  fallback_source_url: withBase("data/last_week_sightings"),
+  source_kind: "geojson",
+  source_url: withBase("data/last_week_sightings"),
   minzoom: 0,
   maxzoom: 14,
   metadata: {

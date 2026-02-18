@@ -1654,7 +1654,13 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       if (!resolved || !active) return;
 
       if (resolved.kind === "vector_tiles") {
-        ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] }, LAST_WEEK_VECTOR_SOURCE_ID, resolved.sourceLayer);
+        ensureLastWeekLayer(
+          map,
+          { type: "FeatureCollection", features: [] },
+          LAST_WEEK_VECTOR_SOURCE_ID,
+          resolved.sourceLayer,
+          resolved.url
+        );
         applyLastWeekModeFilters(
           map,
           { year: selectedWeekYear, week: selectedWeek },
@@ -2075,7 +2081,8 @@ function ensureLastWeekLayer(
   map: MapLibreMap,
   data: FeatureCollection,
   sourceId = LAST_WEEK_SOURCE_ID,
-  sourceLayer?: string
+  sourceLayer?: string,
+  vectorTilesUrl?: string
 ) {
   if (map.getSource(sourceId)) {
     if (!sourceLayer) {
@@ -2083,12 +2090,29 @@ function ensureLastWeekLayer(
       source.setData(data);
     }
   } else if (sourceLayer) {
-    map.addSource(sourceId, {
-      type: "vector",
-      tiles: [LAST_WEEK_LAYER_CONFIG.source_url],
-      minzoom: LAST_WEEK_LAYER_CONFIG.minzoom,
-      maxzoom: LAST_WEEK_LAYER_CONFIG.maxzoom,
-    });
+    const rawTilesUrl = vectorTilesUrl ?? LAST_WEEK_LAYER_CONFIG.source_url;
+    const normalizedUrl =
+      /^https?:\/\//i.test(rawTilesUrl) || rawTilesUrl.startsWith("//")
+        ? rawTilesUrl
+        : `${window.location.origin}${rawTilesUrl.startsWith("/") ? rawTilesUrl : `/${rawTilesUrl}`}`;
+    const isPmtilesSource =
+      rawTilesUrl.startsWith("pmtiles://") || /\.pmtiles(\?|$)/i.test(rawTilesUrl);
+    if (isPmtilesSource) {
+      const pmtilesUrl = normalizedUrl.startsWith("pmtiles://")
+        ? normalizedUrl
+        : `pmtiles://${normalizedUrl}`;
+      map.addSource(sourceId, {
+        type: "vector",
+        url: pmtilesUrl,
+      });
+    } else {
+      map.addSource(sourceId, {
+        type: "vector",
+        tiles: [normalizedUrl],
+        minzoom: LAST_WEEK_LAYER_CONFIG.minzoom,
+        maxzoom: LAST_WEEK_LAYER_CONFIG.maxzoom,
+      });
+    }
   } else {
     map.addSource(sourceId, { type: "geojson", data });
   }

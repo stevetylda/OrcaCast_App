@@ -10,6 +10,7 @@ export type ResolvedLayerSource = {
 const availabilityCache = new Map<string, boolean>();
 
 function probeUrl(url: string): string {
+  if (url.startsWith("pmtiles://")) return url.slice("pmtiles://".length);
   return url.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0");
 }
 
@@ -17,8 +18,32 @@ async function urlExists(url: string): Promise<boolean> {
   const target = probeUrl(url);
   if (availabilityCache.has(target)) return availabilityCache.get(target) ?? false;
   try {
-    const res = await fetch(target, { method: "HEAD", cache: "no-store" });
-    const ok = res.ok;
+    const isPmtiles = /\.pmtiles(\?|$)/i.test(target);
+    if (isPmtiles) {
+      const res = await fetch(target, { method: "HEAD", cache: "no-store" });
+      const ok = res.ok;
+      availabilityCache.set(target, ok);
+      return ok;
+    }
+
+    const isVectorTile = /\.pbf(\?|$)/i.test(target);
+    if (!isVectorTile) {
+      const res = await fetch(target, { method: "HEAD", cache: "no-store" });
+      const ok = res.ok;
+      availabilityCache.set(target, ok);
+      return ok;
+    }
+
+    const res = await fetch(target, { method: "GET", cache: "no-store" });
+    if (!res.ok) {
+      availabilityCache.set(target, false);
+      return false;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    // MapLibre expects decoded MVT protobuf bytes; if we receive gzip bytes
+    // without proper content-encoding handling, parsing fails.
+    const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+    const ok = !isGzip;
     availabilityCache.set(target, ok);
     return ok;
   } catch {
