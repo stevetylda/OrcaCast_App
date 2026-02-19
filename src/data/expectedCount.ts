@@ -33,6 +33,7 @@ type ActualActivityPayload = {
     stat_week?: number;
     period?: number;
     actual_count?: number;
+    expected_count?: number;
   }>;
 };
 
@@ -73,7 +74,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 
   for (const candidate of candidates) {
     try {
-      const res = await fetch(candidate, { cache: "force-cache" });
+      const res = await fetch(candidate, { cache: "no-store" });
       if (!res.ok) {
         lastError = new Error(`Failed to fetch ${candidate}: ${res.status}`);
         continue;
@@ -100,14 +101,7 @@ export async function loadExpectedCountSeries(
   if (cached) return cached;
 
   const preferredUrl = withBase(`data/expected_count/${resolution}_EXPECTED_ACTIVITY.json`);
-  const fallbackUrl = withBase(`data/expected_count/${resolution}.json`);
-
-  let payload: ExpectedCountPayload;
-  try {
-    payload = await fetchJson<ExpectedCountPayload>(preferredUrl);
-  } catch {
-    payload = await fetchJson<ExpectedCountPayload>(fallbackUrl);
-  }
+  const payload = await fetchJson<ExpectedCountPayload>(preferredUrl);
 
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
 
@@ -146,21 +140,14 @@ export async function loadActualActivitySeries(
   if (cached) return cached;
 
   const preferredUrl = withBase(`data/expected_count/${resolution}_ACTUAL_ACTIVITY.json`);
-  const fallbackUrl = withBase(`data/expected_count/${resolution}_ACTUAL.json`);
-
-  let payload: ActualActivityPayload;
-  try {
-    payload = await fetchJson<ActualActivityPayload>(preferredUrl);
-  } catch {
-    payload = await fetchJson<ActualActivityPayload>(fallbackUrl);
-  }
+  const payload = await fetchJson<ActualActivityPayload>(preferredUrl);
 
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
   const parsed = rows
     .map((row) => {
       const year = Number(row.year);
       const statWeek = Number(row.stat_week ?? row.period);
-      const actualCount = Number(row.actual_count);
+      const actualCount = Number(row.actual_count ?? row.expected_count);
       if (!Number.isFinite(year) || !Number.isFinite(statWeek) || !Number.isFinite(actualCount)) {
         return null;
       }

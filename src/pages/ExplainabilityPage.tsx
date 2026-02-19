@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "../components/PageShell";
 import { ComparePanel } from "../components/explainability/ComparePanel";
 import { DriversPanel } from "../components/explainability/DriversPanel";
-import { ExplainabilityHeader } from "../components/explainability/ExplainabilityHeader";
+import { ExplainabilityResolutionToggle } from "../components/explainability/ExplainabilityResolutionToggle";
 import { ExplainabilityToggle } from "../components/explainability/ExplainabilityToggle";
 import { InteractionsPanel } from "../components/explainability/InteractionsPanel";
+import { MovementPanel } from "../components/explainability/MovementPanel";
 import { WindowPanel } from "../components/explainability/WindowPanel";
 import {
   loadExplainabilityFeatures,
@@ -29,7 +30,7 @@ import type {
 import { DEFAULT_EXPLAINABILITY_VIEW, buildPresetWindow, clampWindow } from "../features/explainability/utils";
 
 // Explainability UI ownership map:
-// - Header/chips/explainer: src/components/explainability/ExplainabilityHeader.tsx
+// - Context dock + segmented toggles: src/pages/ExplainabilityPage.tsx
 // - Segmented toggle: src/components/explainability/ExplainabilityToggle.tsx
 // - Chart header controls/cards: src/components/explainability/DriversPanel.tsx + src/components/explainability/WindowPanel.tsx
 // - Beeswarm/legend/axis layer: src/components/explainability/plots.tsx
@@ -149,7 +150,13 @@ export function ExplainabilityPage() {
 
   if (loading) {
     return (
-      <PageShell title="Explainability" stageClassName="pageStage--data" fullBleed showBottomRail={false} showFooter={false}>
+      <PageShell
+        title="Model Explainability"
+        stageClassName="pageStage--data pageStage--explainability"
+        fullBleed
+        showBottomRail={false}
+        showFooter={false}
+      >
         <div className="dataPageBg explainabilityPageBg">
           <div className="dataPageContent explainabilityPageContent">
             <Skeleton />
@@ -161,7 +168,13 @@ export function ExplainabilityPage() {
 
   if (error || !meta || !context) {
     return (
-      <PageShell title="Explainability" stageClassName="pageStage--data" fullBleed showBottomRail={false} showFooter={false}>
+      <PageShell
+        title="Model Explainability"
+        stageClassName="pageStage--data pageStage--explainability"
+        fullBleed
+        showBottomRail={false}
+        showFooter={false}
+      >
         <div className="dataPageBg explainabilityPageBg">
           <div className="dataPageContent explainabilityPageContent">
             <section className="pageSection">
@@ -175,12 +188,11 @@ export function ExplainabilityPage() {
 
   const minIso = meta.time_min;
   const maxIso = meta.time_max;
-  const availableResolutions = new Set([meta.resolution]);
   const resolutionOptions = RESOLUTION_CHOICES.map((value) => ({
     value,
-    label: availableResolutions.has(value) ? RESOLUTION_LABELS[value] : `${RESOLUTION_LABELS[value]} (unavailable)`,
-    disabled: !availableResolutions.has(value),
+    label: RESOLUTION_LABELS[value],
   }));
+  const modelOptions = [{ value: "composite_linear_logit", label: "Composite Linear Logit" }];
   const safeWindowA = clampWindow(windowA, minIso, maxIso);
   const safeWindowB = clampWindow(windowB, minIso, maxIso);
   const version = (() => {
@@ -190,67 +202,88 @@ export function ExplainabilityPage() {
   })();
 
   return (
-    <PageShell title="Explainability" stageClassName="pageStage--data" fullBleed showBottomRail={false} showFooter={false}>
+    <PageShell
+      title="Model Explainability"
+      stageClassName="pageStage--data pageStage--explainability"
+      fullBleed
+      showBottomRail={false}
+      showFooter={false}
+    >
       <div className="dataPageBg explainabilityPageBg">
         <div className="dataPageContent explainabilityPageContent">
-          <ExplainabilityHeader
-            title="Explainability"
-          />
-          <div className="explainabilityToggleSticky">
-            <ExplainabilityToggle value={view} onChange={setView} />
+          <div className="explainabilityLayout">
+            <aside className="explainabilitySideNav" aria-label="Explainability sections">
+              <ExplainabilityToggle value={view} onChange={setView} orientation="vertical" className="explainabilitySideTabs" />
+            </aside>
+
+            <div className="explainabilityMainContent">
+              <div className="explainabilityToggleSticky">
+                <div className="explainabilityResolutionDock">
+                  <ExplainabilityResolutionToggle value={resolution} options={resolutionOptions} onChange={setResolution} />
+                </div>
+              </div>
+
+              {view === "drivers" && (
+                <DriversPanel
+                  samples={samples}
+                  globalImportance={globalImportance}
+                  featureLabelByName={featureLabelByName}
+                  featureTypeByName={featureTypeByName}
+                  modelId={modelId}
+                  modelOptions={modelOptions}
+                  onModelChange={setModelId}
+                />
+              )}
+
+              {view === "window" && (
+                <WindowPanel
+                  allSamples={samples}
+                  allImportance={globalImportance}
+                  featureLabelByName={featureLabelByName}
+                  featureTypeByName={featureTypeByName}
+                  modelId={modelId}
+                  modelOptions={modelOptions}
+                  onModelChange={setModelId}
+                  minIso={minIso}
+                  maxIso={maxIso}
+                  initialWindow={safeWindowB}
+                  onWindowChange={(window) => setWindowB(window)}
+                  onCompareToAllTime={() => {
+                    setWindowA({ start: minIso, end: maxIso });
+                    setView("compare");
+                  }}
+                />
+              )}
+
+              {view === "interactions" && (
+                <InteractionsPanel
+                  supported={meta.supports_interactions}
+                  ranking={interactionRanking}
+                  samples={interactionSamples}
+                  modelId={modelId}
+                  modelOptions={modelOptions}
+                  onModelChange={setModelId}
+                />
+              )}
+
+              {view === "compare" && (
+                <ComparePanel
+                  allSamples={samples}
+                  modelId={modelId}
+                  modelOptions={modelOptions}
+                  onModelChange={setModelId}
+                  minIso={minIso}
+                  maxIso={maxIso}
+                  windowA={safeWindowA}
+                  windowB={safeWindowB}
+                  onWindowAChange={(window) => setWindowA(clampWindow(window, minIso, maxIso))}
+                  onWindowBChange={(window) => setWindowB(clampWindow(window, minIso, maxIso))}
+                />
+              )}
+
+              {view === "movement" && <MovementPanel resolution={resolution} />}
+            </div>
           </div>
-
-          {view === "drivers" && (
-            <DriversPanel
-              samples={samples}
-              globalImportance={globalImportance}
-              featureLabelByName={featureLabelByName}
-              featureTypeByName={featureTypeByName}
-              modelId={modelId}
-              modelOptions={[{ value: "composite_linear_logit", label: "Composite Linear Logit" }]}
-              onModelChange={setModelId}
-              resolution={resolution}
-              resolutionOptions={resolutionOptions}
-              onResolutionChange={setResolution}
-            />
-          )}
-
-          {view === "window" && (
-            <WindowPanel
-              allSamples={samples}
-              allImportance={globalImportance}
-              featureLabelByName={featureLabelByName}
-              featureTypeByName={featureTypeByName}
-              minIso={minIso}
-              maxIso={maxIso}
-              initialWindow={safeWindowB}
-              onWindowChange={(window) => setWindowB(window)}
-              onCompareToAllTime={() => {
-                setWindowA({ start: minIso, end: maxIso });
-                setView("compare");
-              }}
-            />
-          )}
-
-          {view === "interactions" && (
-            <InteractionsPanel
-              supported={meta.supports_interactions}
-              ranking={interactionRanking}
-              samples={interactionSamples}
-            />
-          )}
-
-          {view === "compare" && (
-            <ComparePanel
-              allSamples={samples}
-              minIso={minIso}
-              maxIso={maxIso}
-              windowA={safeWindowA}
-              windowB={safeWindowB}
-              onWindowAChange={(window) => setWindowA(clampWindow(window, minIso, maxIso))}
-              onWindowBChange={(window) => setWindowB(clampWindow(window, minIso, maxIso))}
-            />
-          )}
 
           <div className="explainabilityBottomBar footer" role="note" aria-label={`Explainability version ${version}`}>
             <div className="footer__row">

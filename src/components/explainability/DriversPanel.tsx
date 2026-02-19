@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FeatureDependencePlot, type DependenceRow, ShapSummaryPlot } from "./plots";
 import type { GlobalImportanceRow, ShapSampleRow } from "../../features/explainability/types";
 import {
@@ -15,9 +15,6 @@ type Props = {
   modelId: string;
   modelOptions: Array<{ value: string; label: string }>;
   onModelChange: (value: string) => void;
-  resolution: string;
-  resolutionOptions: Array<{ value: string; label: string; disabled?: boolean }>;
-  onResolutionChange: (value: string) => void;
 };
 
 type GroupKey = "baseline" | "static" | "temporal" | "spicy" | "other";
@@ -105,10 +102,8 @@ export function DriversPanel({
   modelId,
   modelOptions,
   onModelChange,
-  resolution,
-  resolutionOptions,
-  onResolutionChange,
 }: Props) {
+  const driversPlotSectionRef = useRef<HTMLElement | null>(null);
   const [topN, setTopN] = useState(20);
   const [units, setUnits] = useState<"logit" | "probability">("probability");
   const [infoOpen, setInfoOpen] = useState(false);
@@ -130,8 +125,6 @@ export function DriversPanel({
         : computeGlobalImportanceFromSamples(unitSamples),
     [globalImportance, unitSamples, units]
   );
-  const nSamples = useMemo(() => uniqueSampleCount(samples), [samples]);
-
   const featureGroupByName = useMemo(() => {
     const map = new Map<string, GroupKey>();
     for (const row of sorted) {
@@ -329,8 +322,45 @@ export function DriversPanel({
     setDrilldownOpen(true);
   };
 
+  const handleTopDriverClick = (featureName: string) => {
+    setSelectedFeature(featureName);
+    driversPlotSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <section className="pageSection explainabilityPanel">
+    <section className="pageSection explainabilityPanel explainabilityPanel--drivers">
+      <div className="explainabilityDriversSelectorDock" role="group" aria-label="Drivers controls">
+        <label className="insightsExplorer__field">
+          <select className="select" aria-label="Model" value={modelId} onChange={(event) => onModelChange(event.target.value)}>
+            {modelOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {`Model: ${option.label}`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="insightsExplorer__field">
+          <select className="select" aria-label="Top N drivers" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
+            {topNOptions.map((value) => (
+              <option key={value} value={value} disabled={value > baseMaxAvailable}>
+                {value > baseMaxAvailable ? `Top N: ${value} (unavailable)` : `Top N: ${value}`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="insightsExplorer__field">
+          <select
+            className="select"
+            aria-label="Impact units"
+            value={units}
+            onChange={(event) => setUnits(event.target.value as "logit" | "probability")}
+          >
+            <option value="logit">Impact: Logit</option>
+            <option value="probability">Impact: Probability</option>
+          </select>
+        </label>
+      </div>
+
       <div className="explainabilityPanel__head">
         <div className="explainabilityPanel__titleWrap">
           <div className="explainabilityPanel__titleRow">
@@ -359,61 +389,6 @@ export function DriversPanel({
             </aside>
           )}
         </div>
-        <div className="explainabilityPanel__controls">
-          <label className="insightsExplorer__field">
-            <span>Model</span>
-            <select className="select" value={modelId} onChange={(event) => onModelChange(event.target.value)}>
-              {modelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="insightsExplorer__field">
-            <span>Resolution</span>
-            <select className="select" value={resolution} onChange={(event) => onResolutionChange(event.target.value)}>
-              {resolutionOptions.map((option) => (
-                <option key={option.value} value={option.value} disabled={option.disabled}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="insightsExplorer__field">
-            <span>Top N Drivers</span>
-            <select className="select" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
-              {topNOptions.map((value) => (
-                <option key={value} value={value} disabled={value > baseMaxAvailable}>
-                  {value > baseMaxAvailable ? `${value} (unavailable)` : value}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="insightsExplorer__field">
-            <span className="explainabilityFieldLabel">
-              Impact units
-              <span className="explainabilityInfoWrap">
-                <button type="button" className="explainabilityInfoDot" aria-label="Impact units help">
-                  i
-                </button>
-                <span className="explainabilityInfoHelp" role="tooltip">
-                  Probability = approximate change in predicted probability.
-                  <br />
-                  Logit = change in log-odds; larger magnitude = stronger push.
-                </span>
-              </span>
-            </span>
-            <select
-              className="select"
-              value={units}
-              onChange={(event) => setUnits(event.target.value as "logit" | "probability")}
-            >
-              <option value="logit">Logit</option>
-              <option value="probability">Probability</option>
-            </select>
-          </label>
-        </div>
       </div>
 
       <section className="explainabilitySectionBlock" aria-label="Top 3 drivers">
@@ -421,45 +396,46 @@ export function DriversPanel({
         <div className="explainabilityDriversSummary" aria-label="Top drivers summary">
           {summaryTop3.map((item, idx) => {
             const label = featureLabelByName.get(item.feature) ?? item.feature;
-            const directionText =
+            const effectChipLabel =
               item.direction === "high_raises"
-                ? "high -> raises prediction"
+                ? "↑ raises"
                 : item.direction === "high_lowers"
-                  ? "high -> lowers prediction"
-                  : "high -> mixed";
+                  ? "↓ lowers"
+                  : "↕ mixed";
+            const effectChipClass =
+              item.direction === "high_raises"
+                ? "isRaise"
+                : item.direction === "high_lowers"
+                  ? "isLower"
+                  : "isMixed";
             return (
-              <article key={item.feature} className="explainabilityDriversSummary__card">
+              <button
+                type="button"
+                key={item.feature}
+                className={
+                  effectiveSelectedFeature === item.feature
+                    ? "explainabilityDriversSummary__card explainabilityDriversSummary__card--active"
+                    : "explainabilityDriversSummary__card"
+                }
+                onClick={() => handleTopDriverClick(item.feature)}
+                aria-label={`Select ${label} in SHAP drivers`}
+              >
                 <div className="explainabilityDriversSummary__rank">{idx + 1}</div>
                 <div className="explainabilityDriversSummary__body">
                   <strong>{label}</strong>
-                  <p>{directionText}</p>
-                  <span>
-                    n={item.n.toLocaleString()} | volatility: {item.volatility}
-                  </span>
                 </div>
-              </article>
+                <span className={`explainabilityDriversSummary__effectChip ${effectChipClass}`}>{effectChipLabel}</span>
+              </button>
             );
           })}
           {summaryTop3.length === 0 && <p className="pageNote">No drivers match current filters.</p>}
         </div>
       </section>
 
-      <section className="explainabilitySectionBlock" aria-label="SHAP drivers">
+      <section ref={driversPlotSectionRef} className="explainabilitySectionBlock" aria-label="SHAP drivers">
         <h4 className="explainabilitySectionTitle">SHAP Drivers</h4>
         <div className="explainabilityDriversPlotCard">
-          <ShapSummaryPlot
-            samples={groupFilteredSamples}
-            ranking={rankedForView}
-            topN={effectiveTopN}
-            featureLabelByName={featureLabelByName}
-            featureTypeByName={featureTypeByName}
-            impactAxisLabel={units === "probability" ? "Impact (probability)" : "Impact (log-odds)"}
-            renderMode={renderMode}
-            onRenderModeChange={setRenderMode}
-            selectedFeature={effectiveSelectedFeature}
-            onFeatureSelect={handleFeatureSelect}
-          />
-          <div className="explainabilityPlotFilters explainabilityPlotFilters--bottomRight" role="group" aria-label="Primary driver groups">
+          <div className="explainabilityPlotFilters" role="group" aria-label="Primary driver groups">
             {GROUP_OPTIONS.filter((group) => PRIMARY_GROUPS.includes(group.key)).map((group) => {
               const hasAny = sorted.some((row) => (featureGroupByName.get(row.feature_name) ?? "other") === group.key);
               const active = activeGroups.has(group.key);
@@ -476,10 +452,18 @@ export function DriversPanel({
               );
             })}
           </div>
-          <p className="explainabilityPanel__foot">
-            All-time | n={nSamples.toLocaleString()} | Sorted by mean(|impact|) | Units: {units} | Top N: {effectiveTopN} |
-            Available features: {maxAvailable}
-          </p>
+          <ShapSummaryPlot
+            samples={groupFilteredSamples}
+            ranking={rankedForView}
+            topN={effectiveTopN}
+            featureLabelByName={featureLabelByName}
+            featureTypeByName={featureTypeByName}
+            impactAxisLabel={units === "probability" ? "Impact (probability)" : "Impact (log-odds)"}
+            renderMode={renderMode}
+            onRenderModeChange={setRenderMode}
+            selectedFeature={effectiveSelectedFeature}
+            onFeatureSelect={handleFeatureSelect}
+          />
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-export type ExplainabilityView = "drivers" | "window" | "interactions" | "compare";
+export type ExplainabilityView = "drivers" | "window" | "interactions" | "compare" | "movement";
 
 export type ExplainabilityMeta = {
   run_id: string;
