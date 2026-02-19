@@ -16,6 +16,9 @@ type Props = {
   allImportance: GlobalImportanceRow[];
   featureLabelByName: Map<string, string>;
   featureTypeByName: Map<string, string>;
+  modelId: string;
+  modelOptions: { value: string; label: string }[];
+  onModelChange: (value: string) => void;
   minIso: string;
   maxIso: string;
   initialWindow: DateWindow;
@@ -28,6 +31,9 @@ export function WindowPanel({
   allImportance,
   featureLabelByName,
   featureTypeByName,
+  modelId,
+  modelOptions,
+  onModelChange,
   minIso,
   maxIso,
   initialWindow,
@@ -63,48 +69,40 @@ export function WindowPanel({
   };
 
   return (
-    <section className="pageSection explainabilityPanel">
+    <section className="pageSection explainabilityPanel explainabilityPanel--window">
+      <div className="explainabilityPanelSelectorDock" role="group" aria-label="Window controls">
+        <label className="insightsExplorer__field">
+          <select className="select" aria-label="Model" value={modelId} onChange={(event) => onModelChange(event.target.value)}>
+            {modelOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {`Model: ${option.label}`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="insightsExplorer__field">
+          <select className="select" aria-label="Top N drivers" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
+            {topNOptions.map((value) => (
+              <option key={value} value={value} disabled={value > maxAvailable}>
+                {value > maxAvailable ? `Top N: ${value} (unavailable)` : `Top N: ${value}`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="insightsExplorer__field">
+          <select
+            className="select"
+            aria-label="Impact units"
+            value={units}
+            onChange={(event) => setUnits(event.target.value as "logit" | "probability")}
+          >
+            <option value="logit">Impact: Logit</option>
+            <option value="probability">Impact: Probability</option>
+          </select>
+        </label>
+      </div>
       <div className="explainabilityPanel__head">
         <h3>Drivers (Window)</h3>
-        <div className="explainabilityPanel__controls">
-          <label className="insightsExplorer__field">
-            <span>Top N Drivers</span>
-            <select className="select" value={safeTopN} onChange={(event) => setTopN(Number(event.target.value))}>
-              {topNOptions.map((value) => (
-                <option key={value} value={value} disabled={value > maxAvailable}>
-                  {value > maxAvailable ? `${value} (unavailable)` : value}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="insightsExplorer__field">
-            <span className="explainabilityFieldLabel">
-              Impact units
-              <span className="explainabilityInfoWrap">
-                <button
-                  type="button"
-                  className="explainabilityInfoDot"
-                  aria-label="Impact units help"
-                >
-                  i
-                </button>
-                <span className="explainabilityInfoHelp" role="tooltip">
-                  Probability = approximate change in predicted probability.
-                  <br />
-                  Logit = change in log-odds; larger magnitude = stronger push.
-                </span>
-              </span>
-            </span>
-            <select
-              className="select"
-              value={units}
-              onChange={(event) => setUnits(event.target.value as "logit" | "probability")}
-            >
-              <option value="logit">Logit</option>
-              <option value="probability">Probability</option>
-            </select>
-          </label>
-        </div>
       </div>
 
       <div className="explainabilityPanel__controls explainabilityPanel__controls--window">

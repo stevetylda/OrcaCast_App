@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CompareRow,
   GlobalImportanceRow,
@@ -34,6 +34,24 @@ type SummaryProps = {
   onFeatureSelect?: (featureName: string) => void;
 };
 
+const SHAP_SUMMARY_LAYOUT = {
+  width: 1120,
+  rowHeight: 36,
+  margin: {
+    top: 46,
+    right: 42,
+    bottom: 88,
+    left: 240,
+  },
+  innerPadding: {
+    x: 18,
+  },
+  legend: {
+    inset: 14,
+    narrowBreakpoint: 900,
+  },
+} as const;
+
 function colorFromGradient(value: number, min: number, max: number): string {
   if (!Number.isFinite(value)) return "rgba(139, 152, 173, 0.75)";
   const t = max <= min ? 0.5 : Math.max(0, Math.min(1, (value - min) / (max - min)));
@@ -59,30 +77,6 @@ function stableAxisMax(maxAbs: number): number {
   return Math.ceil(maxAbs);
 }
 
-function truncateFeatureLabel(value: string, maxChars = 28): string {
-  if (value.length <= maxChars) return value;
-  return `${value.slice(0, maxChars - 3)}...`;
-}
-
-function compactFeatureLabel(value: string): string {
-  const compacted = value
-    .replace(/\bSpatiotemporal\b/g, "Spatiotemp")
-    .replace(/\bclimatology\b/gi, "clim.")
-    .replace(/\bClimate\b/g, "Clim.")
-    .replace(/\bclimate\b/g, "clim.")
-    .replace(/\bDistance\b/g, "Dist.")
-    .replace(/\bdistance\b/g, "dist.")
-    .replace(/\bPercent\b/g, "Pct.")
-    .replace(/\bpercent\b/g, "pct.")
-    .replace(/\bhistory\b/gi, "hist.")
-    .replace(/\bfeatures\b/gi, "feat.")
-    .replace(/\bbaseline\b/gi, "base.")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  return truncateFeatureLabel(compacted, 24);
-}
-
 function normalizeFeatureType(value?: string): string {
   if (!value) return "Other";
   const normalized = value.toLowerCase();
@@ -92,6 +86,33 @@ function normalizeFeatureType(value?: string): string {
   if (normalized.includes("human")) return "Human";
   if (normalized.includes("prey")) return "Prey";
   return value;
+}
+
+function estimateLabelPad(topFeatures: string[], featureLabelByName: Map<string, string>): number {
+  const maxChars = topFeatures.reduce((currentMax, featureName) => {
+    const label = featureLabelByName.get(featureName) ?? featureName;
+    return Math.max(currentMax, label.length);
+  }, 0);
+  return Math.max(SHAP_SUMMARY_LAYOUT.margin.left, Math.min(460, Math.round(maxChars * 7.2) + 24));
+}
+
+type LegendPillProps = {
+  position: "bottom-right" | "top-right";
+};
+
+function LegendPill({ position }: LegendPillProps) {
+  return (
+    <div className={`explainabilityLegendPill explainabilityLegendPill--${position}`} aria-hidden="true">
+      <div className="explainabilityLegendPill__title">Feature value</div>
+      <div className="explainabilityLegendPill__scale">
+        <span className="explainabilityLegendPill__label">Low</span>
+        <span className="explainabilityLegendPill__barWrap">
+          <span className="explainabilityLegendPill__bar" />
+        </span>
+        <span className="explainabilityLegendPill__label">High</span>
+      </div>
+    </div>
+  );
 }
 
 export function ShapSummaryPlot({
@@ -106,6 +127,8 @@ export function ShapSummaryPlot({
   selectedFeature,
   onFeatureSelect,
 }: SummaryProps) {
+  const plotWrapRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(SHAP_SUMMARY_LAYOUT.width);
   const topFeatures = ranking.slice(0, topN).map((row) => row.feature_name);
 
   const data = useMemo(() => {
@@ -120,33 +143,42 @@ export function ShapSummaryPlot({
     return { byFeature, maxAbs };
   }, [samples, topFeatures]);
 
+  useEffect(() => {
+    const node = plotWrapRef.current;
+    if (!node) return;
+    const update = () => setContainerWidth(node.clientWidth || SHAP_SUMMARY_LAYOUT.width);
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+
   if (topFeatures.length === 0 || samples.length === 0) {
     return <p className="pageNote">No SHAP samples available for this selection.</p>;
   }
 
-  const rowHeight = 32;
-  const leftPad = 210;
-  const topPad = 40;
-  const bottomPad = 52;
-  const rightPad = 96;
-  const width = 1120;
+  const rowHeight = SHAP_SUMMARY_LAYOUT.rowHeight;
+  const leftPad = estimateLabelPad(topFeatures, featureLabelByName);
+  const topPad = SHAP_SUMMARY_LAYOUT.margin.top;
+  const bottomPad = SHAP_SUMMARY_LAYOUT.margin.bottom;
+  const rightPad = SHAP_SUMMARY_LAYOUT.margin.right;
+  const width = SHAP_SUMMARY_LAYOUT.width;
   const height = topPad + topFeatures.length * rowHeight + bottomPad;
   const axisMax = stableAxisMax(data.maxAbs);
-  const plotWidth = width - leftPad - rightPad;
-  const legendCenterX = width - 54;
-  const legendBarY = topPad + 22;
-  const legendBarHeight = 94;
+  const plotLeft = leftPad + SHAP_SUMMARY_LAYOUT.innerPadding.x;
+  const plotRight = width - rightPad - SHAP_SUMMARY_LAYOUT.innerPadding.x;
+  const plotWidth = plotRight - plotLeft;
+  const modeToggleX = width - rightPad - 52;
   const ticks = [-1, -0.5, 0, 0.5, 1].map((factor) => factor * axisMax);
-  const axisY = height - bottomPad + 6;
+  const axisY = height - bottomPad + 8;
+  const narrowLayout = containerWidth < SHAP_SUMMARY_LAYOUT.legend.narrowBreakpoint;
+  const legendPosition = narrowLayout ? "bottom-right" : "top-right";
+  const modeToggleY = narrowLayout ? topPad - 34 : height - 42;
 
   return (
-    <div className="explainabilityPlotWrap">
+    <div ref={plotWrapRef} className="explainabilityPlotWrap explainabilityPlotWrap--summary">
       <svg className="explainabilityPlot" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Global SHAP summary beeswarm">
         <defs>
-          <linearGradient id="featureValueGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%" stopColor="#00E0FF" />
-            <stop offset="100%" stopColor="#C44EFF" />
-          </linearGradient>
           <linearGradient id="violinGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#00E0FF" stopOpacity="0.96" />
             <stop offset="100%" stopColor="#C44EFF" stopOpacity="0.96" />
@@ -154,11 +186,11 @@ export function ShapSummaryPlot({
         </defs>
 
         {ticks.map((tick) => {
-          const x = leftPad + ((tick + axisMax) / (2 * axisMax)) * plotWidth;
+          const x = plotLeft + ((tick + axisMax) / (2 * axisMax)) * plotWidth;
           return (
             <g key={tick}>
               <line x1={x} y1={topPad - 2} x2={x} y2={axisY} className="explainabilityPlot__tickLine" />
-              <text x={x} y={axisY + 16} textAnchor="middle" className="explainabilityPlot__tickLabel">
+              <text x={x} y={axisY + 18} textAnchor="middle" className="explainabilityPlot__tickLabel">
                 {formatTick(tick)}
               </text>
             </g>
@@ -166,22 +198,21 @@ export function ShapSummaryPlot({
         })}
 
         <line
-          x1={leftPad + plotWidth / 2}
-          y1={topPad - 14}
-          x2={leftPad + plotWidth / 2}
+          x1={plotLeft + plotWidth / 2}
+          y1={topPad - 12}
+          x2={plotLeft + plotWidth / 2}
           y2={axisY}
           className="explainabilityPlot__zero"
         />
-        <text x={leftPad + plotWidth / 2 - 16} y={topPad - 18} textAnchor="end" className="explainabilityPlot__zeroLabel">
+        <text x={plotLeft + plotWidth / 2 - 16} y={topPad - 16} textAnchor="end" className="explainabilityPlot__zeroLabel">
           ↓ lowers prediction
         </text>
-        <text x={leftPad + plotWidth / 2 + 16} y={topPad - 18} textAnchor="start" className="explainabilityPlot__zeroLabel">
+        <text x={plotLeft + plotWidth / 2 + 16} y={topPad - 16} textAnchor="start" className="explainabilityPlot__zeroLabel">
           ↑ raises prediction
         </text>
 
         {topFeatures.map((feature, featureIdx) => {
           const fullLabel = featureLabelByName.get(feature) ?? feature;
-          const compactLabel = compactFeatureLabel(fullLabel);
           const featureType = normalizeFeatureType(featureTypeByName?.get(feature));
           const rows = data.byFeature.get(feature) ?? [];
           const rowTop = topPad + featureIdx * rowHeight;
@@ -192,24 +223,24 @@ export function ShapSummaryPlot({
           const valueMin = values.length > 0 ? Math.min(...values) : -1;
           const valueMax = values.length > 0 ? Math.max(...values) : 1;
           return (
-            <g key={feature}>
+            <g key={feature} className={selectedFeature === feature ? "explainabilityPlot__row isActive" : "explainabilityPlot__row"}>
               <rect
-                x={leftPad}
+                x={plotLeft}
                 y={rowTop + 1}
                 width={plotWidth}
                 height={rowHeight - 2}
                 className={selectedFeature === feature ? "explainabilityPlot__rowHighlight isActive" : "explainabilityPlot__rowHighlight"}
                 onClick={() => onFeatureSelect?.(feature)}
               />
-              <line x1={leftPad} y1={centerY} x2={width - rightPad} y2={centerY} className="explainabilityPlot__rowLine" />
+              <line x1={plotLeft} y1={centerY} x2={plotRight} y2={centerY} className="explainabilityPlot__rowLine" />
               <text
-                x={leftPad - 8}
+                x={leftPad - 10}
                 y={centerY + 4}
                 textAnchor="end"
                 className={selectedFeature === feature ? "explainabilityPlot__feature isActive" : "explainabilityPlot__feature"}
                 onClick={() => onFeatureSelect?.(feature)}
               >
-                {compactLabel}
+                {fullLabel}
                 <title>{`${fullLabel}\nType: ${featureType}`}</title>
               </text>
               {renderMode === "crisp" && (() => {
@@ -233,7 +264,7 @@ export function ShapSummaryPlot({
                 const topPoints: string[] = [];
                 const bottomPoints: string[] = [];
                 for (let idx = 0; idx < bins; idx += 1) {
-                  const x = leftPad + ((idx + 0.5) / bins) * plotWidth;
+                  const x = plotLeft + ((idx + 0.5) / bins) * plotWidth;
                   const widthScale = (smoothed[idx] / maxCount) * (rowHeight * 0.46);
                   topPoints.push(`${x},${centerY - widthScale}`);
                   bottomPoints.push(`${x},${centerY + widthScale}`);
@@ -244,7 +275,7 @@ export function ShapSummaryPlot({
               {renderMode === "dense" &&
                 rows.map((row, dotIdx) => {
                   const bounded = Math.max(-axisMax, Math.min(axisMax, row.shap_value));
-                  const x = leftPad + ((bounded + axisMax) / (2 * axisMax)) * plotWidth;
+                  const x = plotLeft + ((bounded + axisMax) / (2 * axisMax)) * plotWidth;
                   const jitter = ((Math.sin(dotIdx * 12.9898 + featureIdx * 31.127) * 43758.5453) % 1) * 16 - 8;
                   const y = centerY + jitter;
                   const fill =
@@ -252,7 +283,14 @@ export function ShapSummaryPlot({
                       ? "rgba(152, 165, 189, 0.72)"
                       : colorFromGradient(Number(row.feature_value), valueMin, valueMax);
                   return (
-                    <circle key={`${row.sample_id}-${feature}-${dotIdx}`} cx={x} cy={y} r={2.2} fill={fill}>
+                    <circle
+                      key={`${row.sample_id}-${feature}-${dotIdx}`}
+                      cx={x}
+                      cy={y}
+                      r={2.2}
+                      fill={fill}
+                      className={selectedFeature === feature ? "explainabilityPlot__dot isFeatureActive" : "explainabilityPlot__dot"}
+                    >
                       <title>{`${fullLabel}\nType: ${featureType}\nSHAP: ${row.shap_value.toFixed(4)}\nFeature value: ${
                         row.feature_value == null ? "n/a" : Number(row.feature_value).toFixed(4)
                       }\nTime: ${row.time}`}</title>
@@ -263,46 +301,37 @@ export function ShapSummaryPlot({
           );
         })}
 
-        <line x1={leftPad} y1={axisY} x2={width - rightPad} y2={axisY} className="explainabilityPlot__axis" />
-        <text x={leftPad + plotWidth / 2} y={height - 10} textAnchor="middle" className="explainabilityPlot__axisLabel">
+        <line x1={plotLeft} y1={axisY} x2={plotRight} y2={axisY} className="explainabilityPlot__axis" />
+        <text x={plotLeft + plotWidth / 2} y={axisY + 32} textAnchor="middle" className="explainabilityPlot__axisLabel">
           {impactAxisLabel}
         </text>
-        <text x={legendCenterX} y={topPad + 8} textAnchor="middle" className="explainabilityPlot__legendTitle">
-          Feature value
-        </text>
         {onRenderModeChange && (
-          <g transform={`translate(${legendCenterX - 20}, ${topPad - 34})`}>
-            <rect x={0} y={0} width={52} height={18} rx={9} className="explainabilityPlot__modeRail" />
+          <g transform={`translate(${modeToggleX}, ${modeToggleY})`}>
+            <rect x={0} y={0} width={44} height={16} rx={8} className="explainabilityPlot__modeRail" />
             <g
               transform="translate(2,2)"
               className={renderMode === "dense" ? "explainabilityPlot__modeBtn isActive" : "explainabilityPlot__modeBtn"}
               onClick={() => onRenderModeChange("dense")}
             >
-              <rect x={0} y={0} width={24} height={14} rx={7} />
-              <circle cx={7} cy={7} r={1.2} />
-              <circle cx={11} cy={6} r={1.2} />
-              <circle cx={15} cy={8} r={1.2} />
-              <circle cx={18} cy={5} r={1.2} />
+              <rect x={0} y={0} width={20} height={12} rx={6} />
+              <circle cx={6} cy={6} r={1.1} />
+              <circle cx={10} cy={5} r={1.1} />
+              <circle cx={13} cy={7} r={1.1} />
+              <circle cx={16} cy={4.8} r={1.1} />
             </g>
             <g
-              transform="translate(26,2)"
+              transform="translate(22,2)"
               className={renderMode === "crisp" ? "explainabilityPlot__modeBtn isActive" : "explainabilityPlot__modeBtn"}
               onClick={() => onRenderModeChange("crisp")}
             >
-              <rect x={0} y={0} width={24} height={14} rx={7} />
-              <path d="M4 7 C7 3, 11 3, 14 7 C11 11, 7 11, 4 7 Z" />
-              <line x1={14} y1={7} x2={20} y2={7} />
+              <rect x={0} y={0} width={20} height={12} rx={6} />
+              <path d="M3.5 6 C6 3.4, 9.6 3.4, 12.2 6 C9.6 8.6, 6 8.6, 3.5 6 Z" />
+              <line x1={12.2} y1={6} x2={16.5} y2={6} />
             </g>
           </g>
         )}
-        <rect x={legendCenterX - 5} y={legendBarY} width={10} height={legendBarHeight} rx={6} fill="url(#featureValueGradient)" />
-        <text x={legendCenterX + 12} y={legendBarY + 4} textAnchor="start" className="explainabilityPlot__legendLabel">
-          High
-        </text>
-        <text x={legendCenterX + 12} y={legendBarY + legendBarHeight} textAnchor="start" className="explainabilityPlot__legendLabel">
-          Low
-        </text>
       </svg>
+      <LegendPill position={legendPosition} />
     </div>
   );
 }

@@ -558,6 +558,11 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     if (hotspotMode !== "custom") {
       const values = sortedValuesDescRef.current;
       const modeledCount = modeledHotspotCountRef.current;
+      if (modeledCount !== null && Number.isFinite(modeledCount) && modeledCount <= 0) {
+        // Explicit behavior: zero expected active cells => zero hotspot cells.
+        // Return undefined and drive visibility via zero-modeled checks.
+        return undefined;
+      }
       if (values.length > 0 && modeledCount !== null && Number.isFinite(modeledCount) && modeledCount > 0) {
         const count = Math.max(1, Math.round(modeledCount));
         const idx = Math.max(0, Math.min(values.length - 1, count - 1));
@@ -1272,9 +1277,16 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
     const scale = legendSpecRef.current;
     const threshold = disableHotspots ? undefined : resolveHotspotThreshold();
     const hotspots = disableHotspots ? false : hotspotsOnlyRef.current;
+    const zeroModeledHotspots =
+      hotspots &&
+      hotspotMode !== "custom" &&
+      modeledHotspotCountRef.current !== null &&
+      Number.isFinite(modeledHotspotCountRef.current) &&
+      modeledHotspotCountRef.current <= 0;
+    const hotspotOverlayVisible = hotspots && !zeroModeledHotspots;
 
     const fillExpr: FillColorSpec | undefined =
-      hotspots && threshold !== undefined
+      hotspotOverlayVisible && threshold !== undefined
         ? (buildHotspotOnlyExpr(threshold) as unknown as FillColorSpec)
         : scale
           ? (buildFillExprFromScale(scale) as unknown as FillColorSpec)
@@ -1289,7 +1301,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       overlayRef.current,
       fillExpr,
       threshold,
-      hotspots,
+      hotspotOverlayVisible,
       shimmerThresholdRef.current,
       gridBorderColor
     );
@@ -1298,7 +1310,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       setGridVisibility(map, false);
     } else if (hotspots) {
       setGridBaseVisibility(map, false);
-      setHotspotVisibility(map, true);
+      setHotspotVisibility(map, hotspotOverlayVisible);
     } else {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
@@ -1853,6 +1865,11 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    const zeroModeledHotspots =
+      hotspotMode === "modeled" &&
+      hotspotModeledCount !== null &&
+      Number.isFinite(hotspotModeledCount) &&
+      hotspotModeledCount <= 0;
     if (!hasForecastLegend) {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
@@ -1862,12 +1879,24 @@ export const ForecastMap = forwardRef<ForecastMapHandle, Props>(function Forecas
       setGridVisibility(map, false);
     } else if (!disableHotspots && hotspotsEnabled) {
       setGridBaseVisibility(map, false);
-      setHotspotVisibility(map, true);
+      setHotspotVisibility(map, !zeroModeledHotspots);
+      if (zeroModeledHotspots) {
+        // Defensive: ensure no stale hotspot layers remain visible in zero-expected mode.
+        setGridVisibility(map, false);
+      }
     } else {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [showKdeContours, hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots]);
+  }, [
+    showKdeContours,
+    hotspotsEnabled,
+    mapReady,
+    hasForecastLegend,
+    disableHotspots,
+    hotspotMode,
+    hotspotModeledCount,
+  ]);
 
   useEffect(() => {
     if (hasForecastLegend) return;

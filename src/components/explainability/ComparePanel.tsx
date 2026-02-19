@@ -5,6 +5,9 @@ import { DeltaBarChart } from "./plots";
 
 type Props = {
   allSamples: ShapSampleRow[];
+  modelId: string;
+  modelOptions: { value: string; label: string }[];
+  onModelChange: (value: string) => void;
   minIso: string;
   maxIso: string;
   windowA: DateWindow;
@@ -13,7 +16,18 @@ type Props = {
   onWindowBChange: (window: DateWindow) => void;
 };
 
-export function ComparePanel({ allSamples, minIso, maxIso, windowA, windowB, onWindowAChange, onWindowBChange }: Props) {
+export function ComparePanel({
+  allSamples,
+  modelId,
+  modelOptions,
+  onModelChange,
+  minIso,
+  maxIso,
+  windowA,
+  windowB,
+  onWindowAChange,
+  onWindowBChange,
+}: Props) {
   const [a, setA] = useState<DateWindow>(windowA);
   const [b, setB] = useState<DateWindow>(windowB);
 
@@ -32,7 +46,18 @@ export function ComparePanel({ allSamples, minIso, maxIso, windowA, windowB, onW
   };
 
   return (
-    <section className="pageSection explainabilityPanel">
+    <section className="pageSection explainabilityPanel explainabilityPanel--compare">
+      <div className="explainabilityPanelSelectorDock explainabilityPanelSelectorDock--single" role="group" aria-label="Compare controls">
+        <label className="insightsExplorer__field">
+          <select className="select" aria-label="Model" value={modelId} onChange={(event) => onModelChange(event.target.value)}>
+            {modelOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {`Model: ${option.label}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="explainabilityPanel__head">
         <h3>Compare driver shifts</h3>
         <div className="explainabilityComparePickers">

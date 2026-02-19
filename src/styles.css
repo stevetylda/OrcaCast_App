@@ -3953,6 +3953,15 @@ body {
   letter-spacing: 0.2px;
 }
 
+.pageStage--explainability .pageHeader__title {
+  font-family: "Plus Jakarta Sans", "Sora", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+  color: var(--panel-text);
+  text-shadow: 0 0 12px rgba(25, 240, 215, 0.16);
+}
+
 .pageHeader__right {
   display: flex;
   align-items: center;
@@ -6654,6 +6663,10 @@ body {
   padding-bottom: 16px;
 }
 
+.pageStage--explainability.pageStage--noChrome .page {
+  padding-bottom: 0;
+}
+
 /* Defensive: if any chrome is still present in the stage, kill it */
 .pageStage--noChrome .appShell__bottomRail,
 .pageStage--noChrome .app__footer {
@@ -7461,6 +7474,11 @@ body {
   color: var(--ink-primary);
 }
 
+.app:not(.app--dark) .pageStage--explainability .pageHeader__title {
+  color: var(--ink-primary);
+  text-shadow: none;
+}
+
 .app:not(.app--dark) .backToMap {
   border-color: var(--ctrl-border);
   background: rgba(236, 245, 255, 0.9);
@@ -8046,18 +8064,41 @@ body {
 }
 
 .explainabilityPageBg {
+  --exp-page-pad-top: clamp(18px, 3.8vw, 42px);
+  --exp-page-pad-bottom: 0px;
+  min-height: 100%;
+  padding: var(--exp-page-pad-top) 0 var(--exp-page-pad-bottom);
   align-items: start;
 }
 
 .explainabilityPageContent {
-  width: min(1760px, calc(100vw - (2 * clamp(10px, 1.8vw, 24px))));
-  display: grid;
+  width: min(1880px, calc(100vw - (2 * clamp(8px, 1.2vw, 16px))));
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
 .explainabilityHeader {
   margin-bottom: 0;
   position: relative;
+}
+
+.explainabilityContextDock {
+  margin-bottom: 0;
+  padding-block: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 210, 246, 0.24);
+  background: linear-gradient(180deg, rgba(7, 24, 58, 0.52), rgba(6, 18, 42, 0.4));
+  box-shadow: inset 0 0 0 1px rgba(147, 230, 255, 0.08);
+}
+
+.explainabilityContextDock__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .explainabilityHeader__top {
@@ -8182,7 +8223,57 @@ body {
 .explainabilityToggleSticky {
   position: sticky;
   top: 14px;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 20px;
+  margin-bottom: -1px;
   z-index: 9;
+}
+
+.explainabilityLayout {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 0;
+  align-items: start;
+}
+
+.explainabilitySideNav {
+  position: sticky;
+  top: 98px;
+  z-index: 8;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28px;
+  margin-right: -1px;
+}
+
+.explainabilityMainContent {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+.explainabilityResolutionDock {
+  width: auto;
+  margin: 0;
+}
+
+.explainabilityControlDock {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 4fr);
+  gap: 10px;
+  padding: 6px;
+  border-radius: 13px;
+  border: 1px solid rgba(132, 188, 246, 0.22);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(42, 228, 214, 0.1), transparent 52%),
+    rgba(11, 20, 40, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 18px rgba(6, 14, 30, 0.22),
+    0 0 14px rgba(0, 178, 202, 0.14);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
 }
 
 .explainabilityToggle {
@@ -8190,9 +8281,113 @@ body {
   gap: 0;
   padding: 2px;
   border-radius: 12px;
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(10, 17, 34, 0.42);
+  border-color: rgba(132, 188, 246, 0.16);
+  background: rgba(10, 24, 56, 0.28);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.explainabilityToggle--vertical {
+  width: 74px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 8px 6px 8px 8px;
+  border: 1px solid rgba(132, 188, 246, 0.26);
+  border-right: none;
+  border-radius: 14px 0 0 14px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(42, 228, 214, 0.12), transparent 56%),
+    linear-gradient(160deg, rgba(10, 25, 58, 0.54), rgba(8, 20, 46, 0.66));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border-radius: 12px 0 0 12px;
+  border: 1px solid rgba(132, 188, 246, 0.2);
+  background: rgba(9, 24, 54, 0.54);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease, filter 140ms ease;
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option::after,
+.explainabilityToggle--vertical .lineageViewToggle__option:not(:last-child)::after {
+  display: none !important;
+}
+
+.explainabilityToggle__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+  font-size: 28px;
+  line-height: 1;
+  color: rgba(226, 241, 255, 0.9);
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option:hover,
+.explainabilityToggle--vertical .lineageViewToggle__option:focus-visible {
+  border-color: rgba(143, 218, 248, 0.58);
+  background: linear-gradient(180deg, rgba(13, 48, 94, 0.68), rgba(10, 31, 66, 0.6));
+  box-shadow: inset 0 1px 0 rgba(223, 248, 255, 0.12), var(--teal-glow-soft);
+  filter: brightness(1.05);
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option.isActive {
+  border-color: rgba(170, 234, 255, 0.9);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(83, 228, 255, 0.24), transparent 56%),
+    linear-gradient(180deg, rgba(11, 86, 138, 0.74), rgba(8, 62, 108, 0.64));
+  box-shadow:
+    inset 2px 0 0 rgba(182, 245, 255, 0.96),
+    inset 0 1px 0 rgba(221, 252, 255, 0.28),
+    0 0 0 1px rgba(170, 234, 255, 0.38),
+    0 0 16px rgba(98, 217, 255, 0.34);
+  z-index: 3;
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option.isActive .explainabilityToggle__icon {
+  color: rgba(243, 251, 255, 0.98);
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option.isActive::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 6px;
+  bottom: 6px;
+  width: 8px;
+  background: linear-gradient(180deg, rgba(11, 86, 138, 0.7), rgba(8, 62, 108, 0.62));
+  border-top: 1px solid rgba(170, 234, 255, 0.64);
+  border-bottom: 1px solid rgba(170, 234, 255, 0.64);
+  border-right: 1px solid rgba(170, 234, 255, 0.58);
+}
+
+.explainabilityToggle--vertical .lineageViewToggle__option:hover::before,
+.explainabilityToggle--vertical .lineageViewToggle__option:focus-visible::before {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(150, 218, 255, 0.34);
+  background: rgba(8, 20, 44, 0.94);
+  color: rgba(236, 248, 255, 0.96);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  z-index: 20;
 }
 
 .explainabilityToggle .lineageViewToggle__option {
@@ -8228,9 +8423,78 @@ body {
   pointer-events: none;
 }
 
+.explainabilityResolutionToggle {
+  width: fit-content;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-bottom: 0;
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  border-color: rgba(95, 198, 246, 0.18);
+  background: rgba(10, 25, 58, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(108, 226, 255, 0.08);
+}
+
+.explainabilityResolutionToggle .lineageViewToggle__option {
+  min-height: 40px;
+  height: auto;
+  line-height: 1.2;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(218, 242, 255, 0.86);
+  border: 1px solid rgba(95, 196, 245, 0.2);
+  background: linear-gradient(180deg, rgba(8, 28, 66, 0.56), rgba(7, 22, 50, 0.42));
+  box-shadow: inset 0 1px 0 rgba(186, 245, 255, 0.08);
+}
+
+.explainabilityResolutionToggle .lineageViewToggle__option,
+.explainabilityResolutionToggle .lineageViewToggle__option.isActive {
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.explainabilityResolutionToggle .lineageViewToggle__option:hover,
+.explainabilityResolutionToggle .lineageViewToggle__option:focus-visible {
+  color: rgba(236, 250, 255, 0.96);
+  border-color: rgba(124, 221, 255, 0.5);
+  background: linear-gradient(180deg, rgba(16, 56, 112, 0.56), rgba(8, 78, 98, 0.44));
+  box-shadow:
+    inset 0 1px 0 rgba(196, 248, 255, 0.18),
+    var(--teal-glow-soft);
+}
+
+.explainabilityResolutionToggle .lineageViewToggle__option.isActive {
+  color: rgba(245, 253, 255, 0.98);
+  border-color: rgba(148, 229, 255, 0.92);
+  background:
+    radial-gradient(circle at 24% 10%, rgba(84, 228, 255, 0.26), transparent 56%),
+    linear-gradient(180deg, rgba(14, 86, 145, 0.66), rgba(8, 66, 109, 0.54));
+  box-shadow:
+    0 0 0 1px rgba(182, 243, 255, 0.88),
+    0 0 14px rgba(100, 221, 255, 0.46),
+    0 0 28px rgba(72, 190, 255, 0.34),
+    inset 0 1px 0 rgba(218, 252, 255, 0.34);
+}
+
+.explainabilityResolutionToggle .lineageViewToggle__option:not(:last-child)::after {
+  background: rgba(126, 224, 255, 0.24);
+}
+
+.explainabilityResolutionToggle__hex {
+  display: inline-block;
+  flex: 0 0 auto;
+  clip-path: polygon(25% 6%, 75% 6%, 96% 50%, 75% 94%, 25% 94%, 4% 50%);
+  background: rgba(118, 226, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(186, 245, 255, 0.95), 0 0 8px rgba(84, 210, 255, 0.4);
+}
+
 .explainabilityPanel {
   display: grid;
   gap: 12px;
+  border-top-right-radius: 14px;
 }
 
 .explainabilitySectionBlock {
@@ -8258,7 +8522,7 @@ body {
     radial-gradient(circle at 10% 6%, rgba(46, 230, 201, 0.1), transparent 40%),
     linear-gradient(160deg, rgba(16, 30, 64, 0.52), rgba(10, 20, 46, 0.62));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 18px rgba(2, 8, 24, 0.24);
-  padding: 10px 10px 8px;
+  padding: 12px 12px 10px;
 }
 
 .explainabilityDependenceCard {
@@ -8320,17 +8584,37 @@ body {
 }
 
 .explainabilityDriversSummary__card {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
   border: 1px solid rgba(115, 182, 255, 0.38);
   border-radius: 12px;
   background:
     radial-gradient(circle at 12% 8%, rgba(46, 230, 201, 0.14), transparent 42%),
     linear-gradient(160deg, rgba(16, 30, 64, 0.62), rgba(10, 20, 46, 0.7));
-  padding: 10px 12px;
+  padding: 9px 10px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
-  align-items: start;
+  align-items: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 18px rgba(2, 8, 24, 0.32);
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.explainabilityDriversSummary__card:hover,
+.explainabilityDriversSummary__card:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(142, 219, 248, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 20px rgba(2, 8, 24, 0.36), var(--teal-glow-soft);
+}
+
+.explainabilityDriversSummary__card--active {
+  border-color: rgba(152, 232, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(221, 252, 255, 0.18),
+    0 0 0 1px rgba(170, 240, 255, 0.5),
+    0 0 16px rgba(94, 214, 255, 0.36);
 }
 
 .explainabilityDriversSummary__rank {
@@ -8350,8 +8634,7 @@ body {
 
 .explainabilityDriversSummary__body {
   min-width: 0;
-  display: grid;
-  gap: 2px;
+  display: block;
 }
 
 .explainabilityDriversSummary__body strong {
@@ -8363,16 +8646,39 @@ body {
   text-overflow: ellipsis;
 }
 
-.explainabilityDriversSummary__body p,
-.explainabilityDriversSummary__body span {
-  margin: 0;
-  color: rgba(226, 239, 255, 0.92);
-  font-size: 12px;
+.explainabilityDriversSummary__effectChip {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  border-radius: 999px;
+  border: 1px solid rgba(149, 216, 241, 0.5);
+  background: rgba(22, 58, 90, 0.46);
+  color: rgba(230, 245, 255, 0.95);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  padding: 5px 8px;
 }
 
-.explainabilityDriversSummary__body p {
-  color: rgba(197, 255, 241, 0.96);
-  font-weight: 650;
+.explainabilityDriversSummary__effectChip.isRaise {
+  border-color: rgba(121, 233, 213, 0.74);
+  background: rgba(22, 102, 93, 0.32);
+  color: rgba(197, 255, 242, 0.98);
+}
+
+.explainabilityDriversSummary__effectChip.isLower {
+  border-color: rgba(255, 176, 168, 0.72);
+  background: rgba(114, 47, 60, 0.3);
+  color: rgba(255, 215, 210, 0.98);
+}
+
+.explainabilityDriversSummary__effectChip.isMixed {
+  border-color: rgba(156, 214, 255, 0.74);
+  background: rgba(34, 66, 110, 0.35);
+  color: rgba(212, 240, 255, 0.98);
 }
 
 .explainabilityDrilldown {
@@ -8421,6 +8727,98 @@ body {
   margin: 0;
   font-size: var(--exp-section-size);
   font-weight: 700;
+}
+
+.explainabilityPanel--drivers {
+  position: relative;
+  margin-top: 0;
+}
+
+.explainabilityPanel--window,
+.explainabilityPanel--interactions,
+.explainabilityPanel--compare {
+  position: relative;
+}
+
+.explainabilityDriversSelectorDock,
+.explainabilityPanelSelectorDock {
+  position: absolute;
+  right: 20px;
+  top: 0;
+  transform: translateY(calc(-100% + 1px));
+  z-index: 12;
+  width: fit-content;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 13px 13px 0 0;
+  border: 1px solid rgba(132, 188, 246, 0.24);
+  border-bottom: none;
+  background: rgba(10, 25, 58, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 18px rgba(6, 14, 30, 0.2),
+    0 0 14px rgba(0, 178, 202, 0.12);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+
+.explainabilityDriversSelectorDock .insightsExplorer__field,
+.explainabilityPanelSelectorDock .insightsExplorer__field {
+  min-width: 172px;
+  display: flex;
+}
+
+.explainabilityPanelSelectorDock--single .insightsExplorer__field {
+  min-width: 0;
+}
+
+.explainabilityDriversSelectorDock .select,
+.explainabilityPanelSelectorDock .select {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.explainabilityPageContent .select {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 188, 246, 0.28);
+  background:
+    radial-gradient(circle at 18% 10%, rgba(42, 228, 214, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(9, 28, 64, 0.66), rgba(8, 22, 50, 0.62));
+  color: rgba(240, 248, 255, 0.96);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(190, 246, 255, 0.1),
+    0 0 0 1px rgba(132, 188, 246, 0.08),
+    0 0 12px rgba(80, 201, 255, 0.16);
+}
+
+.explainabilityPageContent .select:hover,
+.explainabilityPageContent .select:focus {
+  border-color: rgba(148, 229, 255, 0.82);
+  background:
+    radial-gradient(circle at 18% 10%, rgba(84, 228, 255, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(13, 48, 94, 0.7), rgba(10, 31, 66, 0.64));
+  box-shadow:
+    inset 0 1px 0 rgba(223, 248, 255, 0.2),
+    0 0 0 1px rgba(182, 243, 255, 0.3),
+    0 0 16px rgba(98, 217, 255, 0.32);
+}
+
+.explainabilityPageContent .select option {
+  color: #0d1320;
+}
+
+.explainabilityPageContent select.select {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 .explainabilityPanel__controls {
@@ -8534,19 +8932,24 @@ body {
 
 .explainabilityPlotWrap {
   width: 100%;
+  padding: 2px;
   overflow: auto hidden;
+}
+
+.explainabilityPlotWrap--summary {
+  position: relative;
 }
 
 .explainabilityPlot {
   width: 100%;
-  min-width: 680px;
+  min-width: 760px;
   display: block;
 }
 
 .explainabilityPlot__zero {
-  stroke: rgba(255, 255, 255, 1);
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.35));
+  stroke: rgba(196, 241, 255, 0.98);
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 6px rgba(102, 220, 255, 0.52));
 }
 
 .explainabilityPlot__tickLine {
@@ -8562,11 +8965,22 @@ body {
 
 .explainabilityPlot__rowHighlight {
   fill: transparent;
+  stroke: transparent;
+  stroke-width: 1;
   cursor: pointer;
+  transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
 }
 
 .explainabilityPlot__rowHighlight.isActive {
-  fill: rgba(103, 199, 229, 0.08);
+  fill: rgba(103, 199, 229, 0.12);
+  stroke: rgba(142, 226, 255, 0.42);
+  filter: drop-shadow(0 0 8px rgba(75, 204, 255, 0.26));
+}
+
+.explainabilityPlot__row:hover .explainabilityPlot__rowHighlight {
+  fill: rgba(103, 199, 229, 0.1);
+  stroke: rgba(142, 226, 255, 0.36);
+  filter: drop-shadow(0 0 8px rgba(75, 204, 255, 0.24));
 }
 
 .explainabilityPlot__violin {
@@ -8613,19 +9027,26 @@ body {
 
 .explainabilityPlot__feature,
 .explainabilityPlot__axisLabel {
-  fill: rgba(232, 242, 255, 0.86);
+  fill: rgba(240, 248, 255, 0.94);
   font-size: var(--exp-axis-size);
   font-family: "Plus Jakarta Sans", "Sora", sans-serif;
 }
 
 .explainabilityPlot__feature {
   cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 620;
+  letter-spacing: 0.01em;
 }
 
 .explainabilityPlot__feature.isActive {
   fill: rgba(243, 250, 255, 0.98);
-  font-weight: 700;
+  font-weight: 760;
   cursor: pointer;
+}
+
+.explainabilityPlot__row:hover .explainabilityPlot__feature {
+  fill: rgba(244, 251, 255, 0.98);
 }
 
 .explainabilityPlot__tickLabel,
@@ -8637,10 +9058,105 @@ body {
 }
 
 .explainabilityPlot__legendTitle {
-  fill: rgba(232, 242, 255, 0.7);
-  font-size: var(--exp-control-size);
-  font-weight: 600;
+  fill: rgba(241, 250, 255, 0.86);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0.01em;
   font-family: "Plus Jakarta Sans", "Sora", sans-serif;
+}
+
+.explainabilityPlot__legendPillBg {
+  fill: rgba(8, 20, 44, 0.48);
+  stroke: rgba(168, 222, 255, 0.3);
+  stroke-width: 0.9;
+  filter: drop-shadow(0 4px 10px rgba(4, 12, 28, 0.28)) drop-shadow(0 0 10px rgba(79, 206, 255, 0.18));
+}
+
+.explainabilityPlot__legendBarTrack {
+  fill: rgba(8, 20, 44, 0.26);
+  stroke: rgba(142, 214, 255, 0.26);
+  stroke-width: 0.8;
+}
+
+.explainabilityPlot__legendLabel--pill {
+  fill: rgba(232, 242, 255, 0.72);
+  font-size: 9px;
+}
+
+.explainabilityLegendPill {
+  position: absolute;
+  right: 14px;
+  width: 154px;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 222, 255, 0.3);
+  background: rgba(8, 20, 44, 0.5);
+  box-shadow: 0 4px 10px rgba(4, 12, 28, 0.28), 0 0 10px rgba(79, 206, 255, 0.18);
+  backdrop-filter: blur(10px) saturate(125%);
+  -webkit-backdrop-filter: blur(10px) saturate(125%);
+  pointer-events: none;
+  padding: 8px 10px 9px;
+  display: grid;
+  gap: 5px;
+}
+
+.explainabilityLegendPill--bottom-right {
+  bottom: 52px;
+}
+
+.explainabilityLegendPill--top-right {
+  top: 14px;
+  width: 140px;
+  padding: 7px 9px 8px;
+}
+
+.explainabilityLegendPill__title {
+  color: rgba(241, 250, 255, 0.86);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.explainabilityLegendPill__scale {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.explainabilityLegendPill__label {
+  color: rgba(232, 242, 255, 0.78);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.explainabilityLegendPill__barWrap {
+  height: 8px;
+  border-radius: 999px;
+  padding: 1px;
+  background: rgba(8, 20, 44, 0.26);
+  border: 1px solid rgba(142, 214, 255, 0.26);
+}
+
+.explainabilityLegendPill__bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00E0FF 0%, #C44EFF 100%);
+}
+
+.explainabilityPlot__dot {
+  transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.explainabilityPlot__row:hover .explainabilityPlot__dot {
+  opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(99, 219, 255, 0.52));
+}
+
+.explainabilityPlot__dot.isFeatureActive {
+  filter: drop-shadow(0 0 6px rgba(99, 219, 255, 0.56));
 }
 
 .explainabilityPlot__barPos {
@@ -8662,6 +9178,246 @@ body {
   stroke-width: 1.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.explainabilityPanel--activeGrids {
+  display: grid;
+  gap: 12px;
+}
+
+.activeGridsNote {
+  margin-top: 2px;
+}
+
+.activeGridsActions {
+  margin-top: 4px;
+}
+
+.activeGridsResetBtn {
+  border-color: rgba(121, 209, 235, 0.44);
+  background: rgba(12, 32, 64, 0.52);
+  color: rgba(229, 244, 255, 0.92);
+}
+
+.activeGridsResetBtn:hover,
+.activeGridsResetBtn:focus-visible {
+  border-color: rgba(121, 209, 235, 0.68);
+  background: rgba(18, 42, 80, 0.68);
+  box-shadow: 0 0 0 1px rgba(121, 209, 235, 0.24), 0 0 18px rgba(0, 190, 214, 0.18);
+}
+
+.activeGridsChartCard {
+  border: 1px solid rgba(126, 204, 232, 0.22);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(0, 185, 220, 0.08), transparent 58%),
+    radial-gradient(140% 180% at 100% 0%, rgba(80, 130, 214, 0.08), transparent 64%),
+    rgba(6, 18, 42, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(114, 184, 234, 0.12), 0 12px 28px rgba(2, 10, 24, 0.24);
+  overflow: hidden;
+}
+
+.activeGridsChartCard__head {
+  padding: 10px 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.activeGridsChartCard__head h4 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(220, 241, 255, 0.84);
+}
+
+.activeGridsLegendRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activeGridsResidualControls {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  width: 100%;
+  padding: 0 12px 12px;
+}
+
+.activeGridsResidualModeToggle {
+  width: fit-content;
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.activeGridsResidualModeToggle .lineageViewToggle__option {
+  min-height: 28px;
+  padding: 4px 9px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.activeGridsLegendChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(136, 201, 230, 0.3);
+  background: rgba(10, 30, 62, 0.55);
+  color: rgba(224, 242, 255, 0.84);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+.activeGridsLegendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.activeGridsLegendSwatch--expected {
+  color: #53a6ff;
+  background: #53a6ff;
+}
+
+.activeGridsLegendSwatch--actual {
+  color: #13ddc1;
+  background: #13ddc1;
+}
+
+.activeGridsLegendSwatch--resPos {
+  color: #ff5e5b;
+  background: #ff5e5b;
+}
+
+.activeGridsLegendSwatch--resNeg {
+  color: #4da4ff;
+  background: #4da4ff;
+}
+
+.activeGridsPlot {
+  min-width: 760px;
+}
+
+.activeGridsLine {
+  stroke-width: 2.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.activeGridsLine--expected {
+  stroke: #53a6ff;
+  filter: drop-shadow(0 0 8px rgba(83, 166, 255, 0.34));
+}
+
+.activeGridsLine--actual {
+  stroke: #13ddc1;
+  filter: drop-shadow(0 0 8px rgba(19, 221, 193, 0.3));
+}
+
+.activeGridsHoverLine {
+  stroke: rgba(210, 232, 255, 0.42);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.activeGridsDot {
+  stroke: rgba(2, 10, 24, 0.95);
+  stroke-width: 1.2;
+}
+
+.activeGridsDot--expected {
+  fill: #53a6ff;
+}
+
+.activeGridsDot--actual {
+  fill: #13ddc1;
+}
+
+.activeGridsInlineLegend--expected {
+  fill: #53a6ff;
+}
+
+.activeGridsInlineLegend--actual {
+  fill: #13ddc1;
+}
+
+.activeGridsInlineLegend--resPos {
+  fill: #ff5e5b;
+}
+
+.activeGridsInlineLegend--resNeg {
+  fill: #4da4ff;
+}
+
+.activeGridsTooltip {
+  fill: rgba(5, 16, 36, 0.94);
+  stroke: rgba(132, 199, 228, 0.44);
+}
+
+.activeGridsTooltipText {
+  fill: rgba(228, 242, 255, 0.94);
+}
+
+.activeGridsTooltipText--week {
+  fill: rgba(240, 250, 255, 0.98);
+  font-weight: 700;
+}
+
+.activeGridsTooltipText--expected {
+  fill: #53a6ff;
+}
+
+.activeGridsTooltipText--actual {
+  fill: #13ddc1;
+}
+
+.activeGridsBrush {
+  fill: rgba(83, 166, 255, 0.16);
+  stroke: rgba(83, 166, 255, 0.7);
+  stroke-width: 1;
+}
+
+.activeGridsResidualZero {
+  stroke: rgba(171, 201, 233, 0.62);
+  stroke-dasharray: 4 4;
+}
+
+.activeGridsResidualBar--pos {
+  shape-rendering: geometricPrecision;
+  rx: 2px;
+  ry: 2px;
+  fill: rgba(255, 94, 91, 0.94);
+}
+
+.activeGridsResidualBar--neg {
+  shape-rendering: geometricPrecision;
+  rx: 2px;
+  ry: 2px;
+  fill: rgba(77, 164, 255, 0.94);
+}
+
+.activeGridsResidualBar.isActive {
+  stroke: rgba(234, 247, 255, 0.96);
+  stroke-width: 1;
+}
+
+.activeGridsTooltipText--resPos {
+  fill: #ff5e5b;
+}
+
+.activeGridsTooltipText--resNeg {
+  fill: #4da4ff;
 }
 
 .explainabilityInteractionsGrid {
@@ -8728,7 +9484,10 @@ body {
 
 .explainabilityBottomBar {
   position: static;
-  margin-top: 10px;
+  margin-top: auto;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   border-radius: 0;
 }
 
@@ -8751,6 +9510,79 @@ body {
 
   .explainabilityToggleSticky {
     top: 8px;
+    padding-left: 0;
+    margin-bottom: 6px;
+    justify-content: flex-start;
+  }
+
+  .explainabilityLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .explainabilitySideNav {
+    position: static;
+    margin-top: 0;
+    margin-right: 0;
+  }
+
+  .explainabilityToggle--vertical {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 6px;
+    border: 1px solid rgba(132, 188, 246, 0.16);
+    border-radius: 12px;
+    padding: 2px;
+    background: rgba(10, 24, 56, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  .explainabilityToggle--vertical .lineageViewToggle__option {
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
+    justify-content: center;
+    padding-inline: 8px;
+    margin-left: 0;
+    transform: none;
+  }
+
+  .explainabilityToggle--vertical .lineageViewToggle__option.isActive::after {
+    display: none;
+  }
+
+  .explainabilityToggle__verticalLabel {
+    transform: none;
+    letter-spacing: 0;
+  }
+
+  .explainabilityToggle__icon {
+    transform: none;
+    font-size: 22px;
+  }
+
+  .explainabilityControlDock {
+    grid-template-columns: 1fr;
+  }
+
+  .explainabilityDriversSelectorDock,
+  .explainabilityPanelSelectorDock {
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-top: 0;
+    border-radius: 13px;
+    border-bottom: 1px solid rgba(132, 188, 246, 0.24);
+    justify-content: stretch;
+  }
+
+  .explainabilityPanel--drivers {
+    margin-top: 0;
+  }
+
+  .explainabilityDriversSelectorDock .insightsExplorer__field,
+  .explainabilityPanelSelectorDock .insightsExplorer__field {
+    min-width: min(220px, 100%);
+    flex: 1 1 180px;
   }
 
   .explainabilityHeader__field {
@@ -8762,12 +9594,31 @@ body {
   .explainabilityToggle {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .explainabilityResolutionToggle {
+    grid-template-columns: 1fr;
+    width: 100%;
+    border-radius: 12px;
+    border-bottom: 1px solid rgba(95, 198, 246, 0.18);
+  }
+
+  .explainabilityResolutionToggle .lineageViewToggle__option,
+  .explainabilityResolutionToggle .lineageViewToggle__option.isActive {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+  }
 }
 
 .app:not(.app--dark) .explainabilityChip {
   border-color: rgba(11, 27, 58, 0.16);
   background: rgba(11, 27, 58, 0.04);
   color: rgba(19, 39, 70, 0.88);
+}
+
+.app:not(.app--dark) .explainabilityContextDock {
+  border-color: rgba(11, 27, 58, 0.14);
+  background: rgba(247, 251, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.04);
 }
 
 .app:not(.app--dark) .explainabilityStrip {
@@ -8830,6 +9681,78 @@ body {
   background: rgba(11, 27, 58, 0.03);
 }
 
+.app:not(.app--dark) .explainabilityDriversSummary__card:hover,
+.app:not(.app--dark) .explainabilityDriversSummary__card:focus-visible {
+  border-color: rgba(66, 176, 214, 0.56);
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.22), 0 6px 14px rgba(0, 176, 198, 0.14);
+}
+
+.app:not(.app--dark) .activeGridsChartCard {
+  border-color: rgba(11, 27, 58, 0.16);
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(0, 176, 198, 0.08), transparent 58%),
+    radial-gradient(140% 180% at 100% 0%, rgba(71, 128, 206, 0.08), transparent 64%),
+    rgba(247, 252, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.05), 0 10px 24px rgba(16, 32, 56, 0.12);
+}
+
+.app:not(.app--dark) .activeGridsChartCard__head h4 {
+  color: rgba(26, 54, 92, 0.8);
+}
+
+.app:not(.app--dark) .activeGridsLegendChip {
+  border-color: rgba(11, 27, 58, 0.18);
+  background: rgba(236, 245, 255, 0.86);
+  color: rgba(19, 39, 70, 0.86);
+}
+
+.app:not(.app--dark) .activeGridsResidualModeToggle {
+  border-color: rgba(11, 27, 58, 0.18);
+  background: rgba(236, 245, 255, 0.86);
+}
+
+.app:not(.app--dark) .activeGridsTooltip {
+  fill: rgba(246, 251, 255, 0.98);
+  stroke: rgba(11, 27, 58, 0.24);
+}
+
+.app:not(.app--dark) .activeGridsTooltipText {
+  fill: rgba(19, 39, 70, 0.92);
+}
+
+.app:not(.app--dark) .activeGridsTooltipText--week {
+  fill: rgba(12, 31, 58, 0.98);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__card--active {
+  border-color: rgba(66, 176, 214, 0.72);
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.4), 0 0 12px rgba(66, 176, 214, 0.22);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__effectChip {
+  border-color: rgba(80, 163, 210, 0.5);
+  background: rgba(220, 238, 255, 0.88);
+  color: rgba(20, 53, 84, 0.96);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__effectChip.isRaise {
+  border-color: rgba(15, 157, 149, 0.54);
+  background: rgba(15, 157, 149, 0.12);
+  color: rgba(8, 101, 96, 0.96);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__effectChip.isLower {
+  border-color: rgba(209, 93, 114, 0.5);
+  background: rgba(209, 93, 114, 0.12);
+  color: rgba(132, 45, 72, 0.96);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__effectChip.isMixed {
+  border-color: rgba(66, 176, 214, 0.5);
+  background: rgba(66, 176, 214, 0.12);
+  color: rgba(18, 78, 117, 0.96);
+}
+
 .app:not(.app--dark) .explainabilityDriversPlotCard {
   border-color: rgba(11, 27, 58, 0.16);
   background: rgba(11, 27, 58, 0.03);
@@ -8866,7 +9789,35 @@ body {
 }
 
 .app:not(.app--dark) .explainabilityPlot__zero {
-  stroke: rgba(11, 27, 58, 0.42);
+  stroke: rgba(40, 110, 161, 0.78);
+  filter: drop-shadow(0 0 4px rgba(66, 176, 214, 0.35));
+}
+
+.app:not(.app--dark) .explainabilityPlot__legendPillBg {
+  fill: rgba(245, 251, 255, 0.8);
+  stroke: rgba(80, 163, 210, 0.34);
+  filter: drop-shadow(0 3px 10px rgba(16, 32, 56, 0.14)) drop-shadow(0 0 8px rgba(66, 176, 214, 0.14));
+}
+
+.app:not(.app--dark) .explainabilityPlot__legendBarTrack {
+  fill: rgba(230, 242, 255, 0.62);
+  stroke: rgba(80, 163, 210, 0.3);
+}
+
+.app:not(.app--dark) .explainabilityLegendPill {
+  border-color: rgba(80, 163, 210, 0.34);
+  background: rgba(245, 251, 255, 0.82);
+  box-shadow: 0 3px 10px rgba(16, 32, 56, 0.14), 0 0 8px rgba(66, 176, 214, 0.14);
+}
+
+.app:not(.app--dark) .explainabilityLegendPill__title,
+.app:not(.app--dark) .explainabilityLegendPill__label {
+  color: rgba(19, 39, 70, 0.86);
+}
+
+.app:not(.app--dark) .explainabilityLegendPill__barWrap {
+  background: rgba(230, 242, 255, 0.62);
+  border-color: rgba(80, 163, 210, 0.3);
 }
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option {
@@ -8874,9 +9825,54 @@ body {
 }
 
 .app:not(.app--dark) .explainabilityToggle {
-  border-color: rgba(11, 27, 58, 0.16);
-  background: rgba(247, 251, 255, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.04);
+  border-color: rgba(11, 27, 58, 0.14);
+  background: rgba(247, 251, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.03);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical {
+  border-color: rgba(80, 163, 210, 0.38);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(72, 202, 230, 0.14), transparent 56%),
+    linear-gradient(160deg, rgba(242, 250, 255, 0.9), rgba(232, 246, 255, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option {
+  border-color: rgba(80, 163, 210, 0.34);
+  background: rgba(238, 247, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:hover,
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:focus-visible {
+  border-color: rgba(66, 176, 214, 0.62);
+  background: rgba(224, 243, 255, 0.98);
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.2), 0 0 12px rgba(66, 176, 214, 0.16);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option.isActive {
+  border-color: rgba(66, 176, 214, 0.78);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(112, 235, 255, 0.3), transparent 56%),
+    linear-gradient(180deg, rgba(208, 243, 255, 0.98), rgba(179, 230, 250, 0.96));
+  box-shadow:
+    inset 2px 0 0 rgba(46, 162, 206, 0.92),
+    0 0 0 1px rgba(66, 176, 214, 0.38),
+    0 0 14px rgba(66, 176, 214, 0.24);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:hover::before,
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:focus-visible::before {
+  border-color: rgba(80, 163, 210, 0.4);
+  background: rgba(245, 251, 255, 0.96);
+  color: rgba(18, 49, 82, 0.94);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option.isActive::after {
+  background: linear-gradient(180deg, rgba(208, 243, 255, 0.98), rgba(179, 230, 250, 0.96));
+  border-top-color: rgba(66, 176, 214, 0.64);
+  border-bottom-color: rgba(66, 176, 214, 0.64);
 }
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option:hover,
@@ -8893,4 +9889,54 @@ body {
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option:not(:last-child)::after {
   background: rgba(11, 27, 58, 0.14);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle {
+  border-color: rgba(80, 163, 210, 0.24);
+  background: rgba(228, 243, 255, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(95, 182, 224, 0.18);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option {
+  color: rgba(18, 49, 82, 0.9);
+  border-color: rgba(80, 163, 210, 0.38);
+  background: linear-gradient(180deg, rgba(232, 246, 255, 0.98), rgba(219, 238, 255, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:hover,
+.app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:focus-visible {
+  color: rgba(10, 36, 63, 0.96);
+  border-color: rgba(66, 176, 214, 0.66);
+  background: linear-gradient(180deg, rgba(224, 244, 255, 0.99), rgba(198, 236, 247, 0.98));
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.26), 0 0 12px rgba(66, 176, 214, 0.2);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option.isActive {
+  color: rgba(8, 31, 58, 0.98);
+  border-color: rgba(94, 197, 232, 0.94);
+  background:
+    radial-gradient(circle at 20% 8%, rgba(113, 236, 255, 0.32), transparent 52%),
+    linear-gradient(180deg, rgba(209, 243, 255, 0.98), rgba(180, 231, 251, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(94, 197, 232, 0.72),
+    0 0 14px rgba(65, 189, 228, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:not(:last-child)::after {
+  background: rgba(65, 189, 228, 0.26);
+}
+
+.app:not(.app--dark) .explainabilityControlDock {
+  border-color: rgba(120, 157, 206, 0.5);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(85, 228, 214, 0.1), transparent 50%),
+    rgba(239, 248, 255, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 6px 16px rgba(16, 32, 56, 0.1),
+    0 0 12px rgba(0, 176, 198, 0.1);
+  backdrop-filter: blur(8px) saturate(125%);
+  -webkit-backdrop-filter: blur(8px) saturate(125%);
 }
