@@ -23,6 +23,7 @@ async function bootstrap() {
           title="Data failed to load"
           message="A required metadata file could not be parsed."
           failingPath={dataError.path}
+          status={dataError.status}
           details={dataError.details ?? dataError.message}
           onRetry={() => window.location.reload()}
         />

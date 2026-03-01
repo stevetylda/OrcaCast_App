@@ -79,5 +79,10 @@ export function parseWithSchema<T>(
 ): T {
   const parsed = schema.safeParse(payload);
   if (parsed.success) return parsed.data;
-  throw new DataLoadError(path, `${label} failed validation`, formatZodError(parsed.error));
+  throw new DataLoadError({
+    kind: "validation",
+    url: path,
+    message: `${label} failed validation`,
+    details: formatZodError(parsed.error),
+  });
 }

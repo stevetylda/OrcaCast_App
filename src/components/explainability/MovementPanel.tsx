@@ -20,6 +20,9 @@ type MovementPoint = {
   actual: number | null;
 };
 
+const EMPTY_EXPECTED_ROWS: ExpectedCountPoint[] = [];
+const EMPTY_ACTUAL_ROWS: ActualActivityPoint[] = [];
+
 const RESIDUAL_EPSILON = 0.5;
 
 const RESIDUAL_MODE_OPTIONS: Array<{ key: ResidualMode; label: string; hint: string }> = [
@@ -73,22 +76,37 @@ function buildLinePath(
 }
 
 export function MovementPanel({ resolution }: Props) {
-  const [expectedRows, setExpectedRows] = useState<ExpectedCountPoint[]>([]);
-  const [actualRows, setActualRows] = useState<ActualActivityPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [viewport, setViewport] = useState<{ start: number; end: number } | null>(null);
-  const [brush, setBrush] = useState<{ startX: number; currentX: number } | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const resolvedResolution = toResolution(resolution);
+  const [seriesState, setSeriesState] = useState<{
+    resolution: H3Resolution;
+    expectedRows: ExpectedCountPoint[];
+    actualRows: ActualActivityPoint[];
+    loading: boolean;
+    error: string | null;
+  }>({
+    resolution: resolvedResolution,
+    expectedRows: [],
+    actualRows: [],
+    loading: true,
+    error: null,
+  });
+  const [viewportState, setViewportState] = useState<{
+    key: string;
+    value: { start: number; end: number } | null;
+  }>({ key: "", value: null });
+  const [brushState, setBrushState] = useState<{
+    key: string;
+    value: { startX: number; currentX: number } | null;
+  }>({ key: "", value: null });
+  const [hoverIndexState, setHoverIndexState] = useState<{
+    key: string;
+    value: number | null;
+  }>({ key: "", value: null });
   const [residualMode, setResidualMode] = useState<ResidualMode>("raw");
   const brushRef = useRef<{ startX: number; currentX: number } | null>(null);
 
-  const resolvedResolution = toResolution(resolution);
-
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     Promise.all([
       loadExpectedCountSeries(resolvedResolution),
@@ -96,23 +114,36 @@ export function MovementPanel({ resolution }: Props) {
     ])
       .then(([expected, actual]) => {
         if (!active) return;
-        setExpectedRows(expected);
-        setActualRows(actual);
+        setSeriesState({
+          resolution: resolvedResolution,
+          expectedRows: expected,
+          actualRows: actual,
+          loading: false,
+          error: null,
+        });
       })
       .catch(() => {
         if (!active) return;
-        setExpectedRows([]);
-        setActualRows([]);
-        setError("Could not load active-grid time-series data.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setSeriesState({
+          resolution: resolvedResolution,
+          expectedRows: [],
+          actualRows: [],
+          loading: false,
+          error: "Could not load active-grid time-series data.",
+        });
       });
 
     return () => {
       active = false;
     };
   }, [resolvedResolution]);
+
+  const loading = seriesState.resolution !== resolvedResolution || seriesState.loading;
+  const error = seriesState.resolution !== resolvedResolution ? null : seriesState.error;
+  const expectedRows =
+    seriesState.resolution !== resolvedResolution ? EMPTY_EXPECTED_ROWS : seriesState.expectedRows;
+  const actualRows =
+    seriesState.resolution !== resolvedResolution ? EMPTY_ACTUAL_ROWS : seriesState.actualRows;
 
   const points = useMemo(() => {
     const expectedKeys: Array<{ key: string; year: number; statWeek: number }> = [];
@@ -140,12 +171,25 @@ export function MovementPanel({ resolution }: Props) {
       }));
   }, [actualRows, expectedRows]);
 
+  const interactionKey = `${resolvedResolution}:${points.length}`;
   useEffect(() => {
-    setViewport(null);
-    setBrush(null);
-    setHoverIndex(null);
     brushRef.current = null;
-  }, [resolvedResolution, points.length]);
+  }, [interactionKey]);
+  const viewport = viewportState.key === interactionKey ? viewportState.value : null;
+  const brush = brushState.key === interactionKey ? brushState.value : null;
+  const hoverIndex = hoverIndexState.key === interactionKey ? hoverIndexState.value : null;
+
+  const setViewport = (value: { start: number; end: number } | null) => {
+    setViewportState({ key: interactionKey, value });
+  };
+
+  const setBrush = (value: { startX: number; currentX: number } | null) => {
+    setBrushState({ key: interactionKey, value });
+  };
+
+  const setHoverIndex = (value: number | null) => {
+    setHoverIndexState({ key: interactionKey, value });
+  };
 
   const visibleRange = useMemo(() => {
     if (!viewport || points.length === 0) return { start: 0, end: Math.max(0, points.length - 1) };

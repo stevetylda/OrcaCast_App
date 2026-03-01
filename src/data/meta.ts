@@ -1,4 +1,5 @@
 import { DataLoadError } from "./errors";
+import { fetchJson } from "./fetchClient";
 import { dataMetaFileSchema, parseWithSchema } from "./validation";
 
 export type DataMeta = {
@@ -75,29 +76,27 @@ export async function loadDataMeta(): Promise<DataMeta> {
     cachedMetaPromise = (async () => {
       let lastNotFound: DataLoadError | null = null;
       for (const url of metaUrlCandidates()) {
-        const response = await fetch(url, { cache: "force-cache" });
-        if (!response.ok) {
-          lastNotFound = new DataLoadError(url, `Failed to load metadata file (${response.status})`);
-          continue;
-        }
-        const text = await response.text();
-        if (text.trim().startsWith("<")) {
-          throw new DataLoadError(url, "Metadata file returned HTML instead of JSON");
-        }
-        let payload: unknown;
         try {
-          payload = JSON.parse(text);
+          const { url: resolvedUrl, data: payload } = await fetchJson<unknown>(url, { cache: "force-cache" });
+          const validPayload = parseWithSchema(dataMetaFileSchema, payload, resolvedUrl, "Metadata file");
+          return normalizeMeta(validPayload);
         } catch (error) {
-          throw new DataLoadError(
-            url,
-            "Metadata file is not valid JSON",
-            error instanceof Error ? error.message : String(error)
-          );
+          if (error instanceof DataLoadError && error.kind === "http" && error.status === 404) {
+            lastNotFound = error;
+            continue;
+          }
+          throw error;
         }
-        const validPayload = parseWithSchema(dataMetaFileSchema, payload, url, "Metadata file");
-        return normalizeMeta(validPayload);
       }
-      throw lastNotFound ?? new DataLoadError(withBase("data/meta.json"), "No metadata file found");
+      throw (
+        lastNotFound ??
+        new DataLoadError({
+          kind: "http",
+          url: withBase("data/meta.json"),
+          status: 404,
+          message: "No metadata file found",
+        })
+      );
     })()
       .then((meta) => {
         resolvedMeta = meta;

@@ -1,4 +1,6 @@
 import type { H3Resolution } from "../config/dataPaths";
+import { fetchJson } from "./fetchClient";
+import { getDataVersionToken } from "./meta";
 
 export type ExpectedCountPoint = {
   year: number;
@@ -46,54 +48,6 @@ function withBase(path: string): string {
   return `${base}${trimmed}`;
 }
 
-function buildUrlCandidates(url: string): string[] {
-  const candidates = new Set<string>();
-  const base = import.meta.env.BASE_URL || "/";
-  const basePrefix = base.endsWith("/") ? base.slice(0, -1) : base;
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    candidates.add(url);
-  } else if (url.startsWith("/")) {
-    candidates.add(`${window.location.origin}${url}`);
-    candidates.add(`${basePrefix}${url}`);
-    candidates.add(url);
-  } else {
-    try {
-      candidates.add(new URL(url, window.location.href).toString());
-    } catch {
-      // no-op
-    }
-    candidates.add(`${base}${url}`);
-    candidates.add(url);
-  }
-  return Array.from(candidates);
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const candidates = buildUrlCandidates(url);
-  let lastError: Error | null = null;
-
-  for (const candidate of candidates) {
-    try {
-      const res = await fetch(candidate, { cache: "no-store" });
-      if (!res.ok) {
-        lastError = new Error(`Failed to fetch ${candidate}: ${res.status}`);
-        continue;
-      }
-      const text = await res.text();
-      const trimmed = text.trim();
-      if (trimmed.startsWith("<")) {
-        lastError = new Error(`Received HTML instead of JSON from ${candidate}`);
-        continue;
-      }
-      return JSON.parse(text) as T;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
-  }
-
-  throw new Error(lastError ? lastError.message : `Failed to fetch ${url}`);
-}
-
 export async function loadExpectedCountSeries(
   resolution: H3Resolution
 ): Promise<ExpectedCountPoint[]> {
@@ -101,7 +55,10 @@ export async function loadExpectedCountSeries(
   if (cached) return cached;
 
   const preferredUrl = withBase(`data/expected_count/${resolution}_EXPECTED_ACTIVITY.json`);
-  const payload = await fetchJson<ExpectedCountPayload>(preferredUrl);
+  const { data: payload } = await fetchJson<ExpectedCountPayload>(preferredUrl, {
+    cache: "no-store",
+    cacheToken: getDataVersionToken(),
+  });
 
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
 
@@ -140,7 +97,10 @@ export async function loadActualActivitySeries(
   if (cached) return cached;
 
   const preferredUrl = withBase(`data/expected_count/${resolution}_ACTUAL_ACTIVITY.json`);
-  const payload = await fetchJson<ActualActivityPayload>(preferredUrl);
+  const { data: payload } = await fetchJson<ActualActivityPayload>(preferredUrl, {
+    cache: "no-store",
+    cacheToken: getDataVersionToken(),
+  });
 
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
   const parsed = rows

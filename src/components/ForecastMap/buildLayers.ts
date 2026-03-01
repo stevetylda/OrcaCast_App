@@ -3,6 +3,7 @@ import type { FeatureCollection } from "geojson";
 import { LAST_WEEK_LAYER_CONFIG } from "../../config/mapLayers";
 import type { HeatScale } from "../../map/colorScale";
 import { ZERO_COLOR } from "../../map/colorScale";
+import { getPerfObjectId } from "../../debug/perf";
 import type { LastWeekMode } from "./types";
 
 export const VOYAGER_STYLE = "https://tiles.stadiamaps.com/styles/alidade_smooth.json";
@@ -18,6 +19,38 @@ export const LAST_WEEK_LAYER_ID = "last-week-sightings-circle";
 export const LAST_WEEK_HALO_ID = "last-week-sightings-halo";
 export const LAST_WEEK_RING_ID = "last-week-sightings-ring";
 export const LAST_WEEK_WHITE_ID = "last-week-sightings-white";
+
+export function createGridLayerBuildSignature(inputs: {
+  data: FeatureCollection | null;
+  fillColorExpr?: unknown;
+  hotspotThreshold?: number;
+  hotspotsVisible: boolean;
+  shimmerThreshold?: number;
+  borderColor: string;
+  showKdeContours: boolean;
+}): string {
+  return [
+    `data:${getPerfObjectId(inputs.data)}`,
+    `fill:${getPerfObjectId(inputs.fillColorExpr ?? null)}`,
+    `threshold:${inputs.hotspotThreshold ?? "none"}`,
+    `hotspots:${inputs.hotspotsVisible ? 1 : 0}`,
+    `shimmer:${inputs.shimmerThreshold ?? "none"}`,
+    `border:${inputs.borderColor}`,
+    `kde:${inputs.showKdeContours ? 1 : 0}`,
+  ].join("|");
+}
+
+export function createDeckLayerBuildSignature(inputs: {
+  data: FeatureCollection | null;
+  legendSpec: HeatScale | null;
+  enabled: boolean;
+}): string {
+  return [
+    `data:${getPerfObjectId(inputs.data)}`,
+    `legend:${getPerfObjectId(inputs.legendSpec)}`,
+    `enabled:${inputs.enabled ? 1 : 0}`,
+  ].join("|");
+}
 
 export function applyBasemapVisualTuning(map: MapLibreMap, isDarkBasemap: boolean) {
   const style = map.getStyle();

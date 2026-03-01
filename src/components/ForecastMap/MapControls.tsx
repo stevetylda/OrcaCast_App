@@ -1,6 +1,8 @@
+import { memo } from "react";
 import { ProbabilityLegend } from "../ProbabilityLegend";
 import type { HeatScale } from "../../map/colorScale";
 import type { DeltaLegendSpec } from "../../map/deltaMap";
+import { trackRender } from "../../debug/perf";
 
 type MapControlsProps = {
   hotspotsEnabled: boolean;
@@ -15,7 +17,7 @@ type MapControlsProps = {
   onLegendToggle: () => void;
 };
 
-export function MapControls({
+export const MapControls = memo(function MapControls({
   hotspotsEnabled,
   hasForecastLegend,
   disableHotspots,
@@ -27,6 +29,7 @@ export function MapControls({
   onHotspotsEnabledChange,
   onLegendToggle,
 }: MapControlsProps) {
+  trackRender("MapControls");
   return (
     <>
       <div className="map__cornerRightBottom" data-tour="legend-controls">
@@ -69,4 +72,4 @@ export function MapControls({
       )}
     </>
   );
-}
+});

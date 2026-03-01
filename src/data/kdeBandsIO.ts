@@ -1,4 +1,6 @@
 import type { Feature, FeatureCollection } from "geojson";
+import { fetchJson } from "./fetchClient";
+import { getDataVersionToken } from "./meta";
 
 type KdeBandsFeature = Feature & {
   properties?: {
@@ -11,54 +13,6 @@ type KdeBandsFeature = Feature & {
 };
 
 const kdeBandsCache = new Map<string, FeatureCollection>();
-
-function buildUrlCandidates(url: string): string[] {
-  const candidates = new Set<string>();
-  const base = import.meta.env.BASE_URL || "/";
-  const basePrefix = base.endsWith("/") ? base.slice(0, -1) : base;
-  if (url.startsWith("http") || url.startsWith("https")) {
-    candidates.add(url);
-  } else if (url.startsWith("/")) {
-    candidates.add(`${window.location.origin}${url}`);
-    candidates.add(`${basePrefix}${url}`);
-    candidates.add(url);
-  } else {
-    try {
-      candidates.add(new URL(url, window.location.href).toString());
-    } catch {
-      // no-op
-    }
-    candidates.add(`${base}${url}`);
-    candidates.add(url);
-  }
-  return Array.from(candidates);
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const candidates = buildUrlCandidates(url);
-  let lastError: Error | null = null;
-
-  for (const candidate of candidates) {
-    try {
-      const res = await fetch(candidate, { cache: "no-store" });
-      if (!res.ok) {
-        lastError = new Error(`Failed to fetch ${candidate}: ${res.status}`);
-        continue;
-      }
-      const text = await res.text();
-      const trimmed = text.trim();
-      if (trimmed.startsWith("<")) {
-        lastError = new Error(`Received HTML instead of JSON from ${candidate}`);
-        continue;
-      }
-      return JSON.parse(text) as T;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
-  }
-
-  throw new Error(lastError ? lastError.message : `Failed to fetch ${url}`);
-}
 
 function getBandIndex(feature: Feature): number {
   const props = (feature as KdeBandsFeature).properties;
@@ -104,7 +58,10 @@ export async function loadKdeBandsGeojson(
 ): Promise<FeatureCollection> {
   const cached = kdeBandsCache.get(cacheKey);
   if (cached) return cached;
-  const data = await fetchJson<FeatureCollection>(path);
+  const { data } = await fetchJson<FeatureCollection>(path, {
+    cache: "no-store",
+    cacheToken: getDataVersionToken(),
+  });
   const sorted: FeatureCollection = {
     ...data,
     features: Array.isArray(data.features) ? sortBands(data.features) : [],

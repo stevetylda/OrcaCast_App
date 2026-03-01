@@ -6,6 +6,7 @@ import { SwipeComparePills } from "../../components/Compare/SwipeComparePills";
 import { DualMapCompare } from "../../components/Compare/DualMapCompare";
 import { SingleSwipeMap } from "../../components/Compare/SingleSwipeMap";
 import { MapPageFailureState } from "./MapPageFailureState";
+import { trackRender } from "../../debug/perf";
 import type { NonNoneLastWeekMode } from "./types";
 import type { MapPageController } from "./useMapPageController";
 
@@ -14,6 +15,7 @@ type MapPageLayoutProps = {
 };
 
 export function MapPageLayout({ controller }: MapPageLayoutProps) {
+  trackRender("MapPageLayout");
   const {
     primaryMapRef,
     darkMode,
@@ -137,6 +139,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
             title="Data failed to load"
             message="The map could not start because a required data file was unavailable."
             failingPath={pageLoadError.path}
+            status={pageLoadError.status}
             details={pageLoadError.details ?? pageLoadError.message}
             onRetry={retryPageLoad}
           />

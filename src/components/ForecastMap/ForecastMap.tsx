@@ -22,9 +22,10 @@ import { isoWeekFromDate } from "../../core/time/forecastPeriodToIsoWeek";
 import { debounce, resolveLayerSource, type ResolvedLayerSource } from "../../map/sourceBackend";
 import { getPaletteOrDefault } from "../../constants/palettes";
 import { getDataVersionToken } from "../../data/meta";
+import { trackLayerRebuild, trackRender } from "../../debug/perf";
 import { MapControls } from "./MapControls";
 import { createGridInteractionHandlers } from "./MapInteractions";
-import { applyBasemapVisualTuning, applyLastWeekModeFilters, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, ensureLastWeekLayer, getKdeBandColor, LAST_WEEK_HALO_ID, LAST_WEEK_LAYER_ID, LAST_WEEK_RING_ID, LAST_WEEK_SOURCE_ID, LAST_WEEK_VECTOR_SOURCE_ID, LAST_WEEK_WHITE_ID, moveLastWeekToTop, rgbaStringToArray, VOYAGER_STYLE } from "./buildLayers";
+import { applyBasemapVisualTuning, applyLastWeekModeFilters, createDeckLayerBuildSignature, createGridLayerBuildSignature, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, ensureLastWeekLayer, getKdeBandColor, LAST_WEEK_HALO_ID, LAST_WEEK_LAYER_ID, LAST_WEEK_RING_ID, LAST_WEEK_SOURCE_ID, LAST_WEEK_VECTOR_SOURCE_ID, LAST_WEEK_WHITE_ID, moveLastWeekToTop, rgbaStringToArray, VOYAGER_STYLE } from "./buildLayers";
 import { useForecastData } from "./useForecastData";
 import type { FillColorSpec, ForecastMapHandle, ForecastMapProps, LastWeekMode, LngLat, SparklineSeries } from "./types";
 
@@ -66,6 +67,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   onMoveEndViewState,
   onFatalDataError,
 }: ForecastMapProps, ref) {
+  trackRender("ForecastMap", { resolution, modelId, darkMode });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
@@ -89,7 +91,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [showKdeContours, setShowKdeContours] = useState(false);
-  const [kdeBands, setKdeBands] = useState<FeatureCollection | null>(null);
+  const [kdeBandsVersion, setKdeBandsVersion] = useState(0);
   const [kdeWarning, setKdeWarning] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const mapReadyRef = useRef(false);
@@ -112,6 +114,9 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const lastWeekSourceRef = useRef<ResolvedLayerSource | null>(null);
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
+  const kdeBandsRef = useRef<FeatureCollection | null>(null);
+  const lastGridLayerSignatureRef = useRef<string | null>(null);
+  const lastDeckLayerSignatureRef = useRef<string | null>(null);
   const sparkPopupRef = useRef<maplibregl.Popup | null>(null);
   const sparkRequestIdRef = useRef(0);
   const hoveredCellRef = useRef<string | null>(null);
@@ -260,16 +265,32 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
           : fillExprRef.current ?? undefined;
 
     if (fillExpr) fillExprRef.current = fillExpr;
-
-    addGridOverlay(
-      map,
-      overlayRef.current,
-      fillExpr,
-      threshold,
-      hotspotOverlayVisible,
-      shimmerThresholdRef.current,
-      gridBorderColor
-    );
+    const layerSignature = createGridLayerBuildSignature({
+      data: overlayRef.current,
+      fillColorExpr: fillExpr,
+      hotspotThreshold: threshold,
+      hotspotsVisible: hotspotOverlayVisible,
+      shimmerThreshold: shimmerThresholdRef.current,
+      borderColor: gridBorderColor,
+      showKdeContours: showKdeContoursRef.current,
+    });
+    if (lastGridLayerSignatureRef.current !== layerSignature) {
+      lastGridLayerSignatureRef.current = layerSignature;
+      trackLayerRebuild("grid", {
+        resolution,
+        hotspotOverlayVisible,
+        hasThreshold: threshold !== undefined,
+      });
+      addGridOverlay(
+        map,
+        overlayRef.current,
+        fillExpr,
+        threshold,
+        hotspotOverlayVisible,
+        shimmerThresholdRef.current,
+        gridBorderColor
+      );
+    }
 
     if (showKdeContoursRef.current) {
       setGridVisibility(map, false);
@@ -469,6 +490,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       }
       safeApplyBasemapVisualTuning(map, isDarkBasemap);
       map.resize();
+      lastGridLayerSignatureRef.current = null;
+      lastDeckLayerSignatureRef.current = null;
       scheduleForecastRender(map, () => cancelled);
       if (showLastWeekRef.current) {
         const applyLastWeekWhenReady = () => {
@@ -663,7 +686,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
 
   useEffect(() => {
     if (!(KDE_ENABLED && showKdeContours)) {
-      setKdeBands(null);
+      kdeBandsRef.current = null;
+      setKdeBandsVersion((value) => value + 1);
       setKdeWarning(null);
     }
   }, [showKdeContours]);
@@ -767,6 +791,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       const nextStyle = styleUrlRef.current;
       mapRef.current.setStyle(nextStyle);
       activeStyleUrlRef.current = nextStyle;
+      lastGridLayerSignatureRef.current = null;
+      lastDeckLayerSignatureRef.current = null;
       restoreMapAfterStyleChange(
         mapRef.current,
         { center, zoom, bearing, pitch },
@@ -802,6 +828,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     map.on("mouseleave", "grid-fill", handleMouseLeave);
 
     map.once("load", () => {
+      lastGridLayerSignatureRef.current = null;
+      lastDeckLayerSignatureRef.current = null;
       mapReadyRef.current = true;
       setMapReady(true);
       safeApplyBasemapVisualTuning(map, styleUrlRef.current === DARK_STYLE);
@@ -965,6 +993,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     const pitch = map.getPitch();
     map.setStyle(styleUrl);
     activeStyleUrlRef.current = styleUrl;
+    lastGridLayerSignatureRef.current = null;
+    lastDeckLayerSignatureRef.current = null;
     restoreMapAfterStyleChange(map, { center, zoom, bearing, pitch }, styleUrl === DARK_STYLE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleUrl, mapReady]);
@@ -1197,7 +1227,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
 
   useEffect(() => {
     if (!KDE_ENABLED) {
-      setKdeBands(null);
+      kdeBandsRef.current = null;
+      setKdeBandsVersion((value) => value + 1);
       setKdeWarning(null);
       return;
     }
@@ -1205,7 +1236,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     if (!map || !showKdeContours) return;
     if (!Number.isFinite(selectedWeekYear) || !Number.isFinite(selectedWeek) || selectedWeek <= 0) {
       setKdeWarning("No blurred KDE GeoJSON available for this period.");
-      setKdeBands(null);
+      kdeBandsRef.current = null;
+      setKdeBandsVersion((value) => value + 1);
       return;
     }
 
@@ -1227,13 +1259,15 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     loadKdeBandsGeojson(path, cacheKey)
       .then((data) => {
         if (active) {
-          setKdeBands(data);
+          kdeBandsRef.current = data;
+          setKdeBandsVersion((value) => value + 1);
           setKdeWarning(null);
         }
       })
       .catch(() => {
         if (active) {
-          setKdeBands(null);
+          kdeBandsRef.current = null;
+          setKdeBandsVersion((value) => value + 1);
           setKdeWarning("No blurred KDE GeoJSON available for this period.");
         }
       });
@@ -1246,11 +1280,21 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   useEffect(() => {
     const overlay = deckOverlayRef.current;
     if (!overlay) return;
+    const kdeBands = kdeBandsRef.current;
+    const deckSignature = createDeckLayerBuildSignature({
+      data: kdeBands,
+      legendSpec,
+      enabled: KDE_ENABLED && showKdeContours && Boolean(kdeBands),
+    });
+    if (lastDeckLayerSignatureRef.current === deckSignature) return;
+    lastDeckLayerSignatureRef.current = deckSignature;
     if (!KDE_ENABLED || !showKdeContours || !kdeBands) {
+      trackLayerRebuild("deck-kde-clear");
       overlay.setProps({ layers: [] });
       return;
     }
 
+    trackLayerRebuild("deck-kde");
     overlay.setProps({
       layers: [
         new GeoJsonLayer({
@@ -1268,7 +1312,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         }),
       ],
     });
-  }, [showKdeContours, kdeBands, legendSpec]);
+  }, [showKdeContours, kdeBandsVersion, legendSpec]);
 
   return (
     <div className="mapStage">

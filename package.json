@@ -8,9 +8,11 @@
     "typecheck": "tsc -b --pretty false",
     "test": "node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/run-tests.ts",
     "build": "tsc -b && vite build",
+    "analyze": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "repo:check": "bash scripts/check_artifacts.sh"
+    "repo:check": "bash scripts/check_artifacts.sh",
+    "data:validate": "bash scripts/check_artifacts.sh"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.1.1",

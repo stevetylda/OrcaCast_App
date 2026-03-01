@@ -6,6 +6,7 @@ type MapPageFailureStateProps = {
   title: string;
   message: string;
   failingPath?: string | null;
+  status?: number;
   details?: string | null;
   onRetry: () => void;
 };
@@ -23,6 +24,7 @@ export function MapPageFailureState({
   title,
   message,
   failingPath,
+  status,
   details,
   onRetry,
 }: MapPageFailureStateProps) {
@@ -52,6 +54,12 @@ export function MapPageFailureState({
           <div className="mapFailureState__pathRow">
             <span className="mapFailureState__pathLabel">Failed file</span>
             <code className="mapFailureState__pathValue">{formatDataPath(failingPath)}</code>
+          </div>
+        ) : null}
+        {typeof status === "number" ? (
+          <div className="mapFailureState__statusRow">
+            <span className="mapFailureState__pathLabel">Status</span>
+            <span className="mapFailureState__statusValue">{status}</span>
           </div>
         ) : null}
         <div className="mapFailureState__version">{buildVersionLabel(dataMeta)}</div>

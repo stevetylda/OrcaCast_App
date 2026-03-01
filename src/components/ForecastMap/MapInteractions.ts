@@ -207,6 +207,9 @@ export function createGridInteractionHandlers({
   cellPopupHtmlBuilder,
   enableSparklinePopup,
 }: GridInteractionOptions) {
+  let hoverRafId = 0;
+  let pendingHoverPoint: maplibregl.Point | null = null;
+
   const handleSparklineClick = (event: maplibregl.MapMouseEvent) => {
     const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
     const feature = features[0];
@@ -339,14 +342,25 @@ export function createGridInteractionHandlers({
   };
 
   const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
-    const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
-    const cellId = getFeatureCellId(features[0] as { properties?: Record<string, unknown> } | undefined);
-    if (!cellId || hoveredCellRef.current === cellId) return;
-    hoveredCellRef.current = cellId;
-    setGridHoverCell(map, cellId);
+    pendingHoverPoint = event.point;
+    if (hoverRafId) return;
+    hoverRafId = window.requestAnimationFrame(() => {
+      hoverRafId = 0;
+      if (!pendingHoverPoint) return;
+      const features = map.queryRenderedFeatures(pendingHoverPoint, { layers: ["grid-fill"] });
+      const cellId = getFeatureCellId(features[0] as { properties?: Record<string, unknown> } | undefined);
+      if (!cellId || hoveredCellRef.current === cellId) return;
+      hoveredCellRef.current = cellId;
+      setGridHoverCell(map, cellId);
+    });
   };
 
   const handleMouseLeave = () => {
+    if (hoverRafId) {
+      window.cancelAnimationFrame(hoverRafId);
+      hoverRafId = 0;
+    }
+    pendingHoverPoint = null;
     hoveredCellRef.current = null;
     setGridHoverCell(map, null);
     map.getCanvas().style.cursor = "";

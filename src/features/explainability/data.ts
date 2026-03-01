@@ -7,6 +7,8 @@ import type {
   InteractionSampleRow,
   ShapSampleRow,
 } from "./types";
+import { fetchJson as fetchJsonWithClient } from "../../data/fetchClient";
+import { getDataVersionToken } from "../../data/meta";
 
 const cache = new Map<string, Promise<unknown>>();
 
@@ -21,18 +23,21 @@ async function fetchJson<T>(path: string): Promise<T> {
   if (!cache.has(url)) {
     cache.set(
       url,
-      fetch(url)
-        .then(async (res) => {
-          if (!res.ok) throw new Error(`Failed to load ${path}`);
-          return (await res.json()) as T;
-        })
-        .catch((error) => {
+      fetchJsonClient<T>(path).catch((error) => {
           cache.delete(url);
           throw error;
         })
     );
   }
   return cache.get(url) as Promise<T>;
+}
+
+async function fetchJsonClient<T>(path: string): Promise<T> {
+  const { data } = await fetchJsonWithClient<T>(path, {
+    cache: "force-cache",
+    cacheToken: getDataVersionToken(),
+  });
+  return data;
 }
 
 export function explainabilityArtifactBase(runId: string, modelId: string, target: string): string {

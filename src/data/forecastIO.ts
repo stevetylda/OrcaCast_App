@@ -1,7 +1,8 @@
 import type { FeatureCollection } from "geojson";
 import { GRID_PATH, getForecastPath } from "../config/dataPaths";
 import type { H3Resolution } from "../config/dataPaths";
-import { DataLoadError } from "./errors";
+import { fetchJson } from "./fetchClient";
+import { getDataVersionToken } from "./meta";
 import { forecastPayloadSchema, parseWithSchema } from "./validation";
 
 type ForecastPayload = {
@@ -14,83 +15,14 @@ const gridCache = new Map<H3Resolution, FeatureCollection>();
 const forecastCache = new Map<string, ForecastPayload>();
 const forecastRawCache = new Map<string, ForecastPayloadRaw>();
 
-const MAX_GEOJSON_BYTES = 8 * 1024 * 1024;
-
-function exceedsGeojsonBudget(url: string, bytes: number): boolean {
-  return url.toLowerCase().endsWith(".geojson") && bytes > MAX_GEOJSON_BYTES;
-}
-
-function buildUrlCandidates(url: string): string[] {
-  const candidates = new Set<string>();
-  const base = import.meta.env.BASE_URL || "/";
-  const basePrefix = base.endsWith("/") ? base.slice(0, -1) : base;
-  if (url.startsWith("http") || url.startsWith("https")) {
-    candidates.add(url);
-  } else if (url.startsWith("/")) {
-    candidates.add(`${window.location.origin}${url}`);
-    candidates.add(`${basePrefix}${url}`);
-    candidates.add(url);
-  } else {
-    try {
-      candidates.add(new URL(url, window.location.href).toString());
-    } catch {
-      // no-op
-    }
-    candidates.add(`${base}${url}`);
-    candidates.add(url);
-  }
-  return Array.from(candidates);
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const candidates = buildUrlCandidates(url);
-  let lastError: DataLoadError | null = null;
-
-  for (const candidate of candidates) {
-    try {
-      const res = await fetch(candidate, { cache: "force-cache" });
-      if (!res.ok) {
-        lastError = new DataLoadError(candidate, `Failed to fetch ${candidate}: ${res.status}`);
-        continue;
-      }
-      const text = await res.text();
-      const bytes = new TextEncoder().encode(text).length;
-      if (exceedsGeojsonBudget(candidate, bytes)) {
-        console.warn(`[DataBudget] GeoJSON payload exceeds ${(MAX_GEOJSON_BYTES / (1024 * 1024)).toFixed(1)}MB budget: ${candidate} (${(bytes / (1024 * 1024)).toFixed(2)}MB). Consider vector tiles.`);
-      }
-      const trimmed = text.trim();
-      if (trimmed.startsWith("<")) {
-        lastError = new DataLoadError(candidate, `Received HTML instead of JSON from ${candidate}`);
-        continue;
-      }
-      try {
-        return JSON.parse(text) as T;
-      } catch (error) {
-        lastError = new DataLoadError(
-          candidate,
-          `Invalid JSON in ${candidate}`,
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-    } catch (err) {
-      if (err instanceof DataLoadError) {
-        lastError = err;
-      } else if (err instanceof Error) {
-        lastError = new DataLoadError(candidate, err.message);
-      } else {
-        lastError = new DataLoadError(candidate, String(err));
-      }
-    }
-  }
-
-  throw lastError ?? new DataLoadError(url, `Failed to fetch ${url}`);
-}
-
 export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollection> {
   const cached = gridCache.get(resolution);
   if (cached) return structuredClone(cached);
   const url = GRID_PATH[resolution];
-  const data = await fetchJson<FeatureCollection>(url);
+  const { data } = await fetchJson<FeatureCollection>(url, {
+    cache: "force-cache",
+    cacheToken: getDataVersionToken(),
+  });
   gridCache.set(resolution, data);
   return structuredClone(data);
 }
@@ -109,7 +41,7 @@ async function loadForecastRaw(url: string): Promise<ForecastPayloadRaw> {
   if (cached) return cached;
   const raw = parseWithSchema(
     forecastPayloadSchema,
-    await fetchJson<unknown>(url),
+    (await fetchJson<unknown>(url, { cache: "force-cache", cacheToken: getDataVersionToken() })).data,
     url,
     "Forecast payload"
   );
