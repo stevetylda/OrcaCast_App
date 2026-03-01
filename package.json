@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -b --pretty false",
-    "test": "node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/run-tests.ts",
+    "test": "node --import ./scripts/register-ts-loader.mjs ./scripts/run-tests.ts",
     "build": "tsc -b && vite build",
     "analyze": "npm run build",
     "lint": "eslint .",
