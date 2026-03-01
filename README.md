@@ -2,10 +2,30 @@
 
 OrcaCast is a static React + TypeScript application for exploring **weekly, H3-indexed, relative likelihood surfaces** for reported orca sightings in the Pacific Northwest. It is designed for transparent spatial analysis workflows where temporal integrity, data provenance, and reproducibility are first-class concerns.
 
-<b>Application Available Here:</b> [orcacast-app.pages.dev](https://orcacast-app.pages.dev)
+**Live app:** [orcacast-app.pages.dev](https://orcacast-app.pages.dev)
 
 **Important interpretation note**  
 OrcaCast forecasts where sightings are *more likely to be reported relative to other cells in the same week*. It is **not** real-time whale tracking, presence/absence ground truth, or navigational guidance. 
+
+---
+
+## Quick Start
+
+### Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+### Python utilities
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python -m src.cli --help
+```
 
 ---
 
@@ -219,11 +239,6 @@ Guard against silent drift in these areas:
 - Validate H3 level (`H4/H5/H6`) remains consistent across joins/overlays
 - Confirm no CRS or coordinate-order drift when ingesting GeoJSON
 - Re-check any pruning/smoothing process that could alter hotspot geometry
-- `/` map
-- `/about`
-- `/models`
-- `/explainability`
-- `/data`
 
 ### Evaluation integrity
 
@@ -245,35 +260,94 @@ Guard against silent drift in these areas:
 
 - Node.js 18+ (Node 20 recommended)
 - npm
+- Python 3.10+ for the utility modules in `src/cli`, `src/explainability`, `src/io`, and `src/visualization`
 
-### Install
+### Frontend setup
 
 ```bash
 npm install
 ```
 
-### Run development server
+### Run the app locally
 
 ```bash
 npm run dev
 ```
 
-### Build production bundle
+### Python tooling
+
+The Python utilities use the packaging metadata in `pyproject.toml`, so the supported setup path is editable install plus `python -m` execution.
+
+#### Create a virtual environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+#### Install the utilities
+
+```bash
+python -m pip install -e .
+```
+
+#### Explore the CLI
+
+Run the CLI either as a module or through the installed console script:
+
+```bash
+python -m src.cli --help
+orcacast-cli --help
+```
+
+Current supported subcommands include:
+
+```bash
+python -m src.cli explainability build --help
+```
+
+#### Example: build explainability artifacts
+
+```bash
+python -m src.cli explainability build \
+  --run-id latest \
+  --model-id composite_linear_logit \
+  --target sighting_likelihood \
+  --resolution H4 \
+  --source-shap-dir public/data/forecasts/latest/shap \
+  --output-root artifacts/explainability
+```
+
+This writes artifact bundles under `artifacts/explainability/<run-id>/<model-id>/<target>/`.
+
+#### Optional Makefile shortcuts
+
+If you want short aliases for the most common Python commands:
+
+```bash
+make py-install
+make py-cli-help
+make py-exp-help
+```
+
+### Build the production bundle
 
 ```bash
 npm run build
 ```
 
-### Preview production build
+### Preview the production bundle
 
 ```bash
 npm run preview
 ```
 
-### Lint
+### Validate the codebase
 
 ```bash
 npm run lint
+npm run test
+npm run typecheck
 ```
 
 ---

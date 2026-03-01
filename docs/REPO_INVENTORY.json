@@ -1,0 +1,230 @@
+{
+  "repo_name": "OrcaCast_App",
+  "branch": "main",
+  "languages": [
+    {
+      "name": "TypeScript/TSX",
+      "approx_role": "primary application code"
+    },
+    {
+      "name": "JSON/GEOJSON",
+      "approx_role": "primary static data payloads"
+    },
+    {
+      "name": "Python",
+      "approx_role": "offline utility and explainability artifact tooling"
+    },
+    {
+      "name": "CSS",
+      "approx_role": "app styling"
+    },
+    {
+      "name": "JavaScript",
+      "approx_role": "tooling config"
+    }
+  ],
+  "top_level_dirs": [
+    {
+      "path": "docs",
+      "description_guess": "Project documentation, audit notes, and screenshot assets",
+      "file_count": 10,
+      "key_files": [
+        "docs/explainability.md",
+        "docs/map-data-audit.md",
+        "docs/vector-tiles.md",
+        "docs/screenshots/README.md"
+      ]
+    },
+    {
+      "path": "public",
+      "description_guess": "Static runtime assets and the effective data backend for the SPA",
+      "file_count": 992,
+      "key_files": [
+        "public/data/periods.json",
+        "public/data/grids/H4.geojson",
+        "public/data/forecasts/latest/weekly",
+        "public/data/explainability/index.json"
+      ]
+    },
+    {
+      "path": "src",
+      "description_guess": "Frontend source, page/components/state modules, plus Python utilities",
+      "file_count": 98,
+      "key_files": [
+        "src/main.tsx",
+        "src/App.tsx",
+        "src/pages/MapPage.tsx",
+        "src/components/ForecastMap.tsx",
+        "src/state/MapStateContext.tsx",
+        "src/cli/__main__.py"
+      ]
+    },
+    {
+      "path": "dist",
+      "description_guess": "Built frontend bundle and copied runtime data assets",
+      "file_count": 1012,
+      "key_files": [
+        "dist/index.html",
+        "dist/assets",
+        "dist/data"
+      ]
+    },
+    {
+      "path": "node_modules",
+      "description_guess": "Installed frontend dependency tree",
+      "file_count": 20414,
+      "key_files": [
+        "node_modules/react/package.json",
+        "node_modules/vite/package.json",
+        "node_modules/maplibre-gl/package.json"
+      ]
+    }
+  ],
+  "entrypoints": [
+    {
+      "type": "frontend-bootstrap",
+      "path": "index.html",
+      "how_detected": "script tag points to /src/main.tsx"
+    },
+    {
+      "type": "frontend-bootstrap",
+      "path": "src/main.tsx",
+      "how_detected": "ReactDOM.createRoot bootstrap"
+    },
+    {
+      "type": "frontend-router",
+      "path": "src/App.tsx",
+      "how_detected": "BrowserRouter and route registration"
+    },
+    {
+      "type": "frontend-page",
+      "path": "src/pages/MapPage.tsx",
+      "how_detected": "direct route target for / and main orchestration module"
+    },
+    {
+      "type": "frontend-renderer",
+      "path": "src/components/ForecastMap.tsx",
+      "how_detected": "map rendering integration with MapLibre/deck.gl"
+    },
+    {
+      "type": "python-cli",
+      "path": "src/cli/__main__.py",
+      "how_detected": "python -m src.cli entrypoint"
+    },
+    {
+      "type": "python-builder",
+      "path": "src/explainability/builder.py",
+      "how_detected": "registered explainability build subcommand"
+    }
+  ],
+  "commands": {
+    "dev": "npm run dev",
+    "test": "No dedicated test command found; best current checks are npm run lint plus manual validation from README",
+    "build": "npm run build",
+    "deploy": "Cloudflare Pages style static deploy of dist/ after npm run build"
+  },
+  "potential_issues": [
+    {
+      "category": "generated-artifacts-tracked",
+      "severity": "critical",
+      "path": "node_modules",
+      "note": "20,462 tracked files under vendor dependencies are committed to git"
+    },
+    {
+      "category": "generated-artifacts-tracked",
+      "severity": "critical",
+      "path": "dist",
+      "note": "1,007 tracked build output files are committed to git"
+    },
+    {
+      "category": "broken-command-surface",
+      "severity": "critical",
+      "path": "package.json",
+      "note": "tiles:* scripts reference scripts/tiles/*.py but scripts/ directory is absent"
+    },
+    {
+      "category": "missing-python-manifest",
+      "severity": "important",
+      "path": "src/cli/__main__.py",
+      "note": "Python tooling exists but no pyproject.toml or requirements file was found"
+    },
+    {
+      "category": "hardcoded-runtime-config",
+      "severity": "important",
+      "path": "src/config/appConfig.ts",
+      "note": "Forecast period is hard-coded to 2026-02-16 through 2026-02-22"
+    },
+    {
+      "category": "cache-policy",
+      "severity": "important",
+      "path": "src/config/dataPaths.ts",
+      "note": "Date.now() cache-bust token changes on every page load"
+    },
+    {
+      "category": "large-control-module",
+      "severity": "important",
+      "path": "src/components/ForecastMap.tsx",
+      "note": "Very large renderer/orchestration module at 2,275 lines"
+    },
+    {
+      "category": "large-control-module",
+      "severity": "important",
+      "path": "src/pages/MapPage.tsx",
+      "note": "Very large page orchestration module at 1,288 lines"
+    },
+    {
+      "category": "large-style-surface",
+      "severity": "important",
+      "path": "src/styles.css",
+      "note": "Single stylesheet is 9,942 lines"
+    },
+    {
+      "category": "quality-automation-gap",
+      "severity": "important",
+      "path": "package.json",
+      "note": "No test script, only lint/build scripts, and only two test files were found"
+    },
+    {
+      "category": "ci-gap",
+      "severity": "important",
+      "path": ".github",
+      "note": "No CI workflow directory found"
+    },
+    {
+      "category": "tracked-artifact-noise",
+      "severity": "important",
+      "path": "public/.DS_Store",
+      "note": "OS metadata files are committed"
+    },
+    {
+      "category": "tracked-artifact-noise",
+      "severity": "important",
+      "path": "src/__pycache__",
+      "note": "Python bytecode cache files are committed"
+    },
+    {
+      "category": "static-placeholder-content",
+      "severity": "nice-to-have",
+      "path": "src/pages/ModelsPage.tsx",
+      "note": "Models page currently renders dummy model data"
+    },
+    {
+      "category": "orphan-signal",
+      "severity": "nice-to-have",
+      "path": "src/pages/PerformancePage.tsx",
+      "note": "Page exists but route is commented out in App.tsx"
+    },
+    {
+      "category": "empty-directory",
+      "severity": "nice-to-have",
+      "path": "src/mock",
+      "note": "Mock directory exists but is empty"
+    },
+    {
+      "category": "large-file",
+      "severity": "nice-to-have",
+      "path": "docs/screenshots/OrcaCast_About.png",
+      "note": "Screenshot asset is approximately 5.8 MB"
+    }
+  ]
+}

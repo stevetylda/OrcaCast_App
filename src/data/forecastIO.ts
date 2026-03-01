@@ -1,6 +1,8 @@
 import type { FeatureCollection } from "geojson";
 import { GRID_PATH, getForecastPath } from "../config/dataPaths";
 import type { H3Resolution } from "../config/dataPaths";
+import { DataLoadError } from "./errors";
+import { forecastPayloadSchema, parseWithSchema } from "./validation";
 
 type ForecastPayload = {
   target_start?: string;
@@ -42,13 +44,13 @@ function buildUrlCandidates(url: string): string[] {
 
 async function fetchJson<T>(url: string): Promise<T> {
   const candidates = buildUrlCandidates(url);
-  let lastError: Error | null = null;
+  let lastError: DataLoadError | null = null;
 
   for (const candidate of candidates) {
     try {
       const res = await fetch(candidate, { cache: "force-cache" });
       if (!res.ok) {
-        lastError = new Error(`Failed to fetch ${candidate}: ${res.status}`);
+        lastError = new DataLoadError(candidate, `Failed to fetch ${candidate}: ${res.status}`);
         continue;
       }
       const text = await res.text();
@@ -58,16 +60,30 @@ async function fetchJson<T>(url: string): Promise<T> {
       }
       const trimmed = text.trim();
       if (trimmed.startsWith("<")) {
-        lastError = new Error(`Received HTML instead of JSON from ${candidate}`);
+        lastError = new DataLoadError(candidate, `Received HTML instead of JSON from ${candidate}`);
         continue;
       }
-      return JSON.parse(text) as T;
+      try {
+        return JSON.parse(text) as T;
+      } catch (error) {
+        lastError = new DataLoadError(
+          candidate,
+          `Invalid JSON in ${candidate}`,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      if (err instanceof DataLoadError) {
+        lastError = err;
+      } else if (err instanceof Error) {
+        lastError = new DataLoadError(candidate, err.message);
+      } else {
+        lastError = new DataLoadError(candidate, String(err));
+      }
     }
   }
 
-  throw new Error(lastError ? lastError.message : `Failed to fetch ${url}`);
+  throw lastError ?? new DataLoadError(url, `Failed to fetch ${url}`);
 }
 
 export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollection> {
@@ -91,7 +107,12 @@ type ForecastPayloadRaw = {
 async function loadForecastRaw(url: string): Promise<ForecastPayloadRaw> {
   const cached = forecastRawCache.get(url);
   if (cached) return cached;
-  const raw = await fetchJson<ForecastPayloadRaw>(url);
+  const raw = parseWithSchema(
+    forecastPayloadSchema,
+    await fetchJson<unknown>(url),
+    url,
+    "Forecast payload"
+  );
   forecastRawCache.set(url, raw);
   return raw;
 }

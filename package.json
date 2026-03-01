@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node --experimental-strip-types --import ./scripts/register-ts-loader.mjs ./scripts/run-tests.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "repo:check": "bash scripts/check_artifacts.sh",
-    "tiles:check": "python scripts/tiles/check_large_assets.py --max-mb 8",
-    "tiles:build:last-week": "python scripts/tiles/build_vector_tiles.py --input public/data/last_week_sightings/all_last_week_sightings.geojson --name last_week_sightings --layer last_week_sightings --minzoom 0 --maxzoom 11"
+    "repo:check": "bash scripts/check_artifacts.sh"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.1.1",
@@ -29,7 +29,8 @@
     "react-leaflet": "^4.2.1",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^6.30.0",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

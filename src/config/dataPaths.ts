@@ -1,3 +1,5 @@
+import { getDataVersionToken } from "../data/meta";
+
 export type H3Resolution = "H4" | "H5" | "H6";
 
 function withBase(path: string): string {
@@ -6,11 +8,11 @@ function withBase(path: string): string {
   return `${base}${trimmed}`;
 }
 
-const FORECAST_CACHE_BUST = String(Date.now());
-
 function withForecastCacheBust(url: string): string {
+  const token = getDataVersionToken();
+  if (!token) return url;
   const join = url.includes("?") ? "&" : "?";
-  return `${url}${join}v=${FORECAST_CACHE_BUST}`;
+  return `${url}${join}v=${encodeURIComponent(token)}`;
 }
 
 export const GRID_PATH: Record<H3Resolution, string> = {

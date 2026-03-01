@@ -5,7 +5,10 @@ import { MapPage } from "./pages/MapPage";
 // import { PerformancePage } from "./pages/PerformancePage";
 import { MenuProvider, useMenu } from "./state/MenuContext";
 import { MapStateProvider, useMapState } from "./state/MapStateContext";
-import "./styles.css";
+import "./styles/base.css";
+import "./styles/layout.css";
+import "./styles/map.css";
+import "./styles/components.css";
 
 const AboutPage = lazy(() => import("./pages/AboutPage").then((m) => ({ default: m.AboutPage })));
 const DataPage = lazy(() => import("./pages/DataPage").then((m) => ({ default: m.DataPage })));
