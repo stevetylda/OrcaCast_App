@@ -149,16 +149,6 @@ const ALL_STEPS: TourStepDef[] = [
     offset: 10,
   },
   {
-    id: "kde",
-    title: "Blurred KDE",
-    description: "Show a smoothed density overlay when available.",
-    detail: "Best when zoomed out to see regional patterns.",
-    targetSelector: '[data-tour="kde"]',
-    side: "left",
-    align: "center",
-    offset: 10,
-  },
-  {
     id: "hotspots",
     title: "Hotspots",
     description: "Toggle the hotspots-only view on map controls.",

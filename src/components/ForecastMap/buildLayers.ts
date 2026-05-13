@@ -1,8 +1,6 @@
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { LAST_WEEK_LAYER_CONFIG } from "../../config/mapLayers";
-import type { HeatScale } from "../../map/colorScale";
-import { ZERO_COLOR } from "../../map/colorScale";
 import { getPerfObjectId } from "../../debug/perf";
 import type { LastWeekMode } from "./types";
 
@@ -27,7 +25,6 @@ export function createGridLayerBuildSignature(inputs: {
   hotspotsVisible: boolean;
   shimmerThreshold?: number;
   borderColor: string;
-  showKdeContours: boolean;
 }): string {
   return [
     `data:${getPerfObjectId(inputs.data)}`,
@@ -36,19 +33,6 @@ export function createGridLayerBuildSignature(inputs: {
     `hotspots:${inputs.hotspotsVisible ? 1 : 0}`,
     `shimmer:${inputs.shimmerThreshold ?? "none"}`,
     `border:${inputs.borderColor}`,
-    `kde:${inputs.showKdeContours ? 1 : 0}`,
-  ].join("|");
-}
-
-export function createDeckLayerBuildSignature(inputs: {
-  data: FeatureCollection | null;
-  legendSpec: HeatScale | null;
-  enabled: boolean;
-}): string {
-  return [
-    `data:${getPerfObjectId(inputs.data)}`,
-    `legend:${getPerfObjectId(inputs.legendSpec)}`,
-    `enabled:${inputs.enabled ? 1 : 0}`,
   ].join("|");
 }
 
@@ -122,58 +106,6 @@ export function applyBasemapVisualTuning(map: MapLibreMap, isDarkBasemap: boolea
       map.setPaintProperty(layer.id, "raster-contrast", isDarkBasemap ? -0.06 : 0);
     }
   });
-}
-
-export function getKdeBandColor(
-  feature: { properties?: Record<string, unknown> },
-  scale: HeatScale | null
-): string {
-  if (!feature?.properties) return "";
-  const { properties } = feature;
-  const label = typeof properties.label === "string" ? properties.label.toLowerCase() : "";
-  const level = Number(properties.level);
-  const bin = Number(properties.bin ?? properties.band_index);
-  if (
-    label.includes("no probability") ||
-    (Number.isFinite(level) && level <= 0) ||
-    (Number.isFinite(bin) && bin < 0)
-  ) {
-    return ZERO_COLOR;
-  }
-  if (scale && scale.binColorsRgba.length > 0) {
-    if (label) {
-      const labelIndex = scale.labels.findIndex((entry) => entry.toLowerCase() === label);
-      if (labelIndex > 0) {
-        const swatch = scale.binColorsRgba[labelIndex - 1];
-        if (typeof swatch === "string") return swatch;
-      }
-    }
-    if (Number.isFinite(bin)) {
-      const idx = Math.max(0, Math.min(scale.binColorsRgba.length - 1, Math.floor(bin)));
-      const swatch = scale.binColorsRgba[idx];
-      if (typeof swatch === "string") return swatch;
-    }
-  }
-  const value = properties.color ?? properties.fill;
-  return typeof value === "string" ? value : "";
-}
-
-export function rgbaStringToArray(value: string): [number, number, number, number] | null {
-  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (hexMatch) {
-    const cleaned = hexMatch[1];
-    const full = cleaned.length === 3 ? cleaned.split("").map((c) => c + c).join("") : cleaned;
-    const numeric = parseInt(full, 16);
-    return [(numeric >> 16) & 255, (numeric >> 8) & 255, numeric & 255, 255];
-  }
-  const match = value.match(/rgba?\(([^)]+)\)/i);
-  if (!match) return null;
-  const parts = match[1].split(",").map((part) => Number(part.trim()));
-  if (parts.length < 3) return null;
-  const [r, g, b] = parts;
-  const a = parts.length >= 4 ? parts[3] : 1;
-  if (![r, g, b, a].every((v) => Number.isFinite(v))) return null;
-  return [Math.round(r), Math.round(g), Math.round(b), Math.round(a * 255)];
 }
 
 export function ensureLastWeekLayer(

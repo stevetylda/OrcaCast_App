@@ -1,13 +1,8 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
-import { GeoJsonLayer } from "@deck.gl/layers";
-import { MapboxOverlay } from "@deck.gl/mapbox";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { appConfig } from "../../config/appConfig";
-import { getKdeBandsPathForPeriod } from "../../config/dataPaths";
 import { LAST_WEEK_LAYER_CONFIG } from "../../config/mapLayers";
-import { buildKdeBandsCacheKey, loadKdeBandsGeojson } from "../../data/kdeBandsIO";
 import type { Period } from "../../data/periods";
 import {
   addGridOverlay,
@@ -25,11 +20,114 @@ import { getDataVersionToken } from "../../data/meta";
 import { trackLayerRebuild, trackRender } from "../../debug/perf";
 import { MapControls } from "./MapControls";
 import { createGridInteractionHandlers } from "./MapInteractions";
-import { applyBasemapVisualTuning, applyLastWeekModeFilters, createDeckLayerBuildSignature, createGridLayerBuildSignature, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, ensureLastWeekLayer, getKdeBandColor, LAST_WEEK_HALO_ID, LAST_WEEK_LAYER_ID, LAST_WEEK_RING_ID, LAST_WEEK_SOURCE_ID, LAST_WEEK_VECTOR_SOURCE_ID, LAST_WEEK_WHITE_ID, moveLastWeekToTop, rgbaStringToArray, VOYAGER_STYLE } from "./buildLayers";
+import { applyBasemapVisualTuning, applyLastWeekModeFilters, createGridLayerBuildSignature, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, ensureLastWeekLayer, LAST_WEEK_HALO_ID, LAST_WEEK_LAYER_ID, LAST_WEEK_RING_ID, LAST_WEEK_SOURCE_ID, LAST_WEEK_VECTOR_SOURCE_ID, LAST_WEEK_WHITE_ID, moveLastWeekToTop, VOYAGER_STYLE } from "./buildLayers";
 import { useForecastData } from "./useForecastData";
 import type { FillColorSpec, ForecastMapHandle, ForecastMapProps, LastWeekMode, LngLat, SparklineSeries } from "./types";
 
-const KDE_ENABLED = false;
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function waitForMapRender(map: MapLibreMap, timeoutMs = 2500) {
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(false);
+    }, timeoutMs);
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      resolve(true);
+    };
+    map.once("render", () => window.requestAnimationFrame(finish));
+    map.triggerRepaint();
+  });
+}
+
+function safeApplyBasemapVisualTuning(map: MapLibreMap, isDarkBasemap: boolean) {
+  try {
+    const style = map.getStyle();
+    if (!style || !Array.isArray(style.layers) || style.layers.length === 0) {
+      return false;
+    }
+    applyBasemapVisualTuning(map, isDarkBasemap);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function setLastWeekVisibility(map: MapLibreMap, visible: boolean) {
+  const visibility = visible ? "visible" : "none";
+  [LAST_WEEK_LAYER_ID, LAST_WEEK_HALO_ID, LAST_WEEK_RING_ID, LAST_WEEK_WHITE_ID].forEach((id) => {
+    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visibility);
+  });
+}
+
+function getPreviousWeek(year: number, week: number) {
+  if (week > 1) return { year, week: week - 1 };
+  return { year: year - 1, week: isoWeekFromDate(new Date(Date.UTC(year - 1, 11, 28))) };
+}
+
+function tagSightings(
+  data: FeatureCollection,
+  mode: LastWeekMode,
+  selected: { year: number; week: number },
+  previous: { year: number; week: number }
+): FeatureCollection {
+  if (mode === "none") return { ...data, features: [] };
+
+  const parseNum = (value: unknown): number => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const cleaned = value.trim().replace(/[^0-9]/g, "");
+      return cleaned.length ? Number(cleaned) : Number.NaN;
+    }
+    return Number.NaN;
+  };
+
+  const rows = (data.features ?? []).map((feature) => {
+    const props = (feature.properties ?? {}) as Record<string, unknown>;
+    return {
+      feature,
+      props,
+      year: parseNum(props.YEAR ?? props.year ?? props.Year),
+      week: parseNum(props.WEEK ?? props.week ?? props.Week ?? props.STAT_WEEK ?? props.stat_week ?? props.Stat_Week),
+    };
+  });
+
+  return {
+    ...data,
+    features: rows.flatMap((row) => {
+      let sightingMode: "previous" | "selected" | null = null;
+      if (Number.isFinite(row.week)) {
+        if (Number.isFinite(row.year)) {
+          if (row.year === previous.year && row.week === previous.week) sightingMode = "previous";
+          if (row.year === selected.year && row.week === selected.week) sightingMode = "selected";
+        } else {
+          if (row.week === previous.week) sightingMode = "previous";
+          if (row.week === selected.week) sightingMode = "selected";
+        }
+      } else {
+        sightingMode = mode === "previous" ? "previous" : "selected";
+      }
+
+      if (!sightingMode) return [];
+      if (mode === "previous" && sightingMode !== "previous") return [];
+      if (mode === "selected" && sightingMode !== "selected") return [];
+
+      return [{ ...row.feature, properties: { ...row.props, sightingMode } }];
+    }),
+  };
+}
 
 export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(function ForecastMap({
   darkMode,
@@ -50,7 +148,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   onHotspotsEnabledChange,
   onGridCellCount,
   onGridCellSelect,
-  resizeTick,
+  onGridCellExpand,
   forecastPath,
   fallbackForecastPath,
   colorScaleValues,
@@ -90,9 +188,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const shimmerThresholdRef = useRef<number | undefined>(undefined);
   const [legendSpec, setLegendSpec] = useState<HeatScale | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
-  const [showKdeContours, setShowKdeContours] = useState(false);
-  const [kdeBandsVersion, setKdeBandsVersion] = useState(0);
-  const [kdeWarning, setKdeWarning] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const mapReadyRef = useRef(false);
 
@@ -101,7 +196,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const poiLoadedRef = useRef(false);
   const poiDataRef = useRef<Array<{ type: string; name: string; latitude: number; longitude: number }> | null>(null);
   const hotspotsOnlyRef = useRef(false);
-  const showKdeContoursRef = useRef(false);
   const hasForecastLegend = legendSpec !== null || deltaLegend !== null;
   const showLastWeekRef = useRef(false);
   const lastWeekKeyRef = useRef<string | null>(null);
@@ -113,10 +207,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const lastWeekDataRef = useRef<Record<string, FeatureCollection | null>>({});
   const lastWeekSourceRef = useRef<ResolvedLayerSource | null>(null);
   const lastWeekPopupRef = useRef<maplibregl.Popup | null>(null);
-  const deckOverlayRef = useRef<MapboxOverlay | null>(null);
-  const kdeBandsRef = useRef<FeatureCollection | null>(null);
   const lastGridLayerSignatureRef = useRef<string | null>(null);
-  const lastDeckLayerSignatureRef = useRef<string | null>(null);
   const sparkPopupRef = useRef<maplibregl.Popup | null>(null);
   const sparkRequestIdRef = useRef(0);
   const hoveredCellRef = useRef<string | null>(null);
@@ -124,7 +215,14 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const modelIdRef = useRef(modelId);
   const resolutionRef = useRef(resolution);
   const sparklineCacheRef = useRef<Map<string, SparklineSeries>>(new Map());
-  const sightingsWeekCacheRef = useRef<Map<string, LngLat[]>>(new Map());
+  const forecastPeriodCacheRef = useRef<Map<string, Promise<Record<string, number>>>>(new Map());
+  const sightingsWeekCacheRef = useRef<Map<string, Promise<LngLat[]>>>(new Map());
+  const onGridCellSelectRef = useRef(onGridCellSelect);
+  const onGridCellExpandRef = useRef(onGridCellExpand);
+  const cellPopupHtmlBuilderRef = useRef(cellPopupHtmlBuilder);
+  const enableSparklinePopupRef = useRef(enableSparklinePopup);
+  const onMoveViewStateRef = useRef(onMoveViewState);
+  const onMoveEndViewStateRef = useRef(onMoveEndViewState);
   const DEBUG_MAP =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -145,32 +243,142 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     });
   };
 
+  const resolveHotspotThreshold = useCallback(() => {
+    const modeled = modeledHotspotThresholdRef.current ?? hotspotThresholdRef.current;
+    if (hotspotMode !== "custom") {
+      const values = sortedValuesDescRef.current;
+      const modeledCount = modeledHotspotCountRef.current;
+      if (values.length > 0 && modeledCount !== null && Number.isFinite(modeledCount) && modeledCount > 0) {
+        return values[Math.max(0, Math.min(values.length - 1, Math.round(modeledCount) - 1))] ?? modeled;
+      }
+      return modeled;
+    }
+    const values = sortedValuesDescRef.current;
+    const total = totalCellsRef.current;
+    if (values.length === 0 || total === 0) return modeled;
+    const count = Math.max(1, Math.round((total * Math.min(Math.max(hotspotPercentile, 0), 100)) / 100));
+    return values[Math.max(0, Math.min(values.length - 1, count - 1))] ?? modeled;
+  }, [hotspotMode, hotspotPercentile]);
+
+  const captureCurrentMapSnapshot = useCallback(async () => {
+    const sourceMap = mapRef.current;
+    const sourceCanvas = sourceMap?.getCanvas();
+    const overlay = overlayRef.current;
+    if (!sourceMap || !sourceCanvas || !overlay) return null;
+
+    type MapOptionsPatched = maplibregl.MapOptions & {
+      preserveDrawingBuffer?: boolean;
+      cooperativeGestures?: boolean;
+    };
+
+    const container = document.createElement("div");
+    const width = Math.max(1, sourceCanvas.clientWidth || containerRef.current?.clientWidth || 1024);
+    const height = Math.max(1, sourceCanvas.clientHeight || containerRef.current?.clientHeight || 768);
+    container.style.cssText = [
+      "position:fixed",
+      "left:-10000px",
+      "top:0",
+      `width:${width}px`,
+      `height:${height}px`,
+      "pointer-events:none",
+      "opacity:0",
+    ].join(";");
+    document.body.appendChild(container);
+
+    let tempMap: MapLibreMap | null = null;
+    try {
+      const center = sourceMap.getCenter();
+      tempMap = new maplibregl.Map({
+        container,
+        style: styleUrlRef.current,
+        center: [center.lng, center.lat],
+        zoom: sourceMap.getZoom(),
+        bearing: sourceMap.getBearing(),
+        pitch: sourceMap.getPitch(),
+        attributionControl: false,
+        interactive: false,
+        preserveDrawingBuffer: true,
+        cooperativeGestures: false,
+      } as MapOptionsPatched);
+
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => reject(new Error("Snapshot map load timed out")), 3500);
+        tempMap?.once("load", () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        });
+        tempMap?.once("error", (event: { error?: unknown }) => {
+          window.clearTimeout(timeoutId);
+          reject(event.error instanceof Error ? event.error : new Error("Snapshot map failed to load"));
+        });
+      });
+
+      safeApplyBasemapVisualTuning(tempMap, styleUrlRef.current === DARK_STYLE);
+      addGridOverlay(
+        tempMap,
+        overlay,
+        fillExprRef.current ?? undefined,
+        disableHotspots ? undefined : resolveHotspotThreshold(),
+        !disableHotspots && hotspotsOnlyRef.current,
+        shimmerThresholdRef.current,
+        gridBorderColor
+      );
+      if (!disableHotspots && hotspotsOnlyRef.current) {
+        setGridBaseVisibility(tempMap, false);
+        setHotspotVisibility(tempMap, true);
+      } else {
+        setGridVisibility(tempMap, true);
+        setHotspotVisibility(tempMap, false);
+      }
+      if (showLastWeekRef.current && lastWeekModeRef.current !== "none") {
+        const selected = { year: selectedWeekYearRef.current, week: selectedWeekRef.current };
+        if (Number.isFinite(selected.year) && Number.isFinite(selected.week) && selected.week > 0) {
+          const previous = getPreviousWeek(selected.year, selected.week);
+          const resolved = lastWeekSourceRef.current;
+          if (resolved?.kind === "vector_tiles") {
+            ensureLastWeekLayer(tempMap, { type: "FeatureCollection", features: [] }, LAST_WEEK_VECTOR_SOURCE_ID, resolved.sourceLayer, resolved.url);
+            applyLastWeekModeFilters(tempMap, selected, previous, lastWeekModeRef.current, resolved.sourceLayer);
+            setLastWeekVisibility(tempMap, true);
+          } else {
+            const key = `${selected.year}-W${selected.week}`;
+            const raw = lastWeekDataRef.current[key];
+            if (raw) {
+              const tagged = tagSightings(raw, lastWeekModeRef.current, selected, previous);
+              if ((tagged.features ?? []).length > 0) {
+                ensureLastWeekLayer(tempMap, tagged, LAST_WEEK_SOURCE_ID);
+                setLastWeekVisibility(tempMap, true);
+              }
+            }
+          }
+          moveLastWeekToTop(tempMap);
+        }
+      }
+      tempMap.resize();
+      const rendered = await waitForMapRender(tempMap);
+      if (!rendered) return null;
+
+      return await new Promise<Blob | null>((resolve) => {
+        try {
+          tempMap?.getCanvas().toBlob((blob) => resolve(blob), "image/png");
+        } catch {
+          resolve(null);
+        }
+      });
+    } catch (error) {
+      console.warn("[Snapshot] temporary map capture failed", error);
+      return null;
+    } finally {
+      tempMap?.remove();
+      container.remove();
+    }
+  }, [disableHotspots, gridBorderColor, resolveHotspotThreshold]);
+
   useImperativeHandle(
     ref,
     () => ({
-      captureSnapshot: async () => {
-        const map = mapRef.current;
-        if (!map) return null;
-        const sourceCanvas = map.getCanvas();
-        await new Promise<void>((resolve) => {
-          map.triggerRepaint();
-          map.once("render", () => window.requestAnimationFrame(() => resolve()));
-        });
-
-        const outputCanvas = document.createElement("canvas");
-        outputCanvas.width = sourceCanvas.width;
-        outputCanvas.height = sourceCanvas.height;
-        const ctx = outputCanvas.getContext("2d");
-        if (!ctx) return null;
-        try {
-          ctx.drawImage(sourceCanvas, 0, 0);
-        } catch {
-          return null;
-        }
-        return new Promise<Blob | null>((resolve) => outputCanvas.toBlob((blob) => resolve(blob), "image/png"));
-      },
+      captureSnapshot: captureCurrentMapSnapshot,
     }),
-    []
+    [captureCurrentMapSnapshot]
   );
 
   useEffect(() => {
@@ -196,23 +404,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   useEffect(() => {
     mapReadyRef.current = mapReady;
   }, [mapReady]);
-
-  const resolveHotspotThreshold = () => {
-    const modeled = modeledHotspotThresholdRef.current ?? hotspotThresholdRef.current;
-    if (hotspotMode !== "custom") {
-      const values = sortedValuesDescRef.current;
-      const modeledCount = modeledHotspotCountRef.current;
-      if (values.length > 0 && modeledCount !== null && Number.isFinite(modeledCount) && modeledCount > 0) {
-        return values[Math.max(0, Math.min(values.length - 1, Math.round(modeledCount) - 1))] ?? modeled;
-      }
-      return modeled;
-    }
-    const values = sortedValuesDescRef.current;
-    const total = totalCellsRef.current;
-    if (values.length === 0 || total === 0) return modeled;
-    const count = Math.max(1, Math.round((total * Math.min(Math.max(hotspotPercentile, 0), 100)) / 100));
-    return values[Math.max(0, Math.min(values.length - 1, count - 1))] ?? modeled;
-  };
 
   const applyScaleToCurrentValues = (values: Record<string, number>) => {
     const scaleSourceValues =
@@ -272,7 +463,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       hotspotsVisible: hotspotOverlayVisible,
       shimmerThreshold: shimmerThresholdRef.current,
       borderColor: gridBorderColor,
-      showKdeContours: showKdeContoursRef.current,
     });
     if (lastGridLayerSignatureRef.current !== layerSignature) {
       lastGridLayerSignatureRef.current = layerSignature;
@@ -292,11 +482,16 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       );
     }
 
-    if (showKdeContoursRef.current) {
-      setGridVisibility(map, false);
-    } else if (hotspots) {
-      setGridBaseVisibility(map, false);
-      setHotspotVisibility(map, hotspotOverlayVisible);
+    if (hotspots) {
+      if (hotspotOverlayVisible) {
+        setGridBaseVisibility(map, false);
+        setHotspotVisibility(map, true);
+      } else {
+        // If hotspot mode is active but no modeled hotspot threshold/count is available,
+        // keep the normal forecast grid visible instead of blanking the map.
+        setGridVisibility(map, true);
+        setHotspotVisibility(map, false);
+      }
     } else {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
@@ -384,67 +579,10 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     poll();
   };
 
-  const getPreviousWeek = (year: number, week: number) => {
-    if (week > 1) return { year, week: week - 1 };
-    return { year: year - 1, week: isoWeekFromDate(new Date(Date.UTC(year - 1, 11, 28))) };
-  };
-
   const buildLastWeekUrl = (key: string) => {
     const base = import.meta.env.BASE_URL || "/";
     const cleanBase = base.endsWith("/") ? base : `${base}/`;
     return `${cleanBase}data/last_week_sightings/last_week_sightings_${key}.geojson`;
-  };
-
-  const tagSightings = (
-    data: FeatureCollection,
-    mode: LastWeekMode,
-    selected: { year: number; week: number },
-    previous: { year: number; week: number }
-  ): FeatureCollection => {
-    if (mode === "none") return { ...data, features: [] };
-
-    const parseNum = (value: unknown): number => {
-      if (typeof value === "number") return value;
-      if (typeof value === "string") {
-        const cleaned = value.trim().replace(/[^0-9]/g, "");
-        return cleaned.length ? Number(cleaned) : Number.NaN;
-      }
-      return Number.NaN;
-    };
-
-    const rows = (data.features ?? []).map((feature) => {
-      const props = (feature.properties ?? {}) as Record<string, unknown>;
-      return {
-        feature,
-        props,
-        year: parseNum(props.YEAR ?? props.year ?? props.Year),
-        week: parseNum(props.WEEK ?? props.week ?? props.Week ?? props.STAT_WEEK ?? props.stat_week ?? props.Stat_Week),
-      };
-    });
-
-    return {
-      ...data,
-      features: rows.flatMap((row) => {
-        let sightingMode: "previous" | "selected" | null = null;
-        if (Number.isFinite(row.week)) {
-          if (Number.isFinite(row.year)) {
-            if (row.year === previous.year && row.week === previous.week) sightingMode = "previous";
-            if (row.year === selected.year && row.week === selected.week) sightingMode = "selected";
-          } else {
-            if (row.week === previous.week) sightingMode = "previous";
-            if (row.week === selected.week) sightingMode = "selected";
-          }
-        } else {
-          sightingMode = mode === "previous" ? "previous" : "selected";
-        }
-
-        if (!sightingMode) return [];
-        if (mode === "previous" && sightingMode !== "previous") return [];
-        if (mode === "selected" && sightingMode !== "selected") return [];
-
-        return [{ ...row.feature, properties: { ...row.props, sightingMode } }];
-      }),
-    };
   };
 
   const applyLastWeekFromCache = (map: MapLibreMap) => {
@@ -458,19 +596,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     if ((tagged.features ?? []).length === 0) return;
     ensureLastWeekLayer(map, tagged);
     moveLastWeekToTop(map);
-  };
-
-  const safeApplyBasemapVisualTuning = (map: MapLibreMap, isDarkBasemap: boolean) => {
-    try {
-      const style = map.getStyle();
-      if (!style || !Array.isArray(style.layers) || style.layers.length === 0) {
-        return false;
-      }
-      applyBasemapVisualTuning(map, isDarkBasemap);
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   const restoreMapAfterStyleChange = (
@@ -491,7 +616,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       safeApplyBasemapVisualTuning(map, isDarkBasemap);
       map.resize();
       lastGridLayerSignatureRef.current = null;
-      lastDeckLayerSignatureRef.current = null;
       scheduleForecastRender(map, () => cancelled);
       if (showLastWeekRef.current) {
         const applyLastWeekWhenReady = () => {
@@ -651,7 +775,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         el.innerHTML = `<span class="material-symbols-rounded">${poi.filterKey ? iconMap[poi.filterKey] : "directions_boat"}</span>`;
 
         const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: true }).setHTML(
-          `<div class="poiPopup"><div class="poiPopup__title">${poi.name}</div><div class="poiPopup__meta">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div></div>`
+          `<div class="poiPopup"><div class="poiPopup__title">${escapeHtml(poi.name)}</div><div class="poiPopup__meta">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div></div>`
         );
 
         return new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat([poi.longitude, poi.latitude]).setPopup(popup).addTo(map);
@@ -681,18 +805,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   }, [hotspotsEnabled, disableHotspots]);
 
   useEffect(() => {
-    showKdeContoursRef.current = KDE_ENABLED && showKdeContours;
-  }, [showKdeContours]);
-
-  useEffect(() => {
-    if (!(KDE_ENABLED && showKdeContours)) {
-      kdeBandsRef.current = null;
-      setKdeBandsVersion((value) => value + 1);
-      setKdeWarning(null);
-    }
-  }, [showKdeContours]);
-
-  useEffect(() => {
     showLastWeekRef.current = showLastWeek;
   }, [showLastWeek]);
 
@@ -713,6 +825,44 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   }, [resolution]);
 
   useEffect(() => {
+    onGridCellSelectRef.current = onGridCellSelect;
+  }, [onGridCellSelect]);
+
+  useEffect(() => {
+    onGridCellExpandRef.current = onGridCellExpand;
+  }, [onGridCellExpand]);
+
+  useEffect(() => {
+    cellPopupHtmlBuilderRef.current = cellPopupHtmlBuilder;
+  }, [cellPopupHtmlBuilder]);
+
+  useEffect(() => {
+    enableSparklinePopupRef.current = enableSparklinePopup;
+  }, [enableSparklinePopup]);
+
+  useEffect(() => {
+    onMoveViewStateRef.current = onMoveViewState;
+  }, [onMoveViewState]);
+
+  useEffect(() => {
+    onMoveEndViewStateRef.current = onMoveEndViewState;
+  }, [onMoveEndViewState]);
+
+  useEffect(() => {
+    // Invalidate cached layer signatures whenever the forecast payload inputs change
+    // so the next successful load cannot be skipped as a no-op rebuild.
+    lastGridLayerSignatureRef.current = null;
+  }, [
+    resolution,
+    modelId,
+    forecastPath,
+    fallbackForecastPath,
+    derivedValuesByCell,
+    derivedValueProperty,
+    derivedFillExpr,
+  ]);
+
+  useEffect(() => {
     modeledHotspotCountRef.current = hotspotModeledCount;
   }, [hotspotModeledCount]);
 
@@ -726,12 +876,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     selectedWeekRef.current = selectedWeek;
     selectedWeekYearRef.current = selectedWeekYear;
   }, [selectedWeek, selectedWeekYear]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const id = window.requestAnimationFrame(() => mapRef.current?.resize());
-    return () => window.cancelAnimationFrame(id);
-  }, [resizeTick]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -767,7 +911,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       attributionControl: false,
-      preserveDrawingBuffer: true,
       cooperativeGestures: false,
     } as MapOptionsPatched);
 
@@ -792,7 +935,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       mapRef.current.setStyle(nextStyle);
       activeStyleUrlRef.current = nextStyle;
       lastGridLayerSignatureRef.current = null;
-      lastDeckLayerSignatureRef.current = null;
       restoreMapAfterStyleChange(
         mapRef.current,
         { center, zoom, bearing, pitch },
@@ -813,13 +955,15 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         selectedWeekRef,
         selectedWeekYearRef,
         sparklineCacheRef,
+        forecastPeriodCacheRef,
         sightingsWeekCacheRef,
         sparkPopupRef,
         sparkRequestIdRef,
         hoveredCellRef,
-        onGridCellSelect,
-        cellPopupHtmlBuilder,
-        enableSparklinePopup,
+        onGridCellSelect: (h3) => onGridCellSelectRef.current?.(h3),
+        onGridCellExpand: (request) => onGridCellExpandRef.current?.(request),
+        cellPopupHtmlBuilder: (cellId) => cellPopupHtmlBuilderRef.current?.(cellId),
+        enableSparklinePopupRef,
       });
 
     map.on("click", "grid-fill", handleSparklineClick);
@@ -829,7 +973,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
 
     map.once("load", () => {
       lastGridLayerSignatureRef.current = null;
-      lastDeckLayerSignatureRef.current = null;
       mapReadyRef.current = true;
       setMapReady(true);
       safeApplyBasemapVisualTuning(map, styleUrlRef.current === DARK_STYLE);
@@ -853,14 +996,14 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     map.on("styledata", handleStyleData);
 
     const handleMoveEnd = () => {
-      if (!onMoveEndViewState) return;
+      if (!onMoveEndViewStateRef.current) return;
       const center = map.getCenter();
-      onMoveEndViewState({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() });
+      onMoveEndViewStateRef.current({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() });
     };
     const handleMove = debounce(() => {
-      if (!onMoveViewState) return;
+      if (!onMoveViewStateRef.current) return;
       const center = map.getCenter();
-      onMoveViewState({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() });
+      onMoveViewStateRef.current({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() });
     }, 120);
     map.on("moveend", handleMoveEnd);
     map.on("move", handleMove);
@@ -884,10 +1027,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       map.once("render", () => logMapDebug("render"));
     }
 
-    const deckOverlay = new MapboxOverlay({ interleaved: true, layers: [] });
-    map.addControl(deckOverlay);
-    deckOverlayRef.current = deckOverlay;
-
     return () => {
       window.cancelAnimationFrame(raf);
       window.clearTimeout(t1);
@@ -908,15 +1047,11 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       map.off("move", handleMove);
       sparkPopupRef.current?.remove();
       sparkPopupRef.current = null;
-      if (deckOverlayRef.current) {
-        map.removeControl(deckOverlayRef.current);
-        deckOverlayRef.current = null;
-      }
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cellPopupHtmlBuilder, enableSparklinePopup, onGridCellSelect, onMoveEndViewState, onMoveViewState, styleUrl]);
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -952,7 +1087,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       if (time - lastTick > 120) {
         lastTick = time;
         const t = time / 1000;
-        const hideGrid = showKdeContoursRef.current || hotspotsOnlyRef.current;
+        const hideGrid = hotspotsOnlyRef.current;
         const z = map.getZoom();
         const edgeBaseWidth = z <= 6 ? 0.9 : z <= 9 ? 0.9 + ((z - 6) / 3) * 0.35 : z <= 12 ? 1.25 + ((z - 9) / 3) * 0.55 : 1.8;
         const edgePulseWidth = edgeBaseWidth + 0.1 * Math.sin(t * 1.7 + 0.5);
@@ -994,7 +1129,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     map.setStyle(styleUrl);
     activeStyleUrlRef.current = styleUrl;
     lastGridLayerSignatureRef.current = null;
-    lastDeckLayerSignatureRef.current = null;
     restoreMapAfterStyleChange(map, { center, zoom, bearing, pitch }, styleUrl === DARK_STYLE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleUrl, mapReady]);
@@ -1012,15 +1146,9 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const applyVisibility = (visible: boolean) => {
-      const visibility = visible ? "visible" : "none";
-      [LAST_WEEK_LAYER_ID, LAST_WEEK_HALO_ID, LAST_WEEK_RING_ID, LAST_WEEK_WHITE_ID].forEach((id) => {
-        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visibility);
-      });
-    };
 
     if (!showLastWeek || lastWeekMode === "none" || !Number.isFinite(selectedWeekYear) || !Number.isFinite(selectedWeek) || selectedWeek <= 0) {
-      applyVisibility(false);
+      setLastWeekVisibility(map, false);
       return;
     }
 
@@ -1039,25 +1167,25 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       if (resolved.kind === "vector_tiles") {
         ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] }, LAST_WEEK_VECTOR_SOURCE_ID, resolved.sourceLayer, resolved.url);
         applyLastWeekModeFilters(map, { year: selectedWeekYear, week: selectedWeek }, previous, lastWeekMode, resolved.sourceLayer);
-        applyVisibility(true);
+        setLastWeekVisibility(map, true);
         return;
       }
 
       ensureLastWeekLayer(map, { type: "FeatureCollection", features: [] }, LAST_WEEK_SOURCE_ID);
-      applyVisibility(false);
+      setLastWeekVisibility(map, false);
 
       const applyTagged = (raw: FeatureCollection | null) => {
         if (!raw) {
-          applyVisibility(false);
+          setLastWeekVisibility(map, false);
           return;
         }
         const tagged = tagSightings(raw, lastWeekMode, { year: selectedWeekYear, week: selectedWeek }, previous);
         if ((tagged.features ?? []).length === 0) {
-          applyVisibility(false);
+          setLastWeekVisibility(map, false);
           return;
         }
         ensureLastWeekLayer(map, tagged, LAST_WEEK_SOURCE_ID);
-        applyVisibility(true);
+        setLastWeekVisibility(map, true);
       };
 
       if (key in lastWeekDataRef.current) {
@@ -1071,14 +1199,14 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         const res = await fetch(`${buildLastWeekUrl(key)}${suffix}`, { cache: "default" });
         if (res.status === 404 || res.status === 204) {
           lastWeekDataRef.current[key] = null;
-          if (active) applyVisibility(false);
+          if (active) setLastWeekVisibility(map, false);
           return;
         }
         if (!res.ok) throw new Error(`Failed to fetch last week sightings: ${res.status}`);
         const text = (await res.text()).trim();
         if (text.startsWith("<") || text.length === 0) {
           lastWeekDataRef.current[key] = null;
-          if (active) applyVisibility(false);
+          if (active) setLastWeekVisibility(map, false);
           return;
         }
         const data = JSON.parse(text) as FeatureCollection;
@@ -1166,7 +1294,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     const onMove = (e: MapMouseEventWithFeatures) => {
       const datetime = e.features?.[0]?.properties?.datetime;
       if (!datetime) return;
-      popup.setLngLat(e.lngLat).setHTML(`<div style="font-size:12px;">${datetime}</div>`).addTo(map);
+      popup.setLngLat(e.lngLat).setHTML(`<div style="font-size:12px;">${escapeHtml(datetime)}</div>`).addTo(map);
     };
     const onLeave = () => popup.remove();
     map.on("mousemove", LAST_WEEK_LAYER_ID, onMove);
@@ -1203,9 +1331,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       setHotspotVisibility(map, false);
       return;
     }
-    if (KDE_ENABLED && showKdeContours) {
-      setGridVisibility(map, false);
-    } else if (!disableHotspots && hotspotsEnabled) {
+    if (!disableHotspots && hotspotsEnabled) {
       setGridBaseVisibility(map, false);
       setHotspotVisibility(map, !zeroModeledHotspots);
       if (zeroModeledHotspots) setGridVisibility(map, false);
@@ -1213,106 +1339,16 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [showKdeContours, hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots, hotspotMode, hotspotModeledCount]);
+  }, [hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots, hotspotMode, hotspotModeledCount]);
 
   useEffect(() => {
     if (hasForecastLegend) return;
-    if (KDE_ENABLED && showKdeContours) setShowKdeContours(false);
     if (hotspotsEnabled) onHotspotsEnabledChange(false);
-  }, [hasForecastLegend, showKdeContours, hotspotsEnabled, onHotspotsEnabledChange]);
+  }, [hasForecastLegend, hotspotsEnabled, onHotspotsEnabledChange]);
 
   useEffect(() => {
     if (disableHotspots && hotspotsEnabled) onHotspotsEnabledChange(false);
   }, [disableHotspots, hotspotsEnabled, onHotspotsEnabledChange]);
-
-  useEffect(() => {
-    if (!KDE_ENABLED) {
-      kdeBandsRef.current = null;
-      setKdeBandsVersion((value) => value + 1);
-      setKdeWarning(null);
-      return;
-    }
-    const map = mapRef.current;
-    if (!map || !showKdeContours) return;
-    if (!Number.isFinite(selectedWeekYear) || !Number.isFinite(selectedWeek) || selectedWeek <= 0) {
-      setKdeWarning("No blurred KDE GeoJSON available for this period.");
-      kdeBandsRef.current = null;
-      setKdeBandsVersion((value) => value + 1);
-      return;
-    }
-
-    let active = true;
-    const runId = appConfig.kdeBandsRunId;
-    const areaMinKm2 = appConfig.kdeBandsAreaMinKm2;
-    const holeMinKm2 = appConfig.kdeBandsHoleMinKm2;
-    const path = getKdeBandsPathForPeriod(resolution, selectedWeekYear, selectedWeek, runId, appConfig.kdeBandsFolder);
-    const cacheKey = buildKdeBandsCacheKey({
-      runId,
-      folder: appConfig.kdeBandsFolder,
-      resolution,
-      year: selectedWeekYear,
-      statWeek: selectedWeek,
-      areaMinKm2,
-      holeMinKm2,
-    });
-
-    loadKdeBandsGeojson(path, cacheKey)
-      .then((data) => {
-        if (active) {
-          kdeBandsRef.current = data;
-          setKdeBandsVersion((value) => value + 1);
-          setKdeWarning(null);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          kdeBandsRef.current = null;
-          setKdeBandsVersion((value) => value + 1);
-          setKdeWarning("No blurred KDE GeoJSON available for this period.");
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [showKdeContours, selectedWeekYear, selectedWeek, resolution]);
-
-  useEffect(() => {
-    const overlay = deckOverlayRef.current;
-    if (!overlay) return;
-    const kdeBands = kdeBandsRef.current;
-    const deckSignature = createDeckLayerBuildSignature({
-      data: kdeBands,
-      legendSpec,
-      enabled: KDE_ENABLED && showKdeContours && Boolean(kdeBands),
-    });
-    if (lastDeckLayerSignatureRef.current === deckSignature) return;
-    lastDeckLayerSignatureRef.current = deckSignature;
-    if (!KDE_ENABLED || !showKdeContours || !kdeBands) {
-      trackLayerRebuild("deck-kde-clear");
-      overlay.setProps({ layers: [] });
-      return;
-    }
-
-    trackLayerRebuild("deck-kde");
-    overlay.setProps({
-      layers: [
-        new GeoJsonLayer({
-          id: "kde-bands",
-          data: kdeBands,
-          filled: true,
-          stroked: true,
-          opacity: 0.8,
-          lineWidthMinPixels: 0.2,
-          getFillColor: (feature) => rgbaStringToArray(getKdeBandColor(feature, legendSpec)) ?? [0, 0, 0, 0],
-          getLineColor: (feature) => rgbaStringToArray(getKdeBandColor(feature, legendSpec)) ?? [0, 0, 0, 0],
-          getLineWidth: 0.4,
-          pickable: false,
-          parameters: { depthTest: false },
-        }),
-      ],
-    });
-  }, [showKdeContours, kdeBandsVersion, legendSpec]);
 
   return (
     <div className="mapStage">
@@ -1324,8 +1360,6 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         legendOpen={legendOpen}
         legendSpec={legendSpec}
         deltaLegend={deltaLegend}
-        kdeEnabled={KDE_ENABLED}
-        kdeWarning={kdeWarning}
         onHotspotsEnabledChange={onHotspotsEnabledChange}
         onLegendToggle={() => setLegendOpen((value) => !value)}
       />

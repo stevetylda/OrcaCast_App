@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ForecastMapHandle } from "../../components/ForecastMap";
+import type { GridCellExpandRequest } from "../../components/ForecastMap/types";
 import type { ModelInfo } from "../../features/models/data/dummyModels";
 import { appConfig } from "../../config/appConfig";
 import { normalizeDataLoadError, type DataLoadError } from "../../data/errors";
@@ -94,6 +95,12 @@ export function useMapPageController() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [timeseriesOpen, setTimeseriesOpen] = useState(false);
+  const [gridDetailOpen, setGridDetailOpen] = useState(false);
+  const [gridDetailCellId, setGridDetailCellId] = useState<string | null>(null);
+  const [gridDetailResolution, setGridDetailResolution] = useState<H3Resolution>(resolution);
+  const [gridDetailModelId, setGridDetailModelId] = useState(modelId);
+  const [gridDetailSelectedWeek, setGridDetailSelectedWeek] = useState<number | null>(null);
+  const [gridDetailSelectedWeekYear, setGridDetailSelectedWeekYear] = useState<number | null>(null);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [hotspotTotalCells, setHotspotTotalCells] = useState<number | null>(null);
   const [poiFilters, setPoiFilters] = useState({ Park: false, Marina: false, Ferry: false });
@@ -106,7 +113,6 @@ export function useMapPageController() {
   const [comparePeriodB, setComparePeriodB] = useState("");
   const [compareResolutionA, setCompareResolutionA] = useState<H3Resolution>(resolution);
   const [compareResolutionB, setCompareResolutionB] = useState<H3Resolution>(resolution);
-  const [mapResizeTick] = useState(0);
   const [compareViewState, setCompareViewState] = useState<{
     center: [number, number];
     zoom: number;
@@ -316,20 +322,19 @@ export function useMapPageController() {
       else trend = "steady";
     }
 
-    const last12Actual = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-      .map((n) => shiftIsoWeek(selectedPeriodYear, selectedPeriodWeek, -n))
-      .map((wk) => actualLookup.get(keyFor(wk.year, wk.statWeek)))
-      .filter((v): v is number => v !== undefined);
-    const chartValues = current !== null ? [...last12Actual, current] : last12Actual;
-    const forecastIndexValue = chartValues.length > 0 && current !== null ? chartValues.length - 1 : -1;
-
+    const chartWeeks = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((n) =>
+      shiftIsoWeek(selectedPeriodYear, selectedPeriodWeek, -n)
+    );
+    const actualChartValues = chartWeeks.map((wk) => actualLookup.get(keyFor(wk.year, wk.statWeek)) ?? null);
+    const forecastChartValues = chartWeeks.map((_, idx) => (idx === chartWeeks.length - 1 ? current : null));
     return {
       current,
       vsPriorWeek: previousValue,
       vs12WeekAvg,
       trend,
-      chartValues,
-      forecastIndex: forecastIndexValue,
+      actualChartValues,
+      forecastChartValues,
+      predictionIndex: forecastChartValues.length - 1,
       ciLow: current !== null ? Math.max(0, current - 6) : undefined,
       ciHigh: current !== null ? current + 6 : undefined,
     };
@@ -432,6 +437,8 @@ export function useMapPageController() {
     }, 3200);
     return () => window.clearTimeout(timeoutId);
   }, [selectedPeriodHasForecast, selectedPeriodKeyForNotice]);
+
+  const usingFallbackForecast = selectedPeriodHasForecast === false;
 
   const compareModels = useMemo<ModelInfo[]>(
     () =>
@@ -683,6 +690,10 @@ export function useMapPageController() {
     setCompareViewState(null);
     setToolsOpen(false);
     setTimeseriesOpen(false);
+    setGridDetailOpen(false);
+    setGridDetailCellId(null);
+    setGridDetailSelectedWeek(null);
+    setGridDetailSelectedWeekYear(null);
     setResolution("H4");
     setModelId(appConfig.bestModelId);
     setLastWeekMode("none");
@@ -714,30 +725,26 @@ export function useMapPageController() {
     setPeriods([]);
     setPageLoadError(null);
     setForecastIndex(0);
+    setGridDetailOpen(false);
+    setGridDetailCellId(null);
+    setGridDetailSelectedWeek(null);
+    setGridDetailSelectedWeekYear(null);
     setReloadToken((value) => value + 1);
     setMapResetNonce((value) => value + 1);
+  };
+
+  const openGridDetail = (request: GridCellExpandRequest) => {
+    setGridDetailCellId(request.h3);
+    setGridDetailResolution(request.resolution);
+    setGridDetailModelId(request.modelId);
+    setGridDetailSelectedWeek(request.selectedWeek);
+    setGridDetailSelectedWeekYear(request.selectedWeekYear);
+    setGridDetailOpen(true);
   };
 
   const reportFatalDataError = (error: DataLoadError) => {
     setPageLoadError(error);
   };
-
-  useEffect(() => {
-    if (!compareSettings.sharedScale) return;
-    setCompareSettings((prev) => ({ ...prev, sharedScale: false }));
-  }, [compareSettings.sharedScale, setCompareSettings]);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const id = window.setTimeout(() => {
-      const count = document.querySelectorAll(".maplibregl-canvas").length;
-      if (compareRenderMode === "dual" && count < 2) {
-        throw new Error(`DualMapCompare invariant failed: expected 2 canvases, found ${count}`);
-      }
-      console.info(`[CompareDebug] mode=${compareRenderMode} canvases=${count}`);
-    }, 250);
-    return () => window.clearTimeout(id);
-  }, [compareRenderMode, compareEnabled, compareModelA, compareModelB, comparePeriodA, comparePeriodB]);
 
   const shareSnapshot = async () => {
     if (shareBusy || compareEnabled) return;
@@ -820,6 +827,13 @@ export function useMapPageController() {
     setToolsOpen,
     timeseriesOpen,
     setTimeseriesOpen,
+    gridDetailOpen,
+    setGridDetailOpen,
+    gridDetailCellId,
+    gridDetailResolution,
+    gridDetailModelId,
+    gridDetailSelectedWeek,
+    gridDetailSelectedWeekYear,
     welcomeOpen,
     setWelcomeOpen,
     hotspotTotalCells,
@@ -840,12 +854,12 @@ export function useMapPageController() {
     setCompareResolutionA,
     compareResolutionB,
     setCompareResolutionB,
-    mapResizeTick,
     compareViewState,
     setCompareViewState,
     mapResetNonce,
     deltaMapData,
     showNoForecastNotice,
+    usingFallbackForecast,
     forecastPeriodText,
     forecastPath,
     latestForecastPath,
@@ -873,6 +887,7 @@ export function useMapPageController() {
     shareSnapshot,
     downloadSnapshotAction,
     handleResetMap,
+    openGridDetail,
     setMenuOpen,
     setSelectedCompareH3,
     DEFAULT_DELTA_LEGEND,

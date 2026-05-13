@@ -21,7 +21,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 260px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 
@@ -31,6 +33,8 @@
   letter-spacing: 0.2px;
   font-size: 22px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: 0 0 12px rgba(25, 240, 215, 0.16);
 }
 
@@ -40,6 +44,7 @@
   padding: 0;
   color: inherit;
   text-align: left;
+  min-width: 0;
 }
 
 .brandBtn--active {
@@ -67,7 +72,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 480px;
+  min-width: 0;
+  flex: 0 1 auto;
   justify-content: flex-end;
 }
 
@@ -75,6 +81,8 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .headerForecast__notice {
@@ -101,6 +109,35 @@
 .headerForecast__notice.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+.headerForecast__fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 260px;
+  height: var(--control-h);
+  padding: 0 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 220, 120, 0.36);
+  background: rgba(75, 51, 12, 0.32);
+  color: rgba(255, 240, 196, 0.96);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerForecast__fallback .material-symbols-rounded {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.headerForecast__fallback span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .compareModePill {
@@ -234,10 +271,24 @@
   color: rgba(220, 229, 241, 0.84);
 }
 
-.expectedPopover__valueRow {
-  display: flex;
-  align-items: baseline;
+.expectedPopover__summaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
+}
+
+.expectedPopover__summaryItem {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.expectedPopover__summaryLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(208, 221, 239, 0.7);
 }
 
 .expectedPopover__value {
@@ -245,6 +296,10 @@
   line-height: 1.1;
   font-weight: 800;
   color: var(--panel-text);
+}
+
+.expectedPopover__value--secondary {
+  color: rgba(180, 230, 255, 0.95);
 }
 
 .expectedPopover__delta {
@@ -300,10 +355,22 @@
 
 .expectedPopover__line {
   fill: none;
-  stroke: rgba(25, 240, 215, 0.92);
   stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.expectedPopover__line--actual {
+  stroke: rgba(25, 240, 215, 0.92);
+}
+
+.expectedPopover__line--forecast {
+  stroke: rgba(83, 166, 255, 0.96);
+  stroke-width: 2.2;
+}
+
+.expectedPopover__line--prediction {
+  stroke: rgba(255, 246, 170, 0.95);
 }
 
 .expectedPopover__dot {
@@ -314,7 +381,7 @@
   fill: rgba(255, 246, 170, 0.28);
 }
 
-.expectedPopover__dot--forecast {
+.expectedPopover__dot--prediction {
   fill: rgba(255, 246, 170, 1);
   stroke: rgba(12, 24, 48, 0.9);
   stroke-width: 1.1;
@@ -339,6 +406,44 @@
   font-weight: 600;
   color: rgba(208, 221, 239, 0.78);
   line-height: 1.2;
+}
+
+.expectedPopover__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.expectedPopover__legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(208, 221, 239, 0.76);
+}
+
+.expectedPopover__legendSwatch {
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+}
+
+.expectedPopover__legendSwatch--actual {
+  background: rgba(25, 240, 215, 0.92);
+}
+
+.expectedPopover__legendSwatch--forecast {
+  background: rgba(83, 166, 255, 0.96);
+}
+
+.expectedPopover__legendSwatch--prediction {
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 246, 170, 0.95) 0 4px,
+    transparent 4px 7px
+  );
 }
 
 .expectedPopover__empty {
@@ -400,6 +505,8 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  min-width: 318px;
+  max-width: min(360px, 42vw);
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
@@ -412,6 +519,9 @@
 .periodPill__value {
   white-space: nowrap;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .periodPill__playIcon {
@@ -723,6 +833,10 @@
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.footer--compare .footer__iconPill {
+  opacity: 0.5;
 }
 
 .footer__label {
@@ -1076,4 +1190,3 @@
   border-color: rgba(25, 240, 215, 0.6);
   box-shadow: var(--teal-glow-soft);
 }
-

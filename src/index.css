@@ -24,10 +24,10 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  display: block;
+  min-width: 0;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -125,7 +125,7 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 360px; /* gives it room */
+  min-width: 0;
   justify-content: flex-end;
 }
 

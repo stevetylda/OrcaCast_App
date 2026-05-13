@@ -11,8 +11,6 @@ type MapControlsProps = {
   legendOpen: boolean;
   legendSpec: HeatScale | null;
   deltaLegend: DeltaLegendSpec | null;
-  kdeEnabled: boolean;
-  kdeWarning: string | null;
   onHotspotsEnabledChange: (next: boolean) => void;
   onLegendToggle: () => void;
 };
@@ -24,8 +22,6 @@ export const MapControls = memo(function MapControls({
   legendOpen,
   legendSpec,
   deltaLegend,
-  kdeEnabled,
-  kdeWarning,
   onHotspotsEnabledChange,
   onLegendToggle,
 }: MapControlsProps) {
@@ -62,14 +58,6 @@ export const MapControls = memo(function MapControls({
         </button>
       </div>
       {legendOpen && <ProbabilityLegend scale={legendSpec} deltaLegend={deltaLegend} />}
-      {kdeEnabled && kdeWarning && (
-        <div className="map__kdeWarning" role="status" aria-live="polite">
-          <span className="material-symbols-rounded" aria-hidden="true">
-            warning
-          </span>
-          <span>{kdeWarning}</span>
-        </div>
-      )}
     </>
   );
 });

@@ -73,10 +73,10 @@ export function ForecastPeriodPill({
   }, [open]);
 
   useEffect(() => {
-    if (!isPlaying || periods.length === 0) return;
+    if (!isPlaying || disabled || periods.length === 0) return;
     const id = window.setTimeout(() => {
       const maxIndex = periods.length - 1;
-      const current = selectedRef.current;
+      const current = selectedIndex;
       const next = current + playDir;
       if (next < 0 || next > maxIndex) {
         setIsPlaying(false);
@@ -85,7 +85,7 @@ export function ForecastPeriodPill({
       onChangeIndex(next);
     }, SPEED_MS[speed]);
     return () => window.clearTimeout(id);
-  }, [isPlaying, playDir, periods.length, speed, onChangeIndex]);
+  }, [disabled, isPlaying, playDir, periods.length, selectedIndex, speed, onChangeIndex]);
 
   const currentLabel = useMemo(() => periods[selectedIndex]?.label ?? "Forecast", [
     periods,
@@ -177,12 +177,18 @@ export function ForecastPeriodPill({
             value={periods.length === 0 ? 0 : isDragging ? scrubIndex : selectedIndex}
             disabled={disabled || periods.length === 0}
             onChange={(e) => handleSliderChange(Number(e.target.value))}
-            onMouseDown={() => setIsDragging(true)}
+            onMouseDown={() => {
+              setScrubIndex(selectedIndex);
+              setIsDragging(true);
+            }}
             onMouseUp={(e) => {
               setIsDragging(false);
               handleSliderCommit(Number((e.target as HTMLInputElement).value));
             }}
-            onTouchStart={() => setIsDragging(true)}
+            onTouchStart={() => {
+              setScrubIndex(selectedIndex);
+              setIsDragging(true);
+            }}
             onTouchEnd={(e) => {
               setIsDragging(false);
               handleSliderCommit(Number((e.target as HTMLInputElement).value));

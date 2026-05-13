@@ -6,7 +6,7 @@ import { loadForecast } from "../../data/forecastIO";
 import type { Period } from "../../data/periods";
 import { isoWeekToDateRange } from "../../core/time/forecastPeriodToIsoWeek";
 import { setGridHoverCell } from "../../map/gridOverlay";
-import type { LngLat, SparklineSeries } from "./types";
+import type { GridCellExpandRequest, LngLat, SparklineSeries } from "./types";
 
 function escapeHtml(value: string): string {
   return value
@@ -181,14 +181,51 @@ type GridInteractionOptions = {
   selectedWeekRef: MutableRefObject<number>;
   selectedWeekYearRef: MutableRefObject<number>;
   sparklineCacheRef: MutableRefObject<Map<string, SparklineSeries>>;
-  sightingsWeekCacheRef: MutableRefObject<Map<string, LngLat[]>>;
+  forecastPeriodCacheRef: MutableRefObject<Map<string, Promise<Record<string, number>>>>;
+  sightingsWeekCacheRef: MutableRefObject<Map<string, Promise<LngLat[]>>>;
   sparkPopupRef: MutableRefObject<maplibregl.Popup | null>;
   sparkRequestIdRef: MutableRefObject<number>;
   hoveredCellRef: MutableRefObject<string | null>;
   onGridCellSelect?: (h3: string) => void;
+  onGridCellExpand?: (request: GridCellExpandRequest) => void;
   cellPopupHtmlBuilder?: (cellId: string) => string | null | undefined;
-  enableSparklinePopup: boolean;
+  enableSparklinePopupRef: MutableRefObject<boolean>;
 };
+
+const SPARKLINE_CACHE_LIMIT = 80;
+const FORECAST_PERIOD_CACHE_LIMIT = 96;
+const SIGHTINGS_WEEK_CACHE_LIMIT = 64;
+const FORECAST_SERIES_CONCURRENCY = 3;
+
+function rememberLru<K, V>(cache: Map<K, V>, key: K, value: V, limit: number) {
+  if (cache.has(key)) cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > limit) {
+    const oldestKey = cache.keys().next().value as K | undefined;
+    if (oldestKey === undefined) break;
+    cache.delete(oldestKey);
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, limit), items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        results[currentIndex] = await worker(items[currentIndex], currentIndex);
+      }
+    })
+  );
+  return results;
+}
 
 export function createGridInteractionHandlers({
   map,
@@ -199,16 +236,33 @@ export function createGridInteractionHandlers({
   selectedWeekRef,
   selectedWeekYearRef,
   sparklineCacheRef,
+  forecastPeriodCacheRef,
   sightingsWeekCacheRef,
   sparkPopupRef,
   sparkRequestIdRef,
   hoveredCellRef,
   onGridCellSelect,
+  onGridCellExpand,
   cellPopupHtmlBuilder,
-  enableSparklinePopup,
+  enableSparklinePopupRef,
 }: GridInteractionOptions) {
   let hoverRafId = 0;
   let pendingHoverPoint: maplibregl.Point | null = null;
+
+  const attachExpandHandler = (cellId: string) => {
+    if (!sparkPopupRef.current || !onGridCellExpand) return;
+    const popupRoot = sparkPopupRef.current.getElement();
+    const button = popupRoot.querySelector<HTMLButtonElement>("[data-grid-expand]");
+    if (!button) return;
+    button.onclick = () =>
+      onGridCellExpand({
+        h3: cellId,
+        resolution: resolutionRef.current,
+        modelId: modelIdRef.current,
+        selectedWeek: selectedWeekRef.current,
+        selectedWeekYear: selectedWeekYearRef.current,
+      });
+  };
 
   const handleSparklineClick = (event: maplibregl.MapMouseEvent) => {
     const features = map.queryRenderedFeatures(event.point, { layers: ["grid-fill"] });
@@ -225,11 +279,12 @@ export function createGridInteractionHandlers({
           sparkPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: true, offset: 10 });
         }
         sparkPopupRef.current.setLngLat(event.lngLat).setHTML(popupHtml).addTo(map);
+        attachExpandHandler(cellId);
         return;
       }
     }
 
-    if (!enableSparklinePopup) return;
+    if (!enableSparklinePopupRef.current) return;
     const fullPeriods = periodsRef.current ?? [];
     if (fullPeriods.length === 0) return;
 
@@ -252,8 +307,10 @@ export function createGridInteractionHandlers({
         <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
         <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
         <div class="sparkPopup__loading">Loading sparkline…</div>
+        <button class="sparkPopup__expandBtn" type="button" data-grid-expand="true">Expand view</button>
       </div>
     `).addTo(map);
+    attachExpandHandler(cellId);
 
     const requestId = (sparkRequestIdRef.current += 1);
     const cacheKey = [resolutionRef.current, modelIdRef.current, cellId, periodsList.map((p) => p.periodKey).join("|")].join("|");
@@ -265,27 +322,40 @@ export function createGridInteractionHandlers({
           <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
           <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
           ${buildSparklineSvg(cached.forecast, cached.sightings, selectedIndex, periodsList)}
+          <button class="sparkPopup__expandBtn" type="button" data-grid-expand="true">Expand view</button>
         </div>
       `);
+      attachExpandHandler(cellId);
       return;
     }
 
     const fetchSeries = async (): Promise<SparklineSeries> => {
-      const forecastValues = await Promise.all(
-        periodsList.map(async (period) => {
+      const forecastValues = await mapWithConcurrency(
+        periodsList,
+        FORECAST_SERIES_CONCURRENCY,
+        async (period) => {
           const path = getForecastPathForPeriod(resolutionRef.current, period.fileId);
+          const periodCacheKey = [resolutionRef.current, modelIdRef.current, period.fileId].join("|");
           try {
-            const forecast = await loadForecast(resolutionRef.current, {
-              kind: "explicit",
-              explicitPath: path,
-              modelId: modelIdRef.current,
-            });
-            const value = Number(forecast.values?.[cellId] ?? 0);
+            let periodPromise = forecastPeriodCacheRef.current.get(periodCacheKey);
+            if (!periodPromise) {
+              periodPromise = loadForecast(resolutionRef.current, {
+                kind: "explicit",
+                explicitPath: path,
+                modelId: modelIdRef.current,
+              }).then((forecast) => forecast.values ?? {});
+              rememberLru(forecastPeriodCacheRef.current, periodCacheKey, periodPromise, FORECAST_PERIOD_CACHE_LIMIT);
+            } else {
+              rememberLru(forecastPeriodCacheRef.current, periodCacheKey, periodPromise, FORECAST_PERIOD_CACHE_LIMIT);
+            }
+            const values = await periodPromise;
+            const value = Number(values?.[cellId] ?? 0);
             return Number.isFinite(value) ? value : 0;
           } catch {
+            forecastPeriodCacheRef.current.delete(periodCacheKey);
             return 0;
           }
-        })
+        }
       );
 
       const cellPolygons = extractCellPolygons(cellId, overlayRef.current);
@@ -295,15 +365,14 @@ export function createGridInteractionHandlers({
           : await Promise.all(
               periodsList.map(async (period) => {
                 const weekKey = `${period.year}-W${period.stat_week}`;
-                let weekPoints = sightingsWeekCacheRef.current.get(weekKey);
-                if (!weekPoints) {
-                  try {
-                    weekPoints = await loadWeeklySightingPoints(period.year, period.stat_week);
-                  } catch {
-                    weekPoints = [];
-                  }
-                  sightingsWeekCacheRef.current.set(weekKey, weekPoints);
+                let weekPointsPromise = sightingsWeekCacheRef.current.get(weekKey);
+                if (!weekPointsPromise) {
+                  weekPointsPromise = loadWeeklySightingPoints(period.year, period.stat_week).catch(() => []);
+                  rememberLru(sightingsWeekCacheRef.current, weekKey, weekPointsPromise, SIGHTINGS_WEEK_CACHE_LIMIT);
+                } else {
+                  rememberLru(sightingsWeekCacheRef.current, weekKey, weekPointsPromise, SIGHTINGS_WEEK_CACHE_LIMIT);
                 }
+                const weekPoints = await weekPointsPromise;
                 return weekPoints.some((point) => cellPolygons.some((polygon) => pointInPolygon(point, polygon))) ? 1 : 0;
               })
             );
@@ -314,15 +383,17 @@ export function createGridInteractionHandlers({
     fetchSeries()
       .then((series) => {
         if (sparkRequestIdRef.current !== requestId) return;
-        sparklineCacheRef.current.set(cacheKey, series);
+        rememberLru(sparklineCacheRef.current, cacheKey, series, SPARKLINE_CACHE_LIMIT);
         sparkPopupRef.current?.setHTML(`
           <div class="sparkPopup">
             <div class="sparkPopup__title">Cell ${escapeHtml(cellId)}</div>
             <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
             <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
             ${buildSparklineSvg(series.forecast, series.sightings, selectedIndex, periodsList)}
+            <button class="sparkPopup__expandBtn" type="button" data-grid-expand="true">Expand view</button>
           </div>
         `);
+        attachExpandHandler(cellId);
       })
       .catch(() => {
         if (sparkRequestIdRef.current !== requestId) return;
@@ -332,8 +403,10 @@ export function createGridInteractionHandlers({
             <div class="sparkPopup__meta">Model: ${escapeHtml(modelLabel)}</div>
             <div class="sparkPopup__seriesMeta">Forecast (cyan) + Sightings 0/1 (amber)</div>
             <div class="sparkPopup__loading">Unable to load sparkline.</div>
+            <button class="sparkPopup__expandBtn" type="button" data-grid-expand="true">Expand view</button>
           </div>
         `);
+        attachExpandHandler(cellId);
       });
   };
 

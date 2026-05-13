@@ -10,6 +10,9 @@ const InfoModal = lazy(() => import("../../components/InfoModal").then((m) => ({
 const TimeseriesModal = lazy(() =>
   import("../../components/modals/TimeseriesModal").then((m) => ({ default: m.TimeseriesModal }))
 );
+const GridDetailModal = lazy(() =>
+  import("../../components/modals/GridDetailModal").then((m) => ({ default: m.GridDetailModal }))
+);
 
 export function MapPage() {
   const [boundaryKey, setBoundaryKey] = useState(0);
@@ -47,6 +50,19 @@ export function MapPage() {
               forecastPeriodLabel={controller.forecastPeriodText}
               forecastPath={controller.forecastPath}
               resolution={controller.resolution}
+            />
+          )}
+          {controller.gridDetailOpen && (
+            <GridDetailModal
+              open={controller.gridDetailOpen}
+              onClose={() => controller.setGridDetailOpen(false)}
+              darkMode={controller.darkMode}
+              cellId={controller.gridDetailCellId}
+              periods={controller.periods}
+              resolution={controller.gridDetailResolution}
+              modelId={controller.gridDetailModelId}
+              selectedWeek={controller.gridDetailSelectedWeek ?? controller.currentWeek}
+              selectedWeekYear={controller.gridDetailSelectedWeekYear ?? controller.currentWeekYear}
             />
           )}
         </Suspense>

@@ -103,6 +103,10 @@ export function SwipeComparePills({
   return (
     <div className="swipeComparePills" aria-label="Swipe compare lenses">
       <div className="swipeComparePills__surface">
+        <div className="swipeComparePills__summary" aria-hidden="true">
+          <span className="swipeComparePills__summaryItem">A - {leftModelLabel}</span>
+          <span className="swipeComparePills__summaryItem">B - {rightModelLabel}</span>
+        </div>
         <div className="swipeComparePills__grid">
           <div className="swipeComparePills__lane">
             <div className="swipeComparePills__field swipeComparePills__field--modelDropdown">

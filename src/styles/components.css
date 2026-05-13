@@ -277,6 +277,320 @@
   gap: 12px;
 }
 
+.sightingsActivity {
+  display: grid;
+  gap: 14px;
+}
+
+.sightingsActivity__header {
+  display: grid;
+  gap: 6px;
+}
+
+.sightingsActivity__controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sightingsActivity__field {
+  display: grid;
+  gap: 5px;
+  min-width: 132px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sightingsActivity__field select {
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(16, 22, 32, 0.74);
+  color: rgba(247, 254, 255, 0.96);
+  font-family: "Plus Jakarta Sans", "Sora", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 0 34px 0 12px;
+}
+
+.sightingsActivity__reset {
+  align-self: end;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(16, 22, 32, 0.74);
+  color: rgba(247, 254, 255, 0.96);
+  font-family: "Plus Jakarta Sans", "Sora", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.sightingsActivity__reset:hover:not(:disabled),
+.sightingsActivity__reset:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+  outline: none;
+}
+
+.sightingsActivity__reset:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.sightingsActivity__plot {
+  position: relative;
+  width: 100%;
+  height: clamp(320px, 38vw, 440px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 20, 38, 0.72);
+  overflow: hidden;
+}
+
+.sightingsActivity__svgWrap {
+  width: 100%;
+  height: 100%;
+}
+
+.sightingsActivity__gridLine {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.sightingsActivity__tick,
+.sightingsActivity__axisLabel {
+  fill: rgba(235, 243, 255, 0.76);
+  font-size: 12px;
+}
+
+.sightingsActivity__axisLabel {
+  fill: rgba(245, 250, 255, 0.9);
+}
+
+.sightingsActivity__selection {
+  fill: rgba(45, 212, 191, 0.16);
+  stroke: rgba(45, 212, 191, 0.72);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.sightingsActivity__hitArea {
+  fill: transparent;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sightingsActivity__hoverLayer {
+  pointer-events: none;
+}
+
+.sightingsActivity__hoverGuide {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.sightingsActivity__hoverDot {
+  fill: #2dd4bf;
+  stroke: rgba(8, 14, 28, 0.96);
+  stroke-width: 2;
+}
+
+.sightingsActivity__tooltipBg {
+  fill: rgba(8, 14, 28, 0.94);
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+.sightingsActivity__tooltipLabel {
+  fill: rgba(235, 243, 255, 0.74);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sightingsActivity__tooltipValue {
+  fill: rgba(247, 254, 255, 0.98);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.sightingsActivity__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  text-align: center;
+}
+
+.srkwPopulation {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.srkwPopulation__header {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding-right: 112px;
+}
+
+.srkwPopulation__toggle.lineageViewToggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: max-content;
+  display: inline-grid;
+  grid-template-columns: repeat(2, 38px);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.srkwPopulation__toggle .lineageViewToggle__option {
+  width: 38px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.srkwPopulation__toggle .material-symbols-rounded {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.srkwPopulation__plot {
+  position: relative;
+  width: 100%;
+  min-height: 310px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 20, 38, 0.72);
+  overflow: hidden;
+}
+
+.srkwPopulationCalendar {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 10px;
+  padding: 18px;
+  overflow-x: auto;
+}
+
+.srkwPopulationCalendar__podLabels {
+  display: grid;
+  grid-template-rows: repeat(3, 48px) 28px;
+  gap: 6px;
+  padding-top: 0;
+}
+
+.srkwPopulationCalendar__podLabel {
+  display: grid;
+  align-items: center;
+  color: rgba(245, 250, 255, 0.86);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.srkwPopulationCalendar__grid {
+  display: grid;
+  grid-template-rows: repeat(3, 48px) 28px;
+  gap: 6px;
+  min-width: 980px;
+}
+
+.srkwPopulationCalendar__cell {
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(247, 254, 255, 0.96);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.srkwPopulationCalendar__cell span {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.48);
+}
+
+.srkwPopulationCalendar__year {
+  display: grid;
+  place-items: start center;
+  color: rgba(235, 243, 255, 0.68);
+  font-size: 10px;
+  font-weight: 700;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.srkwPopulationLine {
+  width: 100%;
+  height: clamp(300px, 34vw, 390px);
+}
+
+.srkwPopulation__gridLine {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.srkwPopulation__tick,
+.srkwPopulation__legendText {
+  fill: rgba(235, 243, 255, 0.76);
+  font-size: 12px;
+}
+
+.srkwPopulation__legendText {
+  font-weight: 800;
+}
+
+.srkwPopulation__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .srkwPopulation__header {
+    padding-right: 0;
+    padding-top: 46px;
+  }
+}
+
+@media (max-width: 760px) {
+  .sightingsActivity__controls {
+    left: 12px;
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .sightingsActivity__field {
+    flex: 1 1 150px;
+  }
+}
+
 .lineageViewToggle {
   width: 100%;
   display: grid;
@@ -1712,11 +2026,65 @@
 .app:not(.app--dark) .expectedPopover__desc,
 .app:not(.app--dark) .expectedPopover__delta,
 .app:not(.app--dark) .expectedPopover__ciText,
+.app:not(.app--dark) .expectedPopover__summaryLabel,
+.app:not(.app--dark) .expectedPopover__legendItem,
 .app:not(.app--dark) .periodPill__label,
 .app:not(.app--dark) .periodChip__label,
 .app:not(.app--dark) .periodSelect__label {
   color: var(--ink-secondary);
   text-shadow: none;
+}
+
+.app:not(.app--dark) .expectedPopover__axis {
+  stroke: rgba(37, 63, 96, 0.28);
+}
+
+.app:not(.app--dark) .expectedPopover__axisLabel,
+.app:not(.app--dark) .expectedPopover__sparkCaption {
+  fill: rgba(41, 66, 100, 0.76);
+  color: rgba(41, 66, 100, 0.76);
+}
+
+.app:not(.app--dark) .expectedPopover__line--actual {
+  stroke: #007c89;
+}
+
+.app:not(.app--dark) .expectedPopover__line--forecast {
+  stroke: #1d4ed8;
+}
+
+.app:not(.app--dark) .expectedPopover__ci {
+  stroke: #b45309;
+}
+
+.app:not(.app--dark) .expectedPopover__dot {
+  fill: #007c89;
+}
+
+.app:not(.app--dark) .expectedPopover__dotGlow {
+  fill: rgba(180, 83, 9, 0.18);
+}
+
+.app:not(.app--dark) .expectedPopover__dot--prediction {
+  fill: #b45309;
+  stroke: #fff7ed;
+  filter: drop-shadow(0 0 3px rgba(180, 83, 9, 0.45));
+}
+
+.app:not(.app--dark) .expectedPopover__legendSwatch--actual {
+  background: #007c89;
+}
+
+.app:not(.app--dark) .expectedPopover__legendSwatch--forecast {
+  background: #1d4ed8;
+}
+
+.app:not(.app--dark) .expectedPopover__legendSwatch--prediction {
+  background: repeating-linear-gradient(
+    90deg,
+    #b45309 0 4px,
+    transparent 4px 7px
+  );
 }
 
 .app:not(.app--dark) .toolDrawer__toggle,
@@ -2315,9 +2683,103 @@
 }
 
 .app:not(.app--dark) .dataLineageGraph,
-.app:not(.app--dark) .sourceDetails {
+.app:not(.app--dark) .sourceDetails,
+.app:not(.app--dark) .sightingsActivity__plot,
+.app:not(.app--dark) .srkwPopulation__plot {
   background: rgba(11, 27, 58, 0.03);
   border-color: rgba(11, 27, 58, 0.14);
+}
+
+.app:not(.app--dark) .sightingsActivity__field {
+  color: rgba(42, 59, 89, 0.82);
+}
+
+.app:not(.app--dark) .sightingsActivity__field select {
+  border-color: rgba(9, 22, 46, 0.16);
+  background: rgba(246, 250, 255, 0.95);
+  color: rgba(10, 23, 40, 0.96);
+}
+
+.app:not(.app--dark) .sightingsActivity__reset {
+  border-color: rgba(9, 22, 46, 0.16);
+  background: rgba(246, 250, 255, 0.95);
+  color: rgba(10, 23, 40, 0.96);
+}
+
+.app:not(.app--dark) .sightingsActivity__reset:hover:not(:disabled),
+.app:not(.app--dark) .sightingsActivity__reset:focus-visible:not(:disabled) {
+  background: rgba(9, 22, 46, 0.08);
+  border-color: rgba(9, 22, 46, 0.26);
+}
+
+.app:not(.app--dark) .sightingsActivity__gridLine {
+  stroke: rgba(26, 58, 96, 0.14);
+}
+
+.app:not(.app--dark) .sightingsActivity__tick,
+.app:not(.app--dark) .sightingsActivity__axisLabel {
+  fill: rgba(42, 62, 93, 0.86);
+}
+
+.app:not(.app--dark) .sightingsActivity__status {
+  color: rgba(42, 59, 89, 0.78);
+}
+
+.app:not(.app--dark) .sightingsActivity__selection {
+  fill: rgba(15, 157, 149, 0.14);
+  stroke: rgba(15, 157, 149, 0.72);
+}
+
+.app:not(.app--dark) .sightingsActivity__hoverGuide {
+  stroke: rgba(26, 58, 96, 0.34);
+}
+
+.app:not(.app--dark) .sightingsActivity__hoverDot {
+  fill: #0f9d95;
+  stroke: rgba(247, 252, 255, 0.96);
+}
+
+.app:not(.app--dark) .sightingsActivity__tooltipBg {
+  fill: rgba(247, 252, 255, 0.96);
+  stroke: rgba(11, 27, 58, 0.16);
+}
+
+.app:not(.app--dark) .sightingsActivity__tooltipLabel {
+  fill: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .sightingsActivity__tooltipValue {
+  fill: rgba(10, 23, 40, 0.96);
+}
+
+.app:not(.app--dark) .srkwPopulationCalendar__podLabel {
+  color: rgba(10, 23, 40, 0.88);
+}
+
+.app:not(.app--dark) .srkwPopulationCalendar__cell {
+  border-color: rgba(11, 27, 58, 0.12);
+  color: rgba(10, 23, 40, 0.92);
+}
+
+.app:not(.app--dark) .srkwPopulationCalendar__cell span {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.app:not(.app--dark) .srkwPopulationCalendar__year {
+  color: rgba(42, 59, 89, 0.72);
+}
+
+.app:not(.app--dark) .srkwPopulation__gridLine {
+  stroke: rgba(26, 58, 96, 0.14);
+}
+
+.app:not(.app--dark) .srkwPopulation__tick,
+.app:not(.app--dark) .srkwPopulation__legendText {
+  fill: rgba(42, 62, 93, 0.86);
+}
+
+.app:not(.app--dark) .srkwPopulation__status {
+  color: rgba(42, 59, 89, 0.78);
 }
 
 .app:not(.app--dark) .lineageViewToggle {
@@ -2568,8 +3030,7 @@
 
 /* Keep compare UI widgets spatially stable: left panel owns nav, right panel owns legend/tools. */
 .compareModeStage--map .splitCompareView__panel--a .mapStage .map__cornerRightBottom,
-.compareModeStage--map .splitCompareView__panel--a .mapStage .legend,
-.compareModeStage--map .splitCompareView__panel--a .mapStage .map__kdeWarning {
+.compareModeStage--map .splitCompareView__panel--a .mapStage .legend {
   display: none;
 }
 
@@ -2578,8 +3039,7 @@
 }
 
 .compareModeStage--map .dualCompareMaps__pane--left .mapStage .map__cornerRightBottom,
-.compareModeStage--map .dualCompareMaps__pane--left .mapStage .legend,
-.compareModeStage--map .dualCompareMaps__pane--left .mapStage .map__kdeWarning {
+.compareModeStage--map .dualCompareMaps__pane--left .mapStage .legend {
   display: none;
 }
 
@@ -4286,6 +4746,47 @@
 
 .app:not(.app--dark) .activeGridsTooltipText--week {
   fill: rgba(12, 31, 58, 0.98);
+}
+
+.app:not(.app--dark) .activeGridsLegendSwatch--expected {
+  color: #1d4ed8;
+  background: #1d4ed8;
+}
+
+.app:not(.app--dark) .activeGridsLegendSwatch--actual {
+  color: #007c89;
+  background: #007c89;
+}
+
+.app:not(.app--dark) .activeGridsLine--expected {
+  stroke: #1d4ed8;
+  filter: none;
+}
+
+.app:not(.app--dark) .activeGridsLine--actual {
+  stroke: #007c89;
+  filter: none;
+}
+
+.app:not(.app--dark) .activeGridsDot--expected {
+  fill: #1d4ed8;
+}
+
+.app:not(.app--dark) .activeGridsDot--actual {
+  fill: #007c89;
+}
+
+.app:not(.app--dark) .activeGridsInlineLegend--expected {
+  fill: #1d4ed8;
+}
+
+.app:not(.app--dark) .activeGridsInlineLegend--actual,
+.app:not(.app--dark) .activeGridsTooltipText--actual {
+  fill: #007c89;
+}
+
+.app:not(.app--dark) .activeGridsTooltipText--expected {
+  fill: #1d4ed8;
 }
 
 .app:not(.app--dark) .explainabilityDriversSummary__card--active {

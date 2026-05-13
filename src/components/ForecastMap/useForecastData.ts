@@ -160,6 +160,27 @@ export function useForecastData({
           applyScaleToCurrentValues(values);
         }
 
+        if (DEBUG_MAP) {
+          const vals = Object.values(values)
+            .map((v) => Number(v))
+            .filter((v) => Number.isFinite(v));
+          const positiveVals = vals.filter((v) => v > 0);
+          console.info("[MapDebug] forecastLoaded", {
+            resolution,
+            modelId,
+            loadedPath: forecastPath ?? fallbackForecastPath ?? null,
+            positiveCount: positiveVals.length,
+            min: positiveVals.length ? Math.min(...positiveVals) : null,
+            median: positiveVals.length
+              ? positiveVals.slice().sort((a, b) => a - b)[Math.floor(positiveVals.length / 2)]
+              : null,
+            p90: positiveVals.length
+              ? positiveVals.slice().sort((a, b) => a - b)[Math.floor(positiveVals.length * 0.9)]
+              : null,
+            max: positiveVals.length ? Math.max(...positiveVals) : null,
+          });
+        }
+
         const featureValues = (joined.features ?? [])
           .map((feature) => Number((feature.properties as Record<string, unknown> | null)?.[valueProperty] ?? 0))
           .filter((v) => Number.isFinite(v));
@@ -174,6 +195,7 @@ export function useForecastData({
             modelId,
             featureCount: joined.features?.length ?? 0,
             nonZeroValues: Object.values(values).filter((value) => Number(value) > 0).length,
+            nonZeroJoinedFeatures: featureValues.filter((value) => value > 0).length,
             forecastPath,
             fallbackForecastPath,
           });

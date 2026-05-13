@@ -14,16 +14,17 @@ type ForecastPayload = {
 const gridCache = new Map<H3Resolution, FeatureCollection>();
 const forecastCache = new Map<string, ForecastPayload>();
 const forecastRawCache = new Map<string, ForecastPayloadRaw>();
+const DISABLE_RUNTIME_DATA_CACHE = import.meta.env.DEV;
 
 export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollection> {
-  const cached = gridCache.get(resolution);
+  const cached = DISABLE_RUNTIME_DATA_CACHE ? undefined : gridCache.get(resolution);
   if (cached) return structuredClone(cached);
   const url = GRID_PATH[resolution];
   const { data } = await fetchJson<FeatureCollection>(url, {
-    cache: "force-cache",
+    cache: DISABLE_RUNTIME_DATA_CACHE ? "no-store" : "force-cache",
     cacheToken: getDataVersionToken(),
   });
-  gridCache.set(resolution, data);
+  if (!DISABLE_RUNTIME_DATA_CACHE) gridCache.set(resolution, data);
   return structuredClone(data);
 }
 
@@ -37,15 +38,20 @@ type ForecastPayloadRaw = {
 };
 
 async function loadForecastRaw(url: string): Promise<ForecastPayloadRaw> {
-  const cached = forecastRawCache.get(url);
+  const cached = DISABLE_RUNTIME_DATA_CACHE ? undefined : forecastRawCache.get(url);
   if (cached) return cached;
   const raw = parseWithSchema(
     forecastPayloadSchema,
-    (await fetchJson<unknown>(url, { cache: "force-cache", cacheToken: getDataVersionToken() })).data,
+    (
+      await fetchJson<unknown>(url, {
+        cache: DISABLE_RUNTIME_DATA_CACHE ? "no-store" : "force-cache",
+        cacheToken: getDataVersionToken(),
+      })
+    ).data,
     url,
     "Forecast payload"
   );
-  forecastRawCache.set(url, raw);
+  if (!DISABLE_RUNTIME_DATA_CACHE) forecastRawCache.set(url, raw);
   return raw;
 }
 
@@ -111,7 +117,7 @@ export async function loadForecast(
 ): Promise<ForecastPayload> {
   const url = getForecastPath(resolution, opts);
   const cacheKey = `${resolution}|${url}|${opts.modelId ?? ""}`;
-  const cached = forecastCache.get(cacheKey);
+  const cached = DISABLE_RUNTIME_DATA_CACHE ? undefined : forecastCache.get(cacheKey);
   if (cached) return cached;
   const raw = await loadForecastRaw(url);
   const values =
@@ -123,7 +129,7 @@ export async function loadForecast(
     target_end: raw.target_end,
     values,
   };
-  forecastCache.set(cacheKey, data);
+  if (!DISABLE_RUNTIME_DATA_CACHE) forecastCache.set(cacheKey, data);
   return data;
 }
 

@@ -1,7 +1,7 @@
 import { AppHeader } from "../../components/AppHeader";
 import { AppFooter } from "../../components/AppFooter";
 import { ToolDrawer } from "../../components/ToolDrawer";
-import { ForecastMap } from "../../components/ForecastMap";
+import { ForecastMap, type ForecastMapProps } from "../../components/ForecastMap";
 import { SwipeComparePills } from "../../components/Compare/SwipeComparePills";
 import { DualMapCompare } from "../../components/Compare/DualMapCompare";
 import { SingleSwipeMap } from "../../components/Compare/SingleSwipeMap";
@@ -45,6 +45,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     setToolsOpen,
     timeseriesOpen,
     setTimeseriesOpen,
+    gridDetailOpen,
     hotspotTotalCells,
     setHotspotTotalCells,
     poiFilters,
@@ -59,12 +60,12 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     setCompareResolutionA,
     compareResolutionB,
     setCompareResolutionB,
-    mapResizeTick,
     compareViewState,
     setCompareViewState,
     mapResetNonce,
     deltaMapData,
     showNoForecastNotice,
+    usingFallbackForecast,
     forecastPath,
     latestForecastPath,
     expectedSummary,
@@ -91,6 +92,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     shareSnapshot,
     downloadSnapshotAction,
     handleResetMap,
+    openGridDetail,
     setMenuOpen,
     setSelectedCompareH3,
     DEFAULT_DELTA_LEGEND,
@@ -99,40 +101,92 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     retryPageLoad,
   } = controller;
 
-  const handleFatalDataError = (error: Parameters<typeof reportFatalDataError>[0]) => {
-    reportFatalDataError(error);
+  const mainMapKey = `map-main-${mapResetNonce}`;
+  const deltaMapKey = `map-delta-${mapResetNonce}`;
+  const dualMapAKey = `map-dual-a-${mapResetNonce}`;
+  const dualMapBKey = `map-dual-b-${mapResetNonce}`;
+  const swipeMapAKey = `map-swipe-a-${mapResetNonce}`;
+  const swipeMapBKey = `map-swipe-b-${mapResetNonce}`;
+
+  const expectedActivityChart = {
+    actualValues: expectedSummary.actualChartValues,
+    forecastValues: expectedSummary.forecastChartValues,
+    forecastValue: expectedSummary.current,
+    predictionIndex: expectedSummary.predictionIndex,
   };
+  const commonHeaderProps = {
+    title: "OrcaCast",
+    subtitle: "Orca Sightings Forecast",
+    onForecastIndexChange: setForecastIndex,
+    expectedActivityCount: expectedSummary.current,
+    expectedActivityVsPriorWeek: expectedSummary.vsPriorWeek,
+    expectedActivityVs12WeekAvg: expectedSummary.vs12WeekAvg,
+    expectedActivityTrend: expectedSummary.trend,
+    expectedActivityChart,
+    resolution,
+    onResolutionChange: setResolution,
+    darkMode,
+    onToggleDarkMode: () => setThemeMode(darkMode ? "light" : "dark"),
+    onOpenInfo: () => controller.setInfoOpen(true),
+    onOpenMenu: () => setMenuOpen(true),
+    onBrandClick: handleResetMap,
+    onExitCompareMode: () => setCompareEnabled(false),
+  };
+
+  const commonMapProps = {
+    darkMode,
+    paletteId: selectedPaletteId,
+    showLastWeek,
+    lastWeekMode,
+    poiFilters,
+    periods,
+    timeseriesOpen: timeseriesOpen || gridDetailOpen,
+    hotspotsEnabled,
+    hotspotMode,
+    hotspotPercentile,
+    hotspotModeledCount: expectedSummary.current,
+    onHotspotsEnabledChange: setHotspotsEnabled,
+    onGridCellCount: setHotspotTotalCells,
+    onGridCellSelect: setSelectedCompareH3,
+    onGridCellExpand: openGridDetail,
+    onFatalDataError: reportFatalDataError,
+  } satisfies Pick<
+    ForecastMapProps,
+    | "darkMode"
+    | "paletteId"
+    | "showLastWeek"
+    | "lastWeekMode"
+    | "poiFilters"
+    | "periods"
+    | "timeseriesOpen"
+    | "hotspotsEnabled"
+    | "hotspotMode"
+    | "hotspotPercentile"
+    | "hotspotModeledCount"
+    | "onHotspotsEnabledChange"
+    | "onGridCellCount"
+    | "onGridCellSelect"
+    | "onGridCellExpand"
+    | "onFatalDataError"
+  >;
+
+  const renderForecastMap = (
+    key: string,
+    props: Pick<ForecastMapProps, "resolution" | "modelId" | "selectedWeek" | "selectedWeekYear"> &
+      Partial<ForecastMapProps>,
+    withPrimaryRef = false
+  ) => <ForecastMap {...commonMapProps} {...props} ref={withPrimaryRef ? primaryMapRef : undefined} key={key} />;
 
   if (pageLoadError) {
     return (
       <div className="mapPageRoot">
         <AppHeader
-          title="OrcaCast"
-          subtitle="Orca Sightings Forecast"
+          {...commonHeaderProps}
           forecastPeriods={[]}
           forecastIndex={0}
-          onForecastIndexChange={setForecastIndex}
-          expectedActivityCount={expectedSummary.current}
-          expectedActivityVsPriorWeek={expectedSummary.vsPriorWeek}
-          expectedActivityVs12WeekAvg={expectedSummary.vs12WeekAvg}
-          expectedActivityTrend={expectedSummary.trend}
-          expectedActivityChart={{
-            values: expectedSummary.chartValues,
-            forecastIndex: expectedSummary.forecastIndex,
-            ciLow: expectedSummary.ciLow,
-            ciHigh: expectedSummary.ciHigh,
-          }}
           showForecastNotice={false}
           forecastNoticeText=""
-          resolution={resolution}
-          onResolutionChange={setResolution}
-          darkMode={darkMode}
-          onToggleDarkMode={() => setThemeMode(darkMode ? "light" : "dark")}
-          onOpenInfo={() => controller.setInfoOpen(true)}
-          onOpenMenu={() => setMenuOpen(true)}
-          onBrandClick={handleResetMap}
           compareEnabled={false}
-          onExitCompareMode={() => setCompareEnabled(false)}
         />
         <main className="app__main">
           <MapPageFailureState
@@ -151,166 +205,81 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
   return (
     <div className="mapPageRoot">
       <AppHeader
-        title="OrcaCast"
-        subtitle="Orca Sightings Forecast"
+        {...commonHeaderProps}
         forecastPeriods={periods}
         forecastIndex={Math.max(0, forecastIndex)}
-        onForecastIndexChange={setForecastIndex}
-        expectedActivityCount={expectedSummary.current}
-        expectedActivityVsPriorWeek={expectedSummary.vsPriorWeek}
-        expectedActivityVs12WeekAvg={expectedSummary.vs12WeekAvg}
-        expectedActivityTrend={expectedSummary.trend}
-        expectedActivityChart={{
-          values: expectedSummary.chartValues,
-          forecastIndex: expectedSummary.forecastIndex,
-          ciLow: expectedSummary.ciLow,
-          ciHigh: expectedSummary.ciHigh,
-        }}
         showForecastNotice={showNoForecastNotice}
         forecastNoticeText="Forecast data is not available for the selected period."
-        resolution={resolution}
-        onResolutionChange={setResolution}
-        darkMode={darkMode}
-        onToggleDarkMode={() => setThemeMode(darkMode ? "light" : "dark")}
-        onOpenInfo={() => controller.setInfoOpen(true)}
-        onOpenMenu={() => setMenuOpen(true)}
-        onBrandClick={handleResetMap}
+        fallbackNoticeVisible={usingFallbackForecast}
+        fallbackNoticeText="Selected period unavailable - showing latest available"
         compareEnabled={compareEnabled}
-        onExitCompareMode={() => setCompareEnabled(false)}
       />
 
       <main className="app__main">
         {!compareEnabled ? (
-          <ForecastMap
-            ref={primaryMapRef}
-            key={`map-main-${selectedPaletteId}-${mapResetNonce}`}
-            darkMode={darkMode}
-            paletteId={selectedPaletteId}
-            resolution={resolution}
-            showLastWeek={showLastWeek}
-            lastWeekMode={lastWeekMode}
-            poiFilters={poiFilters}
-            modelId={modelId}
-            periods={periods}
-            selectedWeek={currentWeek}
-            selectedWeekYear={currentWeekYear}
-            timeseriesOpen={timeseriesOpen}
-            hotspotsEnabled={hotspotsEnabled}
-            hotspotMode={hotspotMode}
-            hotspotPercentile={hotspotPercentile}
-            hotspotModeledCount={expectedSummary.current}
-            onHotspotsEnabledChange={setHotspotsEnabled}
-            onGridCellCount={setHotspotTotalCells}
-            onGridCellSelect={setSelectedCompareH3}
-            forecastPath={forecastPath}
-            fallbackForecastPath={latestForecastPath}
-            onFatalDataError={handleFatalDataError}
-          />
+          renderForecastMap(
+            mainMapKey,
+            {
+              resolution,
+              modelId,
+              selectedWeek: currentWeek,
+              selectedWeekYear: currentWeekYear,
+              forecastPath,
+              fallbackForecastPath: latestForecastPath,
+            },
+            true
+          )
         ) : (
           <div className="compareModeStage compareModeStage--map">
             {compareRenderMode === "delta" ? (
               <div className="compareMapPane">
-                <ForecastMap
-                  key={`map-delta-${selectedPaletteId}-${mapResetNonce}-${comparePeriodAObj.periodKey}-${comparePeriodBObj.periodKey}-${compareResolutionA}-${effectiveCompareResolutionB}-${resolvedCompareModelA}-${resolvedCompareModelB}`}
-                  darkMode={darkMode}
-                  paletteId={selectedPaletteId}
-                  resolution={compareResolutionA}
-                  showLastWeek={showLastWeek}
-                  lastWeekMode={lastWeekMode}
-                  poiFilters={poiFilters}
-                  modelId={resolvedCompareModelA || modelId}
-                  periods={periods}
-                  selectedWeek={comparePeriodAObj.stat_week}
-                  selectedWeekYear={comparePeriodAObj.year}
-                  timeseriesOpen={timeseriesOpen}
-                  hotspotsEnabled={hotspotsEnabled}
-                  hotspotMode={hotspotMode}
-                  hotspotPercentile={hotspotPercentile}
-                  hotspotModeledCount={expectedSummary.current}
-                  onHotspotsEnabledChange={setHotspotsEnabled}
-                  onGridCellCount={setHotspotTotalCells}
-                  onGridCellSelect={setSelectedCompareH3}
-                  resizeTick={mapResizeTick}
-                  derivedValuesByCell={deltaMapData?.deltaByCell ?? {}}
-                  derivedValueProperty="delta_pctl"
-                  derivedFillExpr={deltaFillExpr}
-                  deltaLegend={DEFAULT_DELTA_LEGEND}
-                  disableHotspots
-                  enableSparklinePopup={false}
-                  cellPopupHtmlBuilder={deltaCellPopupHtmlBuilder}
-                  useExternalColorScale={false}
-                  syncViewState={syncEnabled ? compareViewState : null}
-                  onMoveViewState={setCompareViewState}
-                  onMoveEndViewState={setCompareViewState}
-                  onFatalDataError={handleFatalDataError}
-                />
+                {renderForecastMap(deltaMapKey, {
+                  resolution: compareResolutionA,
+                  modelId: resolvedCompareModelA || modelId,
+                  selectedWeek: comparePeriodAObj.stat_week,
+                  selectedWeekYear: comparePeriodAObj.year,
+                  derivedValuesByCell: deltaMapData?.deltaByCell ?? {},
+                  derivedValueProperty: "delta_pctl",
+                  derivedFillExpr: deltaFillExpr,
+                  deltaLegend: DEFAULT_DELTA_LEGEND,
+                  disableHotspots: true,
+                  enableSparklinePopup: false,
+                  cellPopupHtmlBuilder: deltaCellPopupHtmlBuilder,
+                  syncViewState: syncEnabled ? compareViewState : null,
+                  onMoveViewState: setCompareViewState,
+                  onMoveEndViewState: setCompareViewState,
+                })}
               </div>
             ) : compareRenderMode === "dual" ? (
               <DualMapCompare
                 childrenLeft={
                   <div className="compareMapPane">
-                    <ForecastMap
-                      key={`map-dual-a-${selectedPaletteId}-${mapResetNonce}`}
-                      darkMode={darkMode}
-                      paletteId={selectedPaletteId}
-                      resolution={compareResolutionA}
-                      showLastWeek={showLastWeek}
-                      lastWeekMode={lastWeekMode}
-                      poiFilters={poiFilters}
-                      modelId={resolvedCompareModelA || modelId}
-                      periods={periods}
-                      selectedWeek={comparePeriodAObj.stat_week}
-                      selectedWeekYear={comparePeriodAObj.year}
-                      timeseriesOpen={timeseriesOpen}
-                      hotspotsEnabled={hotspotsEnabled}
-                      hotspotMode={hotspotMode}
-                      hotspotPercentile={hotspotPercentile}
-                      hotspotModeledCount={expectedSummary.current}
-                      onHotspotsEnabledChange={setHotspotsEnabled}
-                      onGridCellCount={setHotspotTotalCells}
-                      onGridCellSelect={setSelectedCompareH3}
-                      resizeTick={mapResizeTick}
-                      forecastPath={comparePathA}
-                      fallbackForecastPath={latestForecastPath}
-                      useExternalColorScale={false}
-                      syncViewState={syncEnabled ? compareViewState : null}
-                      onMoveViewState={setCompareViewState}
-                      onMoveEndViewState={setCompareViewState}
-                      onFatalDataError={handleFatalDataError}
-                    />
+                    {renderForecastMap(dualMapAKey, {
+                      resolution: compareResolutionA,
+                      modelId: resolvedCompareModelA || modelId,
+                      selectedWeek: comparePeriodAObj.stat_week,
+                      selectedWeekYear: comparePeriodAObj.year,
+                      forecastPath: comparePathA,
+                      fallbackForecastPath: latestForecastPath,
+                      syncViewState: syncEnabled ? compareViewState : null,
+                      onMoveViewState: setCompareViewState,
+                      onMoveEndViewState: setCompareViewState,
+                    })}
                   </div>
                 }
                 childrenRight={
                   <div className="compareMapPane">
-                    <ForecastMap
-                      key={`map-dual-b-${selectedPaletteId}-${mapResetNonce}`}
-                      darkMode={darkMode}
-                      paletteId={selectedPaletteId}
-                      resolution={compareResolutionB}
-                      showLastWeek={showLastWeek}
-                      lastWeekMode={lastWeekMode}
-                      poiFilters={poiFilters}
-                      modelId={resolvedCompareModelB || modelId}
-                      periods={periods}
-                      selectedWeek={comparePeriodBObj.stat_week}
-                      selectedWeekYear={comparePeriodBObj.year}
-                      timeseriesOpen={timeseriesOpen}
-                      hotspotsEnabled={hotspotsEnabled}
-                      hotspotMode={hotspotMode}
-                      hotspotPercentile={hotspotPercentile}
-                      hotspotModeledCount={expectedSummary.current}
-                      onHotspotsEnabledChange={setHotspotsEnabled}
-                      onGridCellCount={setHotspotTotalCells}
-                      onGridCellSelect={setSelectedCompareH3}
-                      resizeTick={mapResizeTick}
-                      forecastPath={comparePathB}
-                      fallbackForecastPath={latestForecastPath}
-                      useExternalColorScale={false}
-                      syncViewState={syncEnabled ? compareViewState : null}
-                      onMoveViewState={setCompareViewState}
-                      onMoveEndViewState={setCompareViewState}
-                      onFatalDataError={handleFatalDataError}
-                    />
+                    {renderForecastMap(dualMapBKey, {
+                      resolution: compareResolutionB,
+                      modelId: resolvedCompareModelB || modelId,
+                      selectedWeek: comparePeriodBObj.stat_week,
+                      selectedWeekYear: comparePeriodBObj.year,
+                      forecastPath: comparePathB,
+                      fallbackForecastPath: latestForecastPath,
+                      syncViewState: syncEnabled ? compareViewState : null,
+                      onMoveViewState: setCompareViewState,
+                      onMoveEndViewState: setCompareViewState,
+                    })}
                   </div>
                 }
               />
@@ -320,66 +289,30 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
                 onSplitCommit={(pct) => setCompareSettings((prev) => ({ ...prev, splitPct: pct }))}
                 childrenLeft={
                   <div className="compareMapPane">
-                    <ForecastMap
-                      key={`map-swipe-a-${selectedPaletteId}-${mapResetNonce}`}
-                      darkMode={darkMode}
-                      paletteId={selectedPaletteId}
-                      resolution={compareResolutionA}
-                      showLastWeek={showLastWeek}
-                      lastWeekMode={lastWeekMode}
-                      poiFilters={poiFilters}
-                      modelId={resolvedCompareModelA || modelId}
-                      periods={periods}
-                      selectedWeek={comparePeriodAObj.stat_week}
-                      selectedWeekYear={comparePeriodAObj.year}
-                      timeseriesOpen={timeseriesOpen}
-                      hotspotsEnabled={hotspotsEnabled}
-                      hotspotMode={hotspotMode}
-                      hotspotPercentile={hotspotPercentile}
-                      hotspotModeledCount={expectedSummary.current}
-                      onHotspotsEnabledChange={setHotspotsEnabled}
-                      onGridCellCount={setHotspotTotalCells}
-                      onGridCellSelect={setSelectedCompareH3}
-                      resizeTick={mapResizeTick}
-                      forecastPath={comparePathA}
-                      fallbackForecastPath={latestForecastPath}
-                      useExternalColorScale={false}
-                      syncViewState={syncEnabled ? compareViewState : null}
-                      onMoveEndViewState={setCompareViewState}
-                      onFatalDataError={handleFatalDataError}
-                    />
+                    {renderForecastMap(swipeMapAKey, {
+                      resolution: compareResolutionA,
+                      modelId: resolvedCompareModelA || modelId,
+                      selectedWeek: comparePeriodAObj.stat_week,
+                      selectedWeekYear: comparePeriodAObj.year,
+                      forecastPath: comparePathA,
+                      fallbackForecastPath: latestForecastPath,
+                      syncViewState: syncEnabled ? compareViewState : null,
+                      onMoveEndViewState: setCompareViewState,
+                    })}
                   </div>
                 }
                 childrenRight={
                   <div className="compareMapPane">
-                    <ForecastMap
-                      key={`map-swipe-b-${selectedPaletteId}-${mapResetNonce}`}
-                      darkMode={darkMode}
-                      paletteId={selectedPaletteId}
-                      resolution={compareResolutionB}
-                      showLastWeek={showLastWeek}
-                      lastWeekMode={lastWeekMode}
-                      poiFilters={poiFilters}
-                      modelId={resolvedCompareModelB || modelId}
-                      periods={periods}
-                      selectedWeek={comparePeriodBObj.stat_week}
-                      selectedWeekYear={comparePeriodBObj.year}
-                      timeseriesOpen={timeseriesOpen}
-                      hotspotsEnabled={hotspotsEnabled}
-                      hotspotMode={hotspotMode}
-                      hotspotPercentile={hotspotPercentile}
-                      hotspotModeledCount={expectedSummary.current}
-                      onHotspotsEnabledChange={setHotspotsEnabled}
-                      onGridCellCount={setHotspotTotalCells}
-                      onGridCellSelect={setSelectedCompareH3}
-                      resizeTick={mapResizeTick}
-                      forecastPath={comparePathB}
-                      fallbackForecastPath={latestForecastPath}
-                      useExternalColorScale={false}
-                      syncViewState={syncEnabled ? compareViewState : null}
-                      onMoveEndViewState={setCompareViewState}
-                      onFatalDataError={handleFatalDataError}
-                    />
+                    {renderForecastMap(swipeMapBKey, {
+                      resolution: compareResolutionB,
+                      modelId: resolvedCompareModelB || modelId,
+                      selectedWeek: comparePeriodBObj.stat_week,
+                      selectedWeekYear: comparePeriodBObj.year,
+                      forecastPath: comparePathB,
+                      fallbackForecastPath: latestForecastPath,
+                      syncViewState: syncEnabled ? compareViewState : null,
+                      onMoveEndViewState: setCompareViewState,
+                    })}
                   </div>
                 }
               />

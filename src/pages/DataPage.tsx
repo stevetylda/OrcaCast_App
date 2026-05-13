@@ -1,4 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
+import { SrkwPopulationChart } from "../components/charts/SrkwPopulationChart";
+import { SightingsActivitySummaryChart } from "../components/charts/SightingsActivitySummaryChart";
 import { DataLineageGraph } from "../components/data/DataLineageGraph";
 import { PageShell } from "../components/PageShell";
 import {
@@ -194,6 +196,13 @@ export function DataPage() {
                   </ul>
                 </div>
               </div>
+            </section>
+
+            <div className="dataDivider" />
+
+            <section className="dataSection">
+              <SightingsActivitySummaryChart />
+              <SrkwPopulationChart />
             </section>
 
             <div className="dataDivider" />

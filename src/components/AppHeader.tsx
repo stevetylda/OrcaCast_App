@@ -18,13 +18,15 @@ type Props = {
   expectedActivityVs12WeekAvg: number | null;
   expectedActivityTrend: "up" | "down" | "steady" | "none";
   expectedActivityChart: {
-    values: number[];
-    forecastIndex: number;
-    ciLow?: number;
-    ciHigh?: number;
+    actualValues: Array<number | null>;
+    forecastValues: Array<number | null>;
+    forecastValue: number | null;
+    predictionIndex: number;
   };
   showForecastNotice?: boolean;
   forecastNoticeText?: string;
+  fallbackNoticeVisible?: boolean;
+  fallbackNoticeText?: string;
   resolution: Resolution;
   onResolutionChange: (v: Resolution) => void;
   darkMode: boolean;
@@ -49,6 +51,8 @@ export function AppHeader({
   expectedActivityChart,
   showForecastNotice = false,
   forecastNoticeText = "Forecast data is not available for the selected period.",
+  fallbackNoticeVisible = false,
+  fallbackNoticeText = "Selected period unavailable - showing latest available",
   resolution,
   onResolutionChange,
   darkMode,
@@ -117,6 +121,14 @@ export function AppHeader({
               >
                 {forecastNoticeText}
               </div>
+              {fallbackNoticeVisible && (
+                <div className="headerForecast__fallback" role="status" aria-live="polite">
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    history
+                  </span>
+                  <span>{fallbackNoticeText}</span>
+                </div>
+              )}
             </div>
 
             <ExpectedActivityPill

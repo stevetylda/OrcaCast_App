@@ -56,7 +56,7 @@ export function AppFooter({
   };
 
   return (
-    <div className="footer">
+    <div className={`footer${compareEnabled ? " footer--compare" : ""}`}>
       <div className="footer__row" role="group" aria-label="Model controls">
         <div className="footer__pill footer__pill--static footer__pill--version">
           <span className="footer__label">Version</span>

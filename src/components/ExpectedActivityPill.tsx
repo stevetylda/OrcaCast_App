@@ -8,14 +8,14 @@ type Props = {
   vs12WeekAvg: number | null;
   trend: Trend;
   chart: {
-    values: number[];
-    forecastIndex: number;
-    ciLow?: number;
-    ciHigh?: number;
+    actualValues: Array<number | null>;
+    forecastValues: Array<number | null>;
+    forecastValue: number | null;
+    predictionIndex: number;
   };
 };
 
-type Point = { x: number; y: number; value: number; isForecast: boolean };
+type Point = { x: number; y: number; value: number; index: number };
 
 function formatCount(value: number | null): string {
   if (!Number.isFinite(value ?? NaN)) return "--";
@@ -46,7 +46,16 @@ function trendIcon(trend: Trend): string {
   return "remove";
 }
 
-function computePoints(values: number[], forecastIndex: number) {
+function buildLinePath(points: Point[]) {
+  return points
+    .map((p, idx) => `${idx === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
+}
+
+function computeSeriesModel(
+  actualValues: Array<number | null>,
+  forecastValues: Array<number | null>
+) {
   const width = 238;
   const height = 96;
   const padLeft = 32;
@@ -55,16 +64,24 @@ function computePoints(values: number[], forecastIndex: number) {
   const padBottom = 14;
   const chartWidth = width - padLeft - padRight;
   const chartHeight = height - padTop - padBottom;
-
+  const values = [...actualValues, ...forecastValues].filter((v): v is number => Number.isFinite(v ?? NaN));
+  const pointCount = Math.max(actualValues.length, forecastValues.length);
   const minV = Math.min(...values);
   const maxV = Math.max(...values);
   const range = Math.max(1, maxV - minV);
 
-  const points: Point[] = values.map((value, idx) => {
-    const x = padLeft + (values.length <= 1 ? 0 : (idx / (values.length - 1)) * chartWidth);
+  const pointFor = (value: number, idx: number): Point => {
+    const x = padLeft + (pointCount <= 1 ? 0 : (idx / (pointCount - 1)) * chartWidth);
     const y = padTop + ((maxV - value) / range) * chartHeight;
-    return { x, y, value, isForecast: idx === forecastIndex };
-  });
+    return { x, y, value, index: idx };
+  };
+
+  const actualPoints = actualValues
+    .map((value, idx) => (Number.isFinite(value ?? NaN) ? pointFor(value as number, idx) : null))
+    .filter((point): point is Point => point !== null);
+  const forecastPoints = forecastValues
+    .map((value, idx) => (Number.isFinite(value ?? NaN) ? pointFor(value as number, idx) : null))
+    .filter((point): point is Point => point !== null);
 
   return {
     width,
@@ -75,7 +92,8 @@ function computePoints(values: number[], forecastIndex: number) {
     minV,
     maxV,
     midV: Math.round((minV + maxV) / 2),
-    points,
+    actualPoints,
+    forecastPoints,
   };
 }
 
@@ -98,15 +116,19 @@ export function ExpectedActivityPill({
   }, [trend]);
 
   const chartModel = useMemo(() => {
-    const values = chart.values.filter((v) => Number.isFinite(v));
-    if (values.length < 2) return null;
-    const normalizedForecastIndex = Math.max(0, Math.min(chart.forecastIndex, values.length - 1));
-    const model = computePoints(values, normalizedForecastIndex);
-    const linePath = model.points
-      .map((p, idx) => `${idx === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-      .join(" ");
-    return { ...model, linePath };
-  }, [chart.forecastIndex, chart.values]);
+    const usableValues = [...chart.actualValues, ...chart.forecastValues].filter((v) => Number.isFinite(v ?? NaN));
+    if (usableValues.length < 2) return null;
+    const model = computeSeriesModel(chart.actualValues, chart.forecastValues);
+    const actualLinePath = buildLinePath(model.actualPoints);
+    const predictionPoint =
+      model.forecastPoints.find((point) => point.index === chart.predictionIndex) ?? null;
+    return {
+      ...model,
+      actualLinePath,
+      actualCount: model.actualPoints.length,
+      predictionPoint,
+    };
+  }, [chart.actualValues, chart.forecastValues, chart.predictionIndex]);
 
   useEffect(() => {
     if (!open) return;
@@ -149,27 +171,29 @@ export function ExpectedActivityPill({
         <div className="expectedPopover" role="dialog" aria-label="Expected activity trend">
           <div className="expectedPopover__title">Expected Active Hexes</div>
           <div className="expectedPopover__desc">
-            Predicted number of hexes with ≥1 sighting during this forecast week.
+            Predicted active hexes for the selected forecast week, compared with recent actual active hexes.
           </div>
-          <div className="expectedPopover__valueRow">
-            <span className="expectedPopover__value">{formatCount(currentCount)}</span>
-            <span className="expectedPopover__delta">{formatVsPriorWeek(currentCount, vsPriorWeek)}</span>
+          <div className="expectedPopover__summaryGrid">
+            <div className="expectedPopover__summaryItem">
+              <span className="expectedPopover__summaryLabel">Prediction</span>
+              <span className="expectedPopover__value">{formatCount(currentCount)}</span>
+            </div>
+            <div className="expectedPopover__summaryItem">
+              <span className="expectedPopover__summaryLabel">Prior actual week</span>
+              <span className="expectedPopover__value expectedPopover__value--secondary">{formatCount(vsPriorWeek)}</span>
+            </div>
           </div>
+          <div className="expectedPopover__delta">{formatVsPriorWeek(currentCount, vsPriorWeek)}</div>
           <div className="expectedPopover__delta expectedPopover__delta--secondary">
             {formatVs12WeekAvg(currentCount, vs12WeekAvg)}
           </div>
-          {Number.isFinite(chart.ciLow ?? NaN) && Number.isFinite(chart.ciHigh ?? NaN) && (
-            <div className="expectedPopover__ciText">
-              Typical error (MAE): ±6 hexes
-            </div>
-          )}
           {chartModel ? (
             <div className="expectedPopover__spark">
               <svg
                 className="expectedPopover__sparkSvg"
                 viewBox={`0 0 ${chartModel.width} ${chartModel.height}`}
                 role="img"
-                aria-label="Last 12 weeks actual activity with current forecast"
+                aria-label="Recent forecast and actual active hex history"
               >
                 <line
                   x1={chartModel.padLeft}
@@ -188,68 +212,46 @@ export function ExpectedActivityPill({
                   {Math.round(chartModel.minV)}
                 </text>
 
-                <path d={chartModel.linePath} className="expectedPopover__line" />
-                {chartModel.points
-                  .filter((p) => p.isForecast)
-                  .map((p, idx) => (
-                    <circle
-                      key={`glow-${p.x}-${idx}`}
-                      cx={p.x}
-                      cy={p.y}
-                      r={7.2}
-                      className="expectedPopover__dotGlow"
-                    />
-                  ))}
-                {chartModel.points.map((p, idx) => (
+                <path d={chartModel.actualLinePath} className="expectedPopover__line expectedPopover__line--actual" />
+                {chartModel.actualPoints.map((p, idx) => (
                   <circle
-                    key={`${p.x}-${idx}`}
+                    key={`actual-${p.x}-${idx}`}
                     cx={p.x}
                     cy={p.y}
-                    r={p.isForecast ? 3.8 : 2.7}
-                    className={p.isForecast ? "expectedPopover__dot expectedPopover__dot--forecast" : "expectedPopover__dot"}
+                    r={2.7}
+                    className="expectedPopover__dot"
                   />
                 ))}
+                {chartModel.predictionPoint && (
+                  <circle
+                    cx={chartModel.predictionPoint.x}
+                    cy={chartModel.predictionPoint.y}
+                    r={7.2}
+                    className="expectedPopover__dotGlow"
+                  />
+                )}
+                {chartModel.predictionPoint && (
+                  <circle
+                    cx={chartModel.predictionPoint.x}
+                    cy={chartModel.predictionPoint.y}
+                    r={3.8}
+                    className="expectedPopover__dot expectedPopover__dot--prediction"
+                  />
+                )}
 
-                {Number.isFinite(chart.ciLow ?? NaN) &&
-                  Number.isFinite(chart.ciHigh ?? NaN) &&
-                  chartModel.points[chartModel.points.length - 1] && (
-                    (() => {
-                      const forecastPoint = chartModel.points[chartModel.points.length - 1];
-                      const minV = chartModel.minV;
-                      const maxV = chartModel.maxV;
-                      const range = Math.max(1, maxV - minV);
-                      const ciLowY = chartModel.padTop + ((maxV - (chart.ciLow as number)) / range) * chartModel.chartHeight;
-                      const ciHighY = chartModel.padTop + ((maxV - (chart.ciHigh as number)) / range) * chartModel.chartHeight;
-                      return (
-                        <g>
-                          <line
-                            x1={forecastPoint.x}
-                            y1={ciLowY}
-                            x2={forecastPoint.x}
-                            y2={ciHighY}
-                            className="expectedPopover__ci"
-                          />
-                          <line
-                            x1={forecastPoint.x - 4}
-                            y1={ciLowY}
-                            x2={forecastPoint.x + 4}
-                            y2={ciLowY}
-                            className="expectedPopover__ci"
-                          />
-                          <line
-                            x1={forecastPoint.x - 4}
-                            y1={ciHighY}
-                            x2={forecastPoint.x + 4}
-                            y2={ciHighY}
-                            className="expectedPopover__ci"
-                          />
-                        </g>
-                      );
-                    })()
-                  )}
               </svg>
               <div className="expectedPopover__sparkMeta">
-                <span className="expectedPopover__sparkCaption">Last 12 weeks + current forecast</span>
+                <span className="expectedPopover__sparkCaption">Past 12 weeks incl. selected week + prediction</span>
+                <span className="expectedPopover__legend">
+                  <span className="expectedPopover__legendItem">
+                    <span className="expectedPopover__legendSwatch expectedPopover__legendSwatch--actual" />
+                    Actuals
+                  </span>
+                  <span className="expectedPopover__legendItem">
+                    <span className="expectedPopover__legendSwatch expectedPopover__legendSwatch--prediction" />
+                    Prediction
+                  </span>
+                </span>
               </div>
             </div>
           ) : (

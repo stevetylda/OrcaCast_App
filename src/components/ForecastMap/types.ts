@@ -17,6 +17,14 @@ export type CompareMapViewState = {
   pitch: number;
 };
 
+export type GridCellExpandRequest = {
+  h3: string;
+  resolution: H3Resolution;
+  modelId: string;
+  selectedWeek: number;
+  selectedWeekYear: number;
+};
+
 export type ForecastMapProps = {
   darkMode: boolean;
   paletteId: PaletteId;
@@ -36,7 +44,7 @@ export type ForecastMapProps = {
   onHotspotsEnabledChange: (next: boolean) => void;
   onGridCellCount?: (count: number) => void;
   onGridCellSelect?: (h3: string) => void;
-  resizeTick?: number;
+  onGridCellExpand?: (request: GridCellExpandRequest) => void;
   forecastPath?: string;
   fallbackForecastPath?: string;
   colorScaleValues?: Record<string, number>;
