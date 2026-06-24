@@ -2,7 +2,7 @@
   "schema_version": 1,
   "ecotype": "SRKW",
   "source": {
-    "path": "data/metadata/Number of Southern Resident killer whales.xlsx",
+    "path": "data/raw/orca_population/Number of Southern Resident killer whales.xlsx",
     "sheet": "Chart Data"
   },
   "validation": {

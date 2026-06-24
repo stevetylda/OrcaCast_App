@@ -12,7 +12,7 @@ export type FetchClientOptions = {
 };
 
 function withBase(url: string): string {
-  const base = import.meta.env.BASE_URL || "/";
+  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || "/";
   const basePrefix = base.endsWith("/") ? base.slice(0, -1) : base;
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.startsWith("/")) return `${window.location.origin}${url}`;
@@ -21,7 +21,7 @@ function withBase(url: string): string {
 
 export function buildUrlCandidates(url: string): string[] {
   const candidates = new Set<string>();
-  const base = import.meta.env.BASE_URL || "/";
+  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || "/";
   const basePrefix = base.endsWith("/") ? base.slice(0, -1) : base;
   if (url.startsWith("http://") || url.startsWith("https://")) {
     candidates.add(url);
@@ -66,8 +66,10 @@ export async function fetchText(url: string, options: FetchClientOptions = {}): 
   } = options;
   const candidates = buildUrlCandidates(url).map((candidate) => applyCacheToken(candidate, cacheToken));
   let lastError: DataLoadError | null = null;
+  const attemptedUrls: string[] = [];
 
   for (const candidate of candidates) {
+    attemptedUrls.push(candidate);
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -114,10 +116,11 @@ export async function fetchText(url: string, options: FetchClientOptions = {}): 
         break;
       }
     }
-    if (lastError && !shouldRetry(lastError)) break;
   }
 
-  throw lastError ?? new DataLoadError({ kind: "network", url, message: "Request failed" });
+  const error = lastError ?? new DataLoadError({ kind: "network", url, message: "Request failed" });
+  error.details = [error.details, `Attempted URLs: ${attemptedUrls.join(", ")}`].filter(Boolean).join("\n");
+  throw error;
 }
 
 export async function fetchJson<T>(url: string, options: FetchClientOptions = {}): Promise<{ url: string; data: T }> {

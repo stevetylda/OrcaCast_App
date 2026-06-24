@@ -3,7 +3,7 @@ import { getDataVersionToken } from "../data/meta";
 export type H3Resolution = "H4" | "H5" | "H6";
 
 function withBase(path: string): string {
-  const base = import.meta.env.BASE_URL || "/";
+  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || "/";
   const trimmed = path.startsWith("/") ? path.slice(1) : path;
   return `${base}${trimmed}`;
 }

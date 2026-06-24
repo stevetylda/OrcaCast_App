@@ -84,6 +84,526 @@
   text-transform: uppercase;
 }
 
+/* Viewability page */
+.pageStage--viewability {
+  background: radial-gradient(circle at 28% 14%, rgba(125, 207, 182, 0.16), transparent 42%),
+    radial-gradient(circle at 76% 20%, rgba(0, 176, 198, 0.12), transparent 48%),
+    #070d1d;
+}
+
+.viewabilityPageRoot {
+  min-height: calc(100svh - 64px);
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 56px);
+}
+
+.viewabilityStatusTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 207, 182, 0.5);
+  background: rgba(8, 14, 28, 0.72);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.28),
+    0 0 22px rgba(125, 207, 182, 0.14);
+  color: rgba(244, 249, 252, 0.94);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.viewabilityPage {
+  background: #070d1d;
+}
+
+.viewabilityHeader {
+  gap: 12px;
+}
+
+.viewabilityHeader__right {
+  flex: 1 1 auto;
+}
+
+.viewabilityTopControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.viewabilityPeriodControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.viewabilityControlLabel {
+  color: rgba(234, 242, 255, 0.76);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.viewabilitySelect {
+  min-width: 218px;
+}
+
+.viewabilitySegmented,
+.viewabilityLayerToggles {
+  height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 240, 215, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--teal-glow-soft);
+}
+
+.viewabilitySegmented__option,
+.viewabilityToggle,
+.viewabilityTabs__tab {
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.viewabilitySegmented__option.isSelected,
+.viewabilityToggle.isSelected,
+.viewabilityTabs__tab.isSelected {
+  background: rgba(25, 240, 215, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(25, 240, 215, 0.36);
+}
+
+.viewabilityResetBtn {
+  flex: 0 0 auto;
+}
+
+.viewabilityMapStage {
+  min-height: 0;
+}
+
+.viewabilitySettings {
+  position: absolute;
+  left: 14px;
+  bottom: 60px;
+  z-index: 12;
+}
+
+.viewabilitySettings__overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 11;
+}
+
+.viewabilitySettings__panel {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 0;
+  z-index: 12;
+  width: 268px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(25, 240, 215, 0.5);
+  background: rgba(8, 18, 44, 0.92);
+  box-shadow: var(--teal-glow), var(--shadow);
+}
+
+.viewabilityField,
+.viewabilityCheck {
+  display: grid;
+  gap: 6px;
+  color: rgba(234, 242, 255, 0.86);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.viewabilityCheck {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.viewabilityCheck input {
+  accent-color: var(--teal);
+}
+
+.viewabilityLegend {
+  position: absolute;
+  right: 14px;
+  bottom: 60px;
+  z-index: 10;
+  width: 230px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 240, 215, 0.36);
+  background: rgba(8, 18, 44, 0.82);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  color: rgba(234, 242, 255, 0.9);
+}
+
+.viewabilityLegend__title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.viewabilityLegend__ramp {
+  height: 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.viewabilityLegend__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: rgba(234, 242, 255, 0.68);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.viewabilityInspector {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 104px;
+  z-index: 11;
+  width: min(360px, calc(100vw - 28px));
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(25, 240, 215, 0.42);
+  background: rgba(8, 18, 44, 0.9);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  color: rgba(234, 242, 255, 0.94);
+}
+
+.viewabilityPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.viewabilityPanelHeader h2,
+.viewabilityPanelSection h3,
+.viewabilityDrawerPanel h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.viewabilityPanelHeader p {
+  margin: 4px 0 0;
+  color: rgba(234, 242, 255, 0.68);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.viewabilityPanelSection {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.viewabilityConditionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.viewabilityStat,
+.viewabilityDetailsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 26px;
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.viewabilityStat strong,
+.viewabilityDetailsGrid strong,
+.viewabilityComponentGrid strong {
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.viewabilityBottomDrawer {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(840px, calc(100vw - 28px));
+  color: rgba(234, 242, 255, 0.92);
+}
+
+.viewabilityBottomDrawer__handle {
+  height: 34px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid rgba(25, 240, 215, 0.38);
+  border-bottom: 0;
+  background: rgba(8, 18, 44, 0.9);
+  color: rgba(234, 242, 255, 0.92);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.viewabilityBottomDrawer__body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(25, 240, 215, 0.38);
+  background: rgba(8, 18, 44, 0.92);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+}
+
+.viewabilityTabs {
+  display: inline-flex;
+  width: max-content;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.viewabilityDrawerPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.viewabilityComponentGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.viewabilityComponentGrid > div {
+  min-height: 52px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.viewabilityRelationshipChart,
+.viewabilityMiniChart {
+  height: 118px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: end;
+  gap: 8px;
+  padding: 10px 8px 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.viewabilityMiniChart {
+  height: 94px;
+}
+
+.viewabilityRelationshipChart__barWrap,
+.viewabilityMiniChart__barWrap {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  gap: 6px;
+  text-align: center;
+  color: rgba(234, 242, 255, 0.66);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.viewabilityRelationshipChart__bar,
+.viewabilityMiniChart__bar {
+  width: 100%;
+  min-height: 8px;
+  border-radius: 7px 7px 2px 2px;
+  background: linear-gradient(180deg, #c1fffa, #00c2ff 48%, #5a189a);
+  box-shadow: 0 0 12px rgba(25, 240, 215, 0.18);
+}
+
+.viewabilityEmptyState {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: rgba(234, 242, 255, 0.66);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.viewabilityStatusBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 18, 44, 0.9);
+  color: rgba(234, 242, 255, 0.74);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.viewabilityStatusBar span + span {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.viewabilityMapNotice {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  max-width: 320px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(25, 240, 215, 0.35);
+  background: rgba(8, 18, 44, 0.84);
+  color: rgba(234, 242, 255, 0.88);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.viewabilityMapNotice--error {
+  border-color: rgba(255, 92, 122, 0.52);
+  color: rgba(255, 205, 215, 0.95);
+}
+
+.viewabilityPopup .maplibregl-popup-content {
+  min-width: 208px;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 240, 215, 0.42);
+  background: rgba(8, 18, 44, 0.94);
+  box-shadow: var(--teal-glow-soft), var(--shadow);
+  color: rgba(234, 242, 255, 0.9);
+  font-family: "Plus Jakarta Sans", "Sora", sans-serif;
+  font-size: 12px;
+}
+
+.viewabilityPopup__title {
+  margin-bottom: 3px;
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.viewabilityPopup dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 8px;
+  margin: 8px 0 0;
+}
+
+.viewabilityPopup dt {
+  color: rgba(234, 242, 255, 0.62);
+}
+
+.viewabilityPopup dd {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+@media (max-width: 1120px) {
+  .viewabilityHeader {
+    height: auto;
+    min-height: 64px;
+    align-items: flex-start;
+    flex-direction: column;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .viewabilityHeader__right,
+  .viewabilityTopControls {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .viewabilitySelect {
+    min-width: 180px;
+  }
+
+  .viewabilitySegmented,
+  .viewabilityLayerToggles {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .viewabilityInspector {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    bottom: 92px;
+    width: auto;
+  }
+
+  .viewabilityLegend {
+    right: 10px;
+    width: 190px;
+  }
+
+  .viewabilityComponentGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .dataCoverageLegend {
   display: flex;
   flex-wrap: wrap;

@@ -40,7 +40,7 @@ export type ForecastMapProps = {
   hotspotsEnabled: boolean;
   hotspotMode: "modeled" | "custom";
   hotspotPercentile: number;
-  hotspotModeledCount: number | null;
+  expectedActivityHotspotCellCount: number | null;
   onHotspotsEnabledChange: (next: boolean) => void;
   onGridCellCount?: (count: number) => void;
   onGridCellSelect?: (h3: string) => void;

@@ -18,6 +18,7 @@ import {
 } from "../../core/time/forecastPeriodToIsoWeek";
 import { loadActualActivitySeries, loadExpectedCountSeries } from "../../data/expectedCount";
 import { loadForecast, loadForecastModelIds, loadGrid } from "../../data/forecastIO";
+import { getH3CellId } from "../../data/h3";
 import { buildPeriodsUrl, loadPeriods, resetPeriodsCache, type Period } from "../../data/periods";
 import { DEFAULT_PALETTE_ID } from "../../constants/palettes";
 import {
@@ -29,6 +30,7 @@ import {
 } from "../../map/deltaMap";
 import { useMenu } from "../../state/MenuContext";
 import { useMapState } from "../../state/MapStateContext";
+import { createCompareOption, getComparePath, type CompareOption } from "./compareSources";
 import type { DeltaMapData } from "./types";
 
 function escapeHtml(value: string): string {
@@ -105,8 +107,7 @@ export function useMapPageController() {
   const [hotspotTotalCells, setHotspotTotalCells] = useState<number | null>(null);
   const [poiFilters, setPoiFilters] = useState({ Park: false, Marina: false, Ferry: false });
   const [modelOptions, setModelOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [compareModelOptions, setCompareModelOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [actualCompareModelIds, setActualCompareModelIds] = useState<string[]>([]);
+  const [compareModelOptions, setCompareModelOptions] = useState<CompareOption[]>([]);
   const [compareModelA, setCompareModelA] = useState("");
   const [compareModelB, setCompareModelB] = useState("");
   const [comparePeriodA, setComparePeriodA] = useState("");
@@ -391,14 +392,13 @@ export function useMapPageController() {
         const forecastUnique = Array.from(new Set(forecastIds.filter((id) => Boolean(id?.trim()))));
         const actualUnique = Array.from(new Set(actualIds.filter((id) => Boolean(id?.trim()))));
         const forecastOptions = forecastUnique.map((id) => ({ value: id, label: toLabel(id) }));
-        const compareOptions = Array.from(new Set([...forecastUnique, ...actualUnique])).map((id) => ({
-          value: id,
-          label: toLabel(id),
-        }));
+        const compareOptions = [
+          ...forecastUnique.map((id) => createCompareOption("forecast", id, toLabel(id))),
+          ...actualUnique.map((id) => createCompareOption("actual", id, toLabel(id))),
+        ];
 
         setModelOptions(forecastOptions);
         setCompareModelOptions(compareOptions);
-        setActualCompareModelIds(actualUnique);
 
         if (forecastOptions.length > 0 && !forecastOptions.some((opt) => opt.value === modelId)) {
           const best = forecastOptions.find((opt) => opt.value === appConfig.bestModelId);
@@ -409,7 +409,6 @@ export function useMapPageController() {
         setSelectedPeriodHasForecast(false);
         setModelOptions([]);
         setCompareModelOptions([]);
-        setActualCompareModelIds([]);
       }
     };
 
@@ -475,13 +474,20 @@ export function useMapPageController() {
   const periodOptions = useMemo(() => periods.map((p) => p.periodKey), [periods]);
   const compareDisabled = compareModelOptions.length === 0 || periods.length === 0;
   const compareDisabledReason = compareDisabled ? "Compare will enable after compare options load" : undefined;
-  const compareModelIds = useMemo(() => compareModels.map((model) => model.id), [compareModels]);
+  const compareModelIds = useMemo(() => compareModelOptions.map((option) => option.value), [compareModelOptions]);
+  const compareOptionByValue = useMemo(
+    () => new Map(compareModelOptions.map((option) => [option.value, option])),
+    [compareModelOptions]
+  );
   const resolvedCompareModelA = useMemo(() => {
     if (compareModelIds.length === 0) return "";
     if (compareModelIds.includes(compareModelA)) return compareModelA;
-    if (compareModelIds.includes(modelId)) return modelId;
+    const currentForecastOption = compareModelOptions.find(
+      (option) => option.source === "forecast" && option.modelId === modelId
+    );
+    if (currentForecastOption) return currentForecastOption.value;
     return compareModelIds[0];
-  }, [compareModelIds, compareModelA, modelId]);
+  }, [compareModelIds, compareModelOptions, compareModelA, modelId]);
   const resolvedCompareModelB = useMemo(() => {
     if (compareModelIds.length === 0) return "";
     if (compareModelIds.includes(compareModelB)) return compareModelB;
@@ -516,18 +522,19 @@ export function useMapPageController() {
     if (resolvedComparePeriodB && comparePeriodB !== resolvedComparePeriodB) setComparePeriodB(resolvedComparePeriodB);
   }, [comparePeriodB, resolvedComparePeriodB]);
 
-  const actualCompareModelIdSet = useMemo(() => new Set(actualCompareModelIds), [actualCompareModelIds]);
   const resolveComparePathByPeriodKey = (
     periodKey: string,
     targetResolution: H3Resolution,
-    compareModelId: string
+    compareOption: CompareOption | undefined
   ) => {
     const period = periods.find((item) => item.periodKey === periodKey);
-    if (!period) return undefined;
-    return actualCompareModelIdSet.has(compareModelId)
-      ? getActualsPathForPeriod(targetResolution, period.fileId)
-      : getForecastPathForPeriod(targetResolution, period.fileId);
+    if (!period || !compareOption) return undefined;
+    return getComparePath(compareOption, targetResolution, period.fileId);
   };
+  const resolvedCompareOptionA = compareOptionByValue.get(resolvedCompareModelA);
+  const resolvedCompareOptionB = compareOptionByValue.get(resolvedCompareModelB);
+  const resolvedCompareModelIdA = resolvedCompareOptionA?.modelId ?? modelId;
+  const resolvedCompareModelIdB = resolvedCompareOptionB?.modelId ?? modelId;
 
   const currentWeek = useMemo(
     () => selectedForecast?.stat_week ?? fallbackPeriod.stat_week,
@@ -547,12 +554,12 @@ export function useMapPageController() {
   const comparePathA = resolveComparePathByPeriodKey(
     comparePeriodAObj.periodKey,
     compareResolutionA,
-    resolvedCompareModelA || modelId
+    resolvedCompareOptionA
   );
   const comparePathB = resolveComparePathByPeriodKey(
     comparePeriodBObj.periodKey,
     effectiveCompareResolutionB,
-    resolvedCompareModelB || modelId
+    resolvedCompareOptionB
   );
   const deltaFillExpr = useMemo(() => buildDeltaFillExpr("delta_pctl"), []);
   const compareRenderMode: "single" | "dual" | "delta" = compareEnabled
@@ -572,8 +579,8 @@ export function useMapPageController() {
       const pA = Number(deltaMapData.percentileAByCell[cellId] ?? 0.5);
       const pB = Number(deltaMapData.percentileBByCell[cellId] ?? 0.5);
       const delta = Number(deltaMapData.deltaByCell[cellId] ?? 0);
-      const modelA = escapeHtml(resolvedCompareModelA || modelId);
-      const modelB = escapeHtml(resolvedCompareModelB || modelId);
+      const modelA = escapeHtml(resolvedCompareModelIdA);
+      const modelB = escapeHtml(resolvedCompareModelIdB);
 
       return `
         <div class="sparkPopup">
@@ -584,7 +591,7 @@ export function useMapPageController() {
         </div>
       `;
     };
-  }, [deltaMapData, modelId, resolvedCompareModelA, resolvedCompareModelB]);
+  }, [deltaMapData, resolvedCompareModelIdA, resolvedCompareModelIdB]);
 
   useEffect(() => {
     if (compareEnabled && deltaMode && compareResolutionB !== compareResolutionA) {
@@ -606,8 +613,8 @@ export function useMapPageController() {
         weekB: comparePeriodBObj.periodKey,
         resolutionA: compareResolutionA,
         resolutionB: effectiveCompareResolutionB,
-        modelA: resolvedCompareModelA || modelId,
-        modelB: resolvedCompareModelB || modelId,
+        modelA: resolvedCompareModelA,
+        modelB: resolvedCompareModelB,
       });
 
       const cached = deltaCacheRef.current.get(cacheKey);
@@ -622,14 +629,14 @@ export function useMapPageController() {
           ? loadForecast(compareResolutionA, {
               kind: "explicit",
               explicitPath: comparePathA,
-              modelId: resolvedCompareModelA || modelId,
+              modelId: resolvedCompareModelIdA,
             }).catch(() => ({ values: {} }))
           : Promise.resolve({ values: {} }),
         comparePathB
           ? loadForecast(effectiveCompareResolutionB, {
               kind: "explicit",
               explicitPath: comparePathB,
-              modelId: resolvedCompareModelB || modelId,
+              modelId: resolvedCompareModelIdB,
             }).catch(() => ({ values: {} }))
           : Promise.resolve({ values: {} }),
       ]);
@@ -641,7 +648,7 @@ export function useMapPageController() {
       const domainCellIds = new Set<string>();
       (gridA.features ?? []).forEach((feature) => {
         const props = (feature.properties ?? {}) as Record<string, unknown>;
-        const cellId = String(props.h3 ?? props.H3 ?? props.h3_id ?? props.H3_ID ?? "");
+        const cellId = getH3CellId(props);
         if (cellId) domainCellIds.add(cellId);
       });
       Object.keys(valuesA).forEach((id) => domainCellIds.add(id));
@@ -680,9 +687,10 @@ export function useMapPageController() {
     compareResolutionA,
     effectiveCompareResolutionB,
     deltaMode,
-    modelId,
     resolvedCompareModelA,
+    resolvedCompareModelIdA,
     resolvedCompareModelB,
+    resolvedCompareModelIdB,
   ]);
 
   const handleResetMap = () => {
@@ -872,7 +880,9 @@ export function useMapPageController() {
     compareDisabledReason,
     periodOptions,
     resolvedCompareModelA,
+    resolvedCompareModelIdA,
     resolvedCompareModelB,
+    resolvedCompareModelIdB,
     comparePeriodAObj,
     comparePeriodBObj,
     effectiveCompareResolutionB,

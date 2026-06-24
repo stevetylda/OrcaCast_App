@@ -22,6 +22,7 @@ import { MapControls } from "./MapControls";
 import { createGridInteractionHandlers } from "./MapInteractions";
 import { applyBasemapVisualTuning, applyLastWeekModeFilters, createGridLayerBuildSignature, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, ensureLastWeekLayer, LAST_WEEK_HALO_ID, LAST_WEEK_LAYER_ID, LAST_WEEK_RING_ID, LAST_WEEK_SOURCE_ID, LAST_WEEK_VECTOR_SOURCE_ID, LAST_WEEK_WHITE_ID, moveLastWeekToTop, VOYAGER_STYLE } from "./buildLayers";
 import { useForecastData } from "./useForecastData";
+import { useHotspotAnimation } from "./useHotspotAnimation";
 import type { FillColorSpec, ForecastMapHandle, ForecastMapProps, LastWeekMode, LngLat, SparklineSeries } from "./types";
 
 function escapeHtml(value: string): string {
@@ -129,6 +130,10 @@ function tagSightings(
   };
 }
 
+function coerceExpectedActivityHotspotCellCount(value: number | null): number | null {
+  return value === null || !Number.isFinite(value) ? null : Math.max(0, Math.round(value));
+}
+
 export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(function ForecastMap({
   darkMode,
   paletteId,
@@ -144,7 +149,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   hotspotsEnabled,
   hotspotMode,
   hotspotPercentile,
-  hotspotModeledCount,
+  expectedActivityHotspotCellCount,
   onHotspotsEnabledChange,
   onGridCellCount,
   onGridCellSelect,
@@ -178,7 +183,9 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const fillExprRef = useRef<FillColorSpec | null>(null);
   const hotspotThresholdRef = useRef<number | undefined>(undefined);
   const modeledHotspotThresholdRef = useRef<number | undefined>(undefined);
-  const modeledHotspotCountRef = useRef<number | null>(hotspotModeledCount);
+  const expectedActivityHotspotCellCountRef = useRef<number | null>(
+    coerceExpectedActivityHotspotCellCount(expectedActivityHotspotCellCount)
+  );
   const valuesByCellRef = useRef<Record<string, number>>({});
   const colorScaleValuesRef = useRef<Record<string, number> | undefined>(colorScaleValues);
   const derivedValuePropertyRef = useRef(derivedValueProperty);
@@ -247,7 +254,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     const modeled = modeledHotspotThresholdRef.current ?? hotspotThresholdRef.current;
     if (hotspotMode !== "custom") {
       const values = sortedValuesDescRef.current;
-      const modeledCount = modeledHotspotCountRef.current;
+      const modeledCount = expectedActivityHotspotCellCountRef.current;
       if (values.length > 0 && modeledCount !== null && Number.isFinite(modeledCount) && modeledCount > 0) {
         return values[Math.max(0, Math.min(values.length - 1, Math.round(modeledCount) - 1))] ?? modeled;
       }
@@ -443,9 +450,9 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     const zeroModeledHotspots =
       hotspots &&
       hotspotMode !== "custom" &&
-      modeledHotspotCountRef.current !== null &&
-      Number.isFinite(modeledHotspotCountRef.current) &&
-      modeledHotspotCountRef.current <= 0;
+      expectedActivityHotspotCellCountRef.current !== null &&
+      Number.isFinite(expectedActivityHotspotCellCountRef.current) &&
+      expectedActivityHotspotCellCountRef.current <= 0;
     const hotspotOverlayVisible = hotspots && !zeroModeledHotspots;
 
     const fillExpr: FillColorSpec | undefined =
@@ -863,14 +870,16 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   ]);
 
   useEffect(() => {
-    modeledHotspotCountRef.current = hotspotModeledCount;
-  }, [hotspotModeledCount]);
+    // Modeled hotspot mode intentionally uses expected activity as the number of highlighted cells.
+    expectedActivityHotspotCellCountRef.current =
+      coerceExpectedActivityHotspotCellCount(expectedActivityHotspotCellCount);
+  }, [expectedActivityHotspotCellCount]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (map && mapReady && !disableHotspots) renderForecastLayer(map);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotspotMode, hotspotPercentile, hotspotModeledCount, hotspotsEnabled, mapReady, disableHotspots]);
+  }, [hotspotMode, hotspotPercentile, expectedActivityHotspotCellCount, hotspotsEnabled, mapReady, disableHotspots]);
 
   useEffect(() => {
     selectedWeekRef.current = selectedWeek;
@@ -1053,71 +1062,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    let rafId = 0;
-    let lastTick = 0;
-
-    const hasStyleLayer = (layerId: string) => {
-      try {
-        return map.isStyleLoaded() && !!map.getStyle()?.layers && !!map.getLayer(layerId);
-      } catch {
-        return false;
-      }
-    };
-
-    const setLayerPaint = (layerId: string, property: string, value: number | string) => {
-      try {
-        if (hasStyleLayer(layerId)) {
-          map.setPaintProperty(layerId, property, value);
-        }
-      } catch {
-        // Style can be transiently unavailable during setStyle()/dark-mode transitions.
-      }
-    };
-
-    const tick = (time: number) => {
-      if (!mapRef.current || mapRef.current !== map) return;
-      if (!map.isStyleLoaded()) {
-        rafId = requestAnimationFrame(tick);
-        return;
-      }
-
-      if (time - lastTick > 120) {
-        lastTick = time;
-        const t = time / 1000;
-        const hideGrid = hotspotsOnlyRef.current;
-        const z = map.getZoom();
-        const edgeBaseWidth = z <= 6 ? 0.9 : z <= 9 ? 0.9 + ((z - 6) / 3) * 0.35 : z <= 12 ? 1.25 + ((z - 9) / 3) * 0.55 : 1.8;
-        const edgePulseWidth = edgeBaseWidth + 0.1 * Math.sin(t * 1.7 + 0.5);
-        const opacityPairs: Array<[string, string, number]> = [
-          ["grid-shimmer-fill", "fill-opacity", hideGrid ? 0 : 0.16 + 0.06 * Math.sin(t * 0.6)],
-          ["grid-peak-shine", "line-opacity", hideGrid ? 0 : 0.22 + 0.06 * Math.sin(t * 0.5 + 0.8)],
-          ["grid-bio-glow-fill", "fill-opacity", hideGrid ? 0 : 0.13 + 0.06 * Math.sin(t * 1.35 + 0.4)],
-          ["grid-bio-core-fill", "fill-opacity", hideGrid ? 0 : 0.06 + 0.035 * Math.sin(t * 1.9 + 1.2)],
-          ["grid-bio-edge", "line-opacity", hideGrid ? 0 : 0.28 + 0.08 * Math.sin(t * 1.4 + 0.2)],
-          ["grid-hover-fill", "fill-opacity", hideGrid ? 0 : 0.16 + 0.06 * Math.sin(t * 1.5 + 0.2)],
-          ["grid-hover-glow", "line-opacity", hideGrid ? 0 : 0.42 + 0.18 * Math.sin(t * 1.9)],
-          ["grid-hover-core", "line-opacity", hideGrid ? 0 : 0.72 + 0.18 * Math.sin(t * 1.2 + 0.9)],
-        ];
-
-        opacityPairs.forEach(([layerId, property, value]) => {
-          setLayerPaint(layerId, property, value);
-        });
-        setLayerPaint(
-          "grid-shimmer-fill",
-          "fill-color",
-          `rgba(140,255,245,${0.28 + 0.08 * Math.sin(t * 0.35)})`
-        );
-        setLayerPaint("grid-bio-edge", "line-width", edgePulseWidth);
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [mapReady, resolution, forecastPath]);
+  useHotspotAnimation({ mapReady, mapRef, hotspotsOnlyRef, resolution, forecastPath });
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1323,9 +1268,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
     if (!map || !mapReady) return;
     const zeroModeledHotspots =
       hotspotMode === "modeled" &&
-      hotspotModeledCount !== null &&
-      Number.isFinite(hotspotModeledCount) &&
-      hotspotModeledCount <= 0;
+      coerceExpectedActivityHotspotCellCount(expectedActivityHotspotCellCount) === 0;
     if (!hasForecastLegend) {
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
@@ -1339,7 +1282,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       setGridVisibility(map, true);
       setHotspotVisibility(map, false);
     }
-  }, [hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots, hotspotMode, hotspotModeledCount]);
+  }, [hotspotsEnabled, mapReady, hasForecastLegend, disableHotspots, hotspotMode, expectedActivityHotspotCellCount]);
 
   useEffect(() => {
     if (hasForecastLegend) return;

@@ -6,8 +6,8 @@
       "stat_week": 1,
       "period": 1,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 1.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -16,8 +16,8 @@
       "stat_week": 2,
       "period": 2,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 4.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -26,7 +26,7 @@
       "stat_week": 3,
       "period": 3,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -36,8 +36,8 @@
       "stat_week": 4,
       "period": 4,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -46,7 +46,7 @@
       "stat_week": 5,
       "period": 5,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -56,8 +56,8 @@
       "stat_week": 6,
       "period": 6,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 3.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -66,8 +66,8 @@
       "stat_week": 7,
       "period": 7,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -76,8 +76,8 @@
       "stat_week": 8,
       "period": 8,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -86,7 +86,7 @@
       "stat_week": 9,
       "period": 9,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -96,8 +96,8 @@
       "stat_week": 10,
       "period": 10,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 7.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -106,8 +106,8 @@
       "stat_week": 11,
       "period": 11,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -116,8 +116,8 @@
       "stat_week": 12,
       "period": 12,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -126,8 +126,8 @@
       "stat_week": 13,
       "period": 13,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -136,8 +136,8 @@
       "stat_week": 14,
       "period": 14,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 1.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -146,8 +146,8 @@
       "stat_week": 15,
       "period": 15,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 3.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -156,8 +156,8 @@
       "stat_week": 16,
       "period": 16,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 1.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -166,8 +166,8 @@
       "stat_week": 17,
       "period": 17,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -176,8 +176,8 @@
       "stat_week": 18,
       "period": 18,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 3.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -186,8 +186,8 @@
       "stat_week": 19,
       "period": 19,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -196,8 +196,8 @@
       "stat_week": 20,
       "period": 20,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -206,7 +206,7 @@
       "stat_week": 21,
       "period": 21,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -216,8 +216,8 @@
       "stat_week": 22,
       "period": 22,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -226,7 +226,7 @@
       "stat_week": 23,
       "period": 23,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -236,7 +236,7 @@
       "stat_week": 24,
       "period": 24,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -246,8 +246,8 @@
       "stat_week": 25,
       "period": 25,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -256,7 +256,7 @@
       "stat_week": 26,
       "period": 26,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -266,7 +266,7 @@
       "stat_week": 27,
       "period": 27,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -276,7 +276,7 @@
       "stat_week": 28,
       "period": 28,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -286,8 +286,8 @@
       "stat_week": 29,
       "period": 29,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 2.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 3.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -296,7 +296,7 @@
       "stat_week": 30,
       "period": 30,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -306,7 +306,7 @@
       "stat_week": 31,
       "period": 31,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -316,7 +316,7 @@
       "stat_week": 32,
       "period": 32,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -326,7 +326,7 @@
       "stat_week": 33,
       "period": 33,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -336,7 +336,7 @@
       "stat_week": 34,
       "period": 34,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -346,7 +346,7 @@
       "stat_week": 35,
       "period": 35,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -356,8 +356,8 @@
       "stat_week": 36,
       "period": 36,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 2.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -366,8 +366,8 @@
       "stat_week": 37,
       "period": 37,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 2.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -376,8 +376,8 @@
       "stat_week": 38,
       "period": 38,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 2.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -386,8 +386,8 @@
       "stat_week": 39,
       "period": 39,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 4.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -396,7 +396,7 @@
       "stat_week": 40,
       "period": 40,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -406,7 +406,7 @@
       "stat_week": 41,
       "period": 41,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -416,7 +416,7 @@
       "stat_week": 42,
       "period": 42,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -426,8 +426,8 @@
       "stat_week": 43,
       "period": 43,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -436,8 +436,8 @@
       "stat_week": 44,
       "period": 44,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 1.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 4.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -446,8 +446,8 @@
       "stat_week": 45,
       "period": 45,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 1.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 6.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -456,8 +456,8 @@
       "stat_week": 46,
       "period": 46,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -466,7 +466,7 @@
       "stat_week": 47,
       "period": 47,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -476,7 +476,7 @@
       "stat_week": 48,
       "period": 48,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -486,7 +486,7 @@
       "stat_week": 49,
       "period": 49,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -496,8 +496,8 @@
       "stat_week": 50,
       "period": 50,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 6.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -506,8 +506,8 @@
       "stat_week": 51,
       "period": 51,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 4.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -516,8 +516,8 @@
       "stat_week": 52,
       "period": 52,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 5.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -526,8 +526,8 @@
       "stat_week": 1,
       "period": 1,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -536,8 +536,8 @@
       "stat_week": 2,
       "period": 2,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 0.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 4.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -546,8 +546,8 @@
       "stat_week": 3,
       "period": 3,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
-      "expected_count": 2.0,
+      "typical_error": 1.6776699876067447,
+      "expected_count": 7.0,
       "lower_ci": null,
       "upper_ci": null
     },
@@ -556,7 +556,7 @@
       "stat_week": 4,
       "period": 4,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -566,7 +566,7 @@
       "stat_week": 5,
       "period": 5,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -576,7 +576,7 @@
       "stat_week": 6,
       "period": 6,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -586,7 +586,7 @@
       "stat_week": 7,
       "period": 7,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -596,7 +596,7 @@
       "stat_week": 8,
       "period": 8,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -606,7 +606,7 @@
       "stat_week": 9,
       "period": 9,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 1.0,
       "lower_ci": null,
       "upper_ci": null
@@ -616,7 +616,7 @@
       "stat_week": 10,
       "period": 10,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -626,7 +626,7 @@
       "stat_week": 11,
       "period": 11,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -636,7 +636,7 @@
       "stat_week": 12,
       "period": 12,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -646,7 +646,7 @@
       "stat_week": 13,
       "period": 13,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -656,7 +656,7 @@
       "stat_week": 14,
       "period": 14,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -666,7 +666,7 @@
       "stat_week": 15,
       "period": 15,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
@@ -676,14 +676,114 @@
       "stat_week": 16,
       "period": 16,
       "model_name": "ets",
-      "typical_error": 0.38041670623562096,
+      "typical_error": 1.6776699876067447,
       "expected_count": 2.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 17,
+      "period": 17,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 18,
+      "period": 18,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 19,
+      "period": 19,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 20,
+      "period": 20,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 21,
+      "period": 21,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 22,
+      "period": 22,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 23,
+      "period": 23,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 24,
+      "period": 24,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 25,
+      "period": 25,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 1.0,
+      "lower_ci": null,
+      "upper_ci": null
+    },
+    {
+      "year": 2026,
+      "stat_week": 26,
+      "period": 26,
+      "model_name": "ets",
+      "typical_error": 1.6776699876067447,
+      "expected_count": 0.0,
       "lower_ci": null,
       "upper_ci": null
     }
   ],
   "metadata": {
     "best_model_name": "ets",
-    "typical_error": 0.38041670623562096
+    "typical_error": 1.6776699876067447
   }
 }

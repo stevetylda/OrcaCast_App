@@ -9,16 +9,17 @@ export type DataMeta = {
 };
 
 const FALLBACK_DATA_VERSION = "";
+const VITE_ENV = (import.meta as { env?: { BASE_URL?: string; VITE_BUILD_ID?: string } }).env;
 const BUILD_VERSION =
-  typeof import.meta.env.VITE_BUILD_ID === "string" && import.meta.env.VITE_BUILD_ID.trim().length > 0
-    ? import.meta.env.VITE_BUILD_ID.trim()
+  typeof VITE_ENV?.VITE_BUILD_ID === "string" && VITE_ENV.VITE_BUILD_ID.trim().length > 0
+    ? VITE_ENV.VITE_BUILD_ID.trim()
     : "";
 let cachedMetaPromise: Promise<DataMeta> | null = null;
 let resolvedMeta: DataMeta | null = null;
 let resolvedDataVersionToken: string | null = null;
 
 function withBase(path: string): string {
-  const base = import.meta.env.BASE_URL || "/";
+  const base = VITE_ENV?.BASE_URL || "/";
   const trimmed = path.startsWith("/") ? path.slice(1) : path;
   return `${base}${trimmed}`;
 }

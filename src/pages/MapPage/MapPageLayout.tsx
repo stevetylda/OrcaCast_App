@@ -77,7 +77,9 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     compareDisabledReason,
     periodOptions,
     resolvedCompareModelA,
+    resolvedCompareModelIdA,
     resolvedCompareModelB,
+    resolvedCompareModelIdB,
     comparePeriodAObj,
     comparePeriodBObj,
     effectiveCompareResolutionB,
@@ -144,7 +146,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     hotspotsEnabled,
     hotspotMode,
     hotspotPercentile,
-    hotspotModeledCount: expectedSummary.current,
+    expectedActivityHotspotCellCount: expectedSummary.current,
     onHotspotsEnabledChange: setHotspotsEnabled,
     onGridCellCount: setHotspotTotalCells,
     onGridCellSelect: setSelectedCompareH3,
@@ -162,7 +164,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
     | "hotspotsEnabled"
     | "hotspotMode"
     | "hotspotPercentile"
-    | "hotspotModeledCount"
+    | "expectedActivityHotspotCellCount"
     | "onHotspotsEnabledChange"
     | "onGridCellCount"
     | "onGridCellSelect"
@@ -235,7 +237,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
               <div className="compareMapPane">
                 {renderForecastMap(deltaMapKey, {
                   resolution: compareResolutionA,
-                  modelId: resolvedCompareModelA || modelId,
+                  modelId: resolvedCompareModelIdA,
                   selectedWeek: comparePeriodAObj.stat_week,
                   selectedWeekYear: comparePeriodAObj.year,
                   derivedValuesByCell: deltaMapData?.deltaByCell ?? {},
@@ -256,7 +258,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
                   <div className="compareMapPane">
                     {renderForecastMap(dualMapAKey, {
                       resolution: compareResolutionA,
-                      modelId: resolvedCompareModelA || modelId,
+                      modelId: resolvedCompareModelIdA,
                       selectedWeek: comparePeriodAObj.stat_week,
                       selectedWeekYear: comparePeriodAObj.year,
                       forecastPath: comparePathA,
@@ -271,7 +273,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
                   <div className="compareMapPane">
                     {renderForecastMap(dualMapBKey, {
                       resolution: compareResolutionB,
-                      modelId: resolvedCompareModelB || modelId,
+                      modelId: resolvedCompareModelIdB,
                       selectedWeek: comparePeriodBObj.stat_week,
                       selectedWeekYear: comparePeriodBObj.year,
                       forecastPath: comparePathB,
@@ -291,7 +293,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
                   <div className="compareMapPane">
                     {renderForecastMap(swipeMapAKey, {
                       resolution: compareResolutionA,
-                      modelId: resolvedCompareModelA || modelId,
+                      modelId: resolvedCompareModelIdA,
                       selectedWeek: comparePeriodAObj.stat_week,
                       selectedWeekYear: comparePeriodAObj.year,
                       forecastPath: comparePathA,
@@ -305,7 +307,7 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
                   <div className="compareMapPane">
                     {renderForecastMap(swipeMapBKey, {
                       resolution: compareResolutionB,
-                      modelId: resolvedCompareModelB || modelId,
+                      modelId: resolvedCompareModelIdB,
                       selectedWeek: comparePeriodBObj.stat_week,
                       selectedWeekYear: comparePeriodBObj.year,
                       forecastPath: comparePathB,
@@ -319,8 +321,8 @@ export function MapPageLayout({ controller }: MapPageLayoutProps) {
             )}
 
             <SwipeComparePills
-              modelLeftId={resolvedCompareModelA || modelId}
-              modelRightId={resolvedCompareModelB || modelId}
+              modelLeftId={resolvedCompareModelA}
+              modelRightId={resolvedCompareModelB}
               periodLeft={comparePeriodAObj.periodKey}
               periodRight={comparePeriodBObj.periodKey}
               resolutionLeft={compareResolutionA}

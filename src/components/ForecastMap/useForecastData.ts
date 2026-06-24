@@ -148,7 +148,7 @@ export function useForecastData({
 
         if (cancelled) return;
 
-        const joined = attachProbabilities(grid, values, "h3", valueProperty);
+        const joined = attachProbabilities(grid, values, valueProperty);
         if (usingDerivedValues) {
           legendSpecRef.current = null;
           setLegendSpec(null);

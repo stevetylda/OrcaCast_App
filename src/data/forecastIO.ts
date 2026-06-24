@@ -2,6 +2,7 @@ import type { FeatureCollection } from "geojson";
 import { GRID_PATH, getForecastPath } from "../config/dataPaths";
 import type { H3Resolution } from "../config/dataPaths";
 import { fetchJson } from "./fetchClient";
+import { getH3CellId } from "./h3";
 import { getDataVersionToken } from "./meta";
 import { forecastPayloadSchema, parseWithSchema } from "./validation";
 
@@ -14,7 +15,7 @@ type ForecastPayload = {
 const gridCache = new Map<H3Resolution, FeatureCollection>();
 const forecastCache = new Map<string, ForecastPayload>();
 const forecastRawCache = new Map<string, ForecastPayloadRaw>();
-const DISABLE_RUNTIME_DATA_CACHE = import.meta.env.DEV;
+const DISABLE_RUNTIME_DATA_CACHE = Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
 
 export async function loadGrid(resolution: H3Resolution): Promise<FeatureCollection> {
   const cached = DISABLE_RUNTIME_DATA_CACHE ? undefined : gridCache.get(resolution);
@@ -160,16 +161,16 @@ export async function loadForecastModelIds(
 export function attachProbabilities(
   fc: FeatureCollection,
   values: Record<string, number>,
-  key = "h3",
   outKey = "prob"
 ): FeatureCollection {
   return {
     ...fc,
     features: (fc.features ?? []).map((feature) => {
       const props = { ...((feature.properties ?? {}) as Record<string, unknown>) };
-      const id = String(props[key] ?? "");
+      const id = getH3CellId(props);
       const raw = values[id];
-      const prob = Number.isFinite(raw) ? Number(raw) : 0;
+      const numeric = Number(raw);
+      const prob = Number.isFinite(numeric) ? numeric : 0;
       props[outKey] = prob;
       return {
         ...feature,

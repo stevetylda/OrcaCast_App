@@ -7,6 +7,7 @@ import {
   type H3Resolution,
 } from "../../config/dataPaths";
 import { loadForecast, loadForecastModelIds, loadGrid } from "../../data/forecastIO";
+import { getH3CellId } from "../../data/h3";
 import type { Period } from "../../data/periods";
 import { applyBasemapVisualTuning, DARK_STYLE, VOYAGER_STYLE } from "../ForecastMap/buildLayers";
 
@@ -380,8 +381,8 @@ function GridDetailChart({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const size = useResizeObserver(wrapRef);
   const width = Math.max(760, Math.floor(size.width || 980));
-  const height = 360;
-  const margin = { top: 28, right: 70, bottom: 72, left: 64 };
+  const height = 390;
+  const margin = { top: 28, right: 70, bottom: 100, left: 64 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const forecastMax = Math.max(0.01, ...points.map((point) => point.forecast));
@@ -419,7 +420,7 @@ function GridDetailChart({
         <div className="gridDetail__tooltip" style={{ left: tooltipPos.x, top: tooltipPos.y }}>
           <span>{activePoint.weekLabel}</span>
           <span>Forecast: {formatForecastValue(activePoint.forecast)}</span>
-          <span>Actual sightings: {formatCount(activePoint.actual)}</span>
+          <span>Actual observation: {formatObservedFlag(activePoint.actual)}</span>
         </div>
       )}
       <div
@@ -511,11 +512,11 @@ function GridDetailChart({
         <text x={margin.left} y={14} fontSize="12" fill="#19f0d7" fontWeight="700">
           Forecast value
         </text>
-        <text x={width - margin.right} y={14} textAnchor="end" fontSize="12" fill="#f59e0b" fontWeight="700">
-          Actual sightings (actual = 1)
+        <text x={width - margin.right} y={height - 53} textAnchor="end" fontSize="12" fill="#f59e0b" fontWeight="700">
+          Observed sighting week
         </text>
-        <text x={width - margin.right} y={30} textAnchor="end" fontSize="11" fill={axisText}>
-          Actual weeks shown as top dots
+        <text x={width - margin.right} y={height - 37} textAnchor="end" fontSize="11" fill={axisText}>
+          Observed weeks shown as top dots
         </text>
         <text
           x={margin.left + plotWidth / 2}
@@ -584,8 +585,8 @@ function ModelOverlapChart({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const size = useResizeObserver(wrapRef);
   const width = Math.max(760, Math.floor(size.width || 980));
-  const height = 380;
-  const margin = { top: 28, right: 70, bottom: 72, left: 64 };
+  const height = 400;
+  const margin = { top: 28, right: 70, bottom: 100, left: 64 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const xStep = points.length > 1 ? plotWidth / (points.length - 1) : 0;
@@ -628,7 +629,7 @@ function ModelOverlapChart({
         {activePoint && tooltipPos && (
           <div className="gridDetail__tooltip gridDetail__tooltip--models" style={{ left: tooltipPos.x, top: tooltipPos.y }}>
             <span>{activePoint.weekLabel}</span>
-            <span>Actual sightings: {formatCount(activePoint.actual)}</span>
+            <span>Actual observation: {formatObservedFlag(activePoint.actual)}</span>
             {tooltipRows.map((row) => (
               <span key={row.label} style={{ color: row.color, fontWeight: row.active ? 700 : 500 }}>
                 {row.label}: {formatForecastValue(row.value)}
@@ -759,8 +760,8 @@ function ModelOverlapChart({
           >
             Forecast probability
           </text>
-          <text x={width - margin.right} y={16} textAnchor="end" fontSize="11" fill={axisText}>
-            Actual weeks shown as top dots
+          <text x={width - margin.right} y={height - 40} textAnchor="end" fontSize="11" fill={axisText}>
+            Observed weeks shown as top dots
           </text>
           {points.map((point, index) => {
             const hitWidth = Math.max(12, plotWidth / Math.max(points.length, 24));
@@ -1147,6 +1148,10 @@ function formatCount(value: number): string {
   return value.toFixed(0);
 }
 
+function formatObservedFlag(value: number): string {
+  return isObservedActual(value) ? "present" : "not observed";
+}
+
 function toModelLabel(value: string): string {
   return value
     .split("_")
@@ -1214,7 +1219,7 @@ function buildNeighborhoodSeed(
   const cells = (grid?.features ?? [])
     .map((feature) => {
       const props = (feature.properties as Record<string, unknown> | null) ?? null;
-      const featureCellId = String(props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "");
+      const featureCellId = getH3CellId(props);
       const centroid = computeFeatureCentroid(feature.geometry);
       const polygons = extractFeaturePolygons(feature.geometry);
       if (!featureCellId || !centroid || polygons.length === 0) return null;
@@ -1482,7 +1487,7 @@ function buildNeighborhoodContextPolygons(
   return (grid.features ?? [])
     .map((feature) => {
       const props = (feature.properties as Record<string, unknown> | null) ?? null;
-      const featureCellId = String(props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "");
+      const featureCellId = getH3CellId(props);
       if (!featureCellId || neighborhoodIds.has(featureCellId)) return null;
       const centroid = computeFeatureCentroid(feature.geometry);
       const polygons = extractFeaturePolygons(feature.geometry);

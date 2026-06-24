@@ -6,6 +6,7 @@ import type {
   DataDrivenPropertyValueSpecification,
   FillLayerSpecification,
 } from "maplibre-gl";
+import { H3_CELL_ID_KEYS } from "../data/h3";
 
 const DEFAULT_SOURCE_ID = "grid";
 const DEFAULT_FILL_ID = "grid-fill";
@@ -55,10 +56,7 @@ function emptyHoverFilter(): ExpressionSpecification {
 function buildHoverFilter(cellId: string): ExpressionSpecification {
   return [
     "any",
-    ["==", ["to-string", ["coalesce", ["get", "h3"], ""]], cellId],
-    ["==", ["to-string", ["coalesce", ["get", "H3"], ""]], cellId],
-    ["==", ["to-string", ["coalesce", ["get", "h3_id"], ""]], cellId],
-    ["==", ["to-string", ["coalesce", ["get", "H3_ID"], ""]], cellId],
+    ...H3_CELL_ID_KEYS.map((key) => ["==", ["to-string", ["coalesce", ["get", key], ""]], cellId]),
   ] as ExpressionSpecification;
 }
 

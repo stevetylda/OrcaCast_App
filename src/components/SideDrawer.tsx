@@ -57,6 +57,7 @@
 // }
 
 import { useLocation, useNavigate } from "react-router-dom";
+import { appConfig } from "../config/appConfig";
 
 type NavItem = {
   label: string;
@@ -73,15 +74,18 @@ type Props = {
 export function SideDrawer({ open, onClose }: Props) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { ENABLE_DATA, ENABLE_EXPLAINABILITY, ENABLE_MODELS, ENABLE_VIEWABILITY } =
+    appConfig.featureFlags;
 
-  const items: NavItem[] = [
-    { label: "Map", path: "/", icon: "map_search" },
-    { label: "Models", path: "/models", icon: "neurology" },
-    { label: "Explainability", path: "/explainability", icon: "query_stats" },
+  const items: Array<NavItem & { enabled?: boolean }> = [
+    { label: "Forecast", path: "/", icon: "map_search" },
+    { label: "Viewability", path: "/viewability", icon: "visibility", enabled: ENABLE_VIEWABILITY },
+    { label: "Explainability", path: "/explainability", icon: "query_stats", enabled: ENABLE_EXPLAINABILITY },
+    { label: "Models", path: "/models", icon: "neurology", enabled: ENABLE_MODELS },
     // { label: "Performance", path: "/performance", icon: "analytics" },
-    { label: "Data", path: "/data", icon: "data_table" },
+    { label: "Data", path: "/data", icon: "data_table", enabled: ENABLE_DATA },
     { label: "About", path: "/about", icon: "info" },
-  ];
+  ].filter((item) => item.enabled ?? true);
 
   if (!open) return null;
 

@@ -3,6 +3,7 @@ import type { FeatureCollection } from "geojson";
 import type { MutableRefObject } from "react";
 import { getForecastPathForPeriod, type H3Resolution } from "../../config/dataPaths";
 import { loadForecast } from "../../data/forecastIO";
+import { getH3CellId } from "../../data/h3";
 import type { Period } from "../../data/periods";
 import { isoWeekToDateRange } from "../../core/time/forecastPeriodToIsoWeek";
 import { setGridHoverCell } from "../../map/gridOverlay";
@@ -23,8 +24,7 @@ function formatModelLabel(value: string): string {
 
 export function getFeatureCellId(feature: { properties?: Record<string, unknown> } | undefined): string {
   const props = feature?.properties as Record<string, unknown> | undefined;
-  const cellIdRaw = props?.h3 ?? props?.H3 ?? props?.h3_id ?? props?.H3_ID ?? "";
-  return String(cellIdRaw || "");
+  return getH3CellId(props);
 }
 
 function pointInRing([lng, lat]: LngLat, ring: number[][]): boolean {
