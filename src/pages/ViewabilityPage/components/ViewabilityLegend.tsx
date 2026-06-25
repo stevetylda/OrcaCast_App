@@ -1,4 +1,4 @@
-import { getPaletteOrDefault } from "../../../constants/palettes";
+import { getViewabilityPaletteOrDefault } from "../../../constants/palettes";
 import type { ViewabilityColorScaleSettings, ViewabilityScoreType } from "../../../data/viewabilityTypes";
 
 type Props = {
@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function ViewabilityLegend({ scoreType, settings, inspectorMode }: Props) {
-  const palette = getPaletteOrDefault(settings.paletteId);
+  const palette = getViewabilityPaletteOrDefault(settings.paletteId);
   const colors = settings.reversePalette ? [...palette.colors].reverse() : palette.colors;
   return (
     <div className="viewabilityLegend" aria-label="Viewability legend">

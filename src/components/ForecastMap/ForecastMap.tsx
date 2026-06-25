@@ -176,8 +176,19 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
   const styleUrl = useMemo(() => (darkMode ? DARK_STYLE : VOYAGER_STYLE), [darkMode]);
   const activePalette = useMemo(() => getPaletteOrDefault(paletteId), [paletteId]);
   const gridBorderColor = useMemo(
-    () => (darkMode ? "rgba(8,18,44,0.22)" : "rgba(20,42,78,0.16)"),
-    [darkMode]
+    () =>
+      activePalette.id === "red_atlas"
+        ? darkMode
+          ? "rgba(92,32,42,0.28)"
+          : "rgba(116,42,48,0.2)"
+        : darkMode
+          ? "rgba(8,18,44,0.22)"
+          : "rgba(20,42,78,0.16)",
+    [activePalette.id, darkMode]
+  );
+  const gridLineAccentColor = useMemo(
+    () => (activePalette.id === "red_atlas" ? "rgba(176,72,66,0.38)" : "rgba(96,186,200,0.34)"),
+    [activePalette.id]
   );
   const overlayRef = useRef<FeatureCollection | null>(null);
   const fillExprRef = useRef<FillColorSpec | null>(null);
@@ -328,7 +339,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         disableHotspots ? undefined : resolveHotspotThreshold(),
         !disableHotspots && hotspotsOnlyRef.current,
         shimmerThresholdRef.current,
-        gridBorderColor
+        gridBorderColor,
+        gridLineAccentColor
       );
       if (!disableHotspots && hotspotsOnlyRef.current) {
         setGridBaseVisibility(tempMap, false);
@@ -378,7 +390,7 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
       tempMap?.remove();
       container.remove();
     }
-  }, [disableHotspots, gridBorderColor, resolveHotspotThreshold]);
+  }, [disableHotspots, gridBorderColor, gridLineAccentColor, resolveHotspotThreshold]);
 
   useImperativeHandle(
     ref,
@@ -485,7 +497,8 @@ export const ForecastMap = forwardRef<ForecastMapHandle, ForecastMapProps>(funct
         threshold,
         hotspotOverlayVisible,
         shimmerThresholdRef.current,
-        gridBorderColor
+        gridBorderColor,
+        gridLineAccentColor
       );
     }
 

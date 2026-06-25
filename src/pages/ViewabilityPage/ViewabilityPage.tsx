@@ -1,7 +1,6 @@
 import { useMenu } from "../../state/MenuContext";
 import { useMapState } from "../../state/MapStateContext";
 import { ViewabilityBottomDrawer } from "./components/ViewabilityBottomDrawer";
-import { ViewabilityInspectorPanel } from "./components/ViewabilityInspectorPanel";
 import { ViewabilityLegend } from "./components/ViewabilityLegend";
 import { ViewabilityMap } from "./components/ViewabilityMap";
 import { ViewabilitySettingsPanel } from "./components/ViewabilitySettingsPanel";
@@ -32,13 +31,10 @@ export function ViewabilityPage() {
         <div className="header__right viewabilityHeader__right">
           <ViewabilityTopControls
             selectedDateOrPeriod={controller.selectedDateOrPeriod}
+            availableDates={controller.availableDates}
             onSelectedDateOrPeriodChange={controller.setSelectedDateOrPeriod}
             scoreType={controller.scoreType}
             onScoreTypeChange={controller.setScoreType}
-            showTargetCells={controller.showTargetCells}
-            showSourceCells={controller.showSourceCells}
-            onToggleTargetCells={controller.toggleTargetCells}
-            onToggleSourceCells={controller.toggleSourceCells}
             selectedSourceCellId={controller.selectedSourceCellId}
             onResetSelection={controller.resetSelection}
           />
@@ -58,6 +54,8 @@ export function ViewabilityPage() {
 
       <main className="app__main">
         <ViewabilityMap
+          key={darkMode ? "viewability-map-dark" : "viewability-map-light"}
+          darkMode={darkMode}
           targetCells={controller.targetCells}
           sourceCells={controller.sourceCells}
           selectedVisibility={controller.selectedVisibility}
@@ -67,13 +65,21 @@ export function ViewabilityPage() {
           showSourceCells={controller.showSourceCells}
           selectedSourceCellId={controller.selectedSourceCellId}
           colorScaleSettings={controller.colorScaleSettings}
+          poiFilters={controller.poiFilters}
           onSelectSourceCell={controller.selectSourceCell}
         />
 
         <ViewabilitySettingsPanel
           open={controller.settingsOpen}
           settings={controller.colorScaleSettings}
+          showTargetCells={controller.showTargetCells}
+          showSourceCells={controller.showSourceCells}
+          poiFilters={controller.poiFilters}
           onChange={controller.setColorScale}
+          onToggleTargetCells={controller.toggleTargetCells}
+          onToggleSourceCells={controller.toggleSourceCells}
+          onTogglePoiAll={controller.togglePoiAll}
+          onTogglePoiType={controller.togglePoiType}
           onToggleOpen={() => controller.setSettingsOpen(!controller.settingsOpen)}
           onClose={() => controller.setSettingsOpen(false)}
         />
@@ -84,31 +90,21 @@ export function ViewabilityPage() {
           inspectorMode={controller.mapMode === "source-inspector"}
         />
 
-        {controller.loading && <div className="viewabilityMapNotice">Loading viewability fixtures...</div>}
+        {controller.loading && <div className="viewabilityMapNotice">Loading viewability data...</div>}
         {controller.error && <div className="viewabilityMapNotice viewabilityMapNotice--error">{controller.error}</div>}
-
-        <ViewabilityInspectorPanel
-          source={controller.selectedSourceSummary}
-          conditions={controller.selectedSourceConditions}
-          visibility={controller.selectedVisibility}
-          timeSeries={controller.selectedSourceTimeSeries}
-          onClose={controller.resetSelection}
-        />
 
         <ViewabilityBottomDrawer
           open={controller.bottomDrawerOpen}
           onToggleOpen={() => controller.setBottomDrawerOpen(!controller.bottomDrawerOpen)}
-          bins={controller.relationshipBins}
-          source={controller.selectedSourceSummary}
-          visibility={controller.selectedVisibility}
+          activeTab={controller.analysisTab}
+          onTabChange={controller.setAnalysisTab}
+          points={controller.areaConditions}
+          selectedDate={controller.selectedDateOrPeriod}
+          scoreType={controller.scoreType}
+          sourceCellId={controller.selectedSourceCellId}
+          sourceTimeSeries={controller.selectedSourceTimeSeries}
         />
 
-        <div className="viewabilityStatusBar" role="status">
-          <span>{controller.mapMode === "source-inspector" ? "Source inspector" : "Overview"}</span>
-          <span>{controller.selectedSourceCellId ?? "No source selected"}</span>
-          <span>{controller.targetCells?.features.length ?? 0} target cells</span>
-          <span>{controller.sourceCells?.features.length ?? 0} source cells</span>
-        </div>
       </main>
     </div>
   );

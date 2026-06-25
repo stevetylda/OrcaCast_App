@@ -68,6 +68,7 @@ export function addGridOverlay(
   hotspotsVisible = true,
   shimmerThreshold?: number,
   borderColor = GRID_SUBTLE_BORDER,
+  lineAccentColor = "rgba(96,186,200,0.34)",
   sourceId = DEFAULT_SOURCE_ID,
   fillId = DEFAULT_FILL_ID,
   lineId = DEFAULT_LINE_ID
@@ -385,7 +386,7 @@ export function addGridOverlay(
     map.setPaintProperty(lineId, "line-color", [
       "case",
       [">=", ["coalesce", ["get", "prob"], 0], shimmerThreshold],
-      "rgba(96,186,200,0.34)",
+      lineAccentColor,
       borderColor,
     ] as ExpressionSpecification);
   } else {

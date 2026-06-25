@@ -4,10 +4,16 @@ export type PaletteId =
   | "rose_noir"
   | "basalt_fire"
   | "cividis_safe"
-  | "forest_greens";
+  | "forest_greens"
+  | "mediterranean_atlas"
+  | "red_atlas";
 
-export type PaletteDef = {
-  id: PaletteId;
+export type ViewabilityOnlyPaletteId = "relief_atlas";
+
+export type ViewabilityPaletteId = PaletteId | ViewabilityOnlyPaletteId;
+
+export type PaletteDef<TId extends string = PaletteId> = {
+  id: TId;
   name: string;
   colors: string[];
   dominant: string;
@@ -106,7 +112,60 @@ export const PALETTES: Record<PaletteId, PaletteDef> = {
     ],
     dominant: "#4F936D",
   },
+  mediterranean_atlas: {
+    id: "mediterranean_atlas",
+    name: "Mediterranean Atlas",
+    colors: [
+      "#D7E1DF",
+      "#B8CCCE",
+      "#8EB5BD",
+      "#5AA0AE",
+      "#278AA2",
+      "#0B718D",
+      "#075672",
+      "#08364F",
+    ],
+    dominant: "#0B718D",
+  },
+  red_atlas: {
+    id: "red_atlas",
+    name: "Red Atlas",
+    colors: [
+      "#E5DAD6",
+      "#D6BBB3",
+      "#C89589",
+      "#B86F62",
+      "#A74E45",
+      "#8F332F",
+      "#6D2427",
+      "#451A22",
+    ],
+    dominant: "#A74E45",
+  },
 };
+
+export const VIEWABILITY_ONLY_PALETTES: Record<ViewabilityOnlyPaletteId, PaletteDef<ViewabilityOnlyPaletteId>> = {
+  relief_atlas: {
+    id: "relief_atlas",
+    name: "Relief Atlas",
+    colors: [
+      "#F7F4E8",
+      "#E8DFC4",
+      "#D8C077",
+      "#B98D4F",
+      "#B8C6C2",
+      "#86ADB0",
+      "#4E8F94",
+      "#1F6670",
+    ],
+    dominant: "#4E8F94",
+  },
+};
+
+export const VIEWABILITY_PALETTE_OPTIONS: PaletteDef<ViewabilityPaletteId>[] = [
+  ...Object.values(PALETTES).filter((palette) => palette.id !== "orcacast_classic"),
+  ...Object.values(VIEWABILITY_ONLY_PALETTES),
+];
 
 export function getPalette(paletteId: PaletteId): PaletteDef {
   return PALETTES[paletteId];
@@ -117,8 +176,17 @@ export function getPaletteOrDefault(paletteId: string | null | undefined): Palet
   return PALETTES[paletteId as PaletteId] ?? PALETTES[DEFAULT_PALETTE_ID];
 }
 
+export function getViewabilityPaletteOrDefault(paletteId: string | null | undefined): PaletteDef<ViewabilityPaletteId> {
+  if (!paletteId) return PALETTES.mediterranean_atlas;
+  return (
+    PALETTES[paletteId as PaletteId] ??
+    VIEWABILITY_ONLY_PALETTES[paletteId as ViewabilityOnlyPaletteId] ??
+    PALETTES.mediterranean_atlas
+  );
+}
+
 if (import.meta.env.DEV) {
-  Object.values(PALETTES).forEach((palette) => {
+  [...Object.values(PALETTES), ...Object.values(VIEWABILITY_ONLY_PALETTES)].forEach((palette) => {
     if (palette.colors.length !== 8) {
       const message = `[palettes] Palette "${palette.id}" must define exactly 8 colors, got ${palette.colors.length}.`;
        

@@ -168,6 +168,12 @@
   box-shadow: var(--teal-glow-soft);
 }
 
+.viewabilitySegmented__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .viewabilitySegmented__option,
 .viewabilityToggle,
 .viewabilityTabs__tab {
@@ -183,12 +189,52 @@
   white-space: nowrap;
 }
 
+.viewabilitySegmented__option--dynamic {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding-right: 4px;
+}
+
+.viewabilitySegmented__playAffordance {
+  width: 24px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: rgba(234, 242, 255, 0.64);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.viewabilitySegmented__playAffordance .material-symbols-rounded {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.viewabilitySegmented__option--dynamic:hover .viewabilitySegmented__playAffordance,
+.viewabilitySegmented__option--dynamic:focus-visible .viewabilitySegmented__playAffordance,
+.viewabilitySegmented__item--open .viewabilitySegmented__playAffordance {
+  background: rgba(25, 240, 215, 0.16);
+  border-color: rgba(25, 240, 215, 0.35);
+  color: #ffffff;
+}
+
 .viewabilitySegmented__option.isSelected,
 .viewabilityToggle.isSelected,
 .viewabilityTabs__tab.isSelected {
   background: rgba(25, 240, 215, 0.18);
   color: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(25, 240, 215, 0.36);
+}
+
+.viewabilityLayerToggles--settings {
+  width: 100%;
+  justify-content: stretch;
+}
+
+.viewabilityLayerToggles--settings .viewabilityToggle {
+  flex: 1 1 0;
 }
 
 .viewabilityResetBtn {
@@ -244,6 +290,23 @@
 
 .viewabilityCheck input {
   accent-color: var(--teal);
+}
+
+.viewabilitySettings__toolRow {
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+}
+
+.viewabilitySettings__toolRow .toolMenu {
+  position: relative;
+}
+
+.viewabilitySettings__poiPopover {
+  left: calc(100% + 8px);
+  top: 0;
+  bottom: auto;
+  transform: none;
 }
 
 .viewabilityLegend {
@@ -361,11 +424,18 @@
 .viewabilityBottomDrawer {
   position: absolute;
   left: 50%;
-  bottom: 30px;
+  bottom: 0;
   transform: translateX(-50%);
   z-index: 10;
-  width: min(840px, calc(100vw - 28px));
+  width: min(1280px, calc(100vw - 48px));
   color: rgba(234, 242, 255, 0.92);
+}
+
+.viewabilityBottomDrawer.isOpen {
+  left: 82px;
+  bottom: 14px;
+  transform: none;
+  width: min(1280px, calc(100vw - 398px));
 }
 
 .viewabilityBottomDrawer__handle {
@@ -383,16 +453,402 @@
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+  box-shadow: var(--teal-glow-soft), 0 -4px 14px rgba(8, 18, 44, 0.18);
 }
 
 .viewabilityBottomDrawer__body {
   display: grid;
   gap: 10px;
-  padding: 12px;
+  padding: 14px;
   border-radius: 14px;
   border: 1px solid rgba(25, 240, 215, 0.38);
   background: rgba(8, 18, 44, 0.92);
   box-shadow: var(--teal-glow-soft), var(--shadow);
+}
+
+.viewabilityAnalysisTabs {
+  width: max-content;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.viewabilityAnalysisTabs button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.viewabilityAnalysisTabs button.isSelected {
+  background: rgba(25, 240, 215, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(25, 240, 215, 0.34);
+}
+
+.viewabilityAnalysisTabs button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.viewabilityAnalysisHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+}
+
+.viewabilityAnalysisHeader h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.viewabilityAnalysisHeader p {
+  margin: 3px 0 0;
+  color: rgba(234, 242, 255, 0.68);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.viewabilityConditionControls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.viewabilityConditionToggle {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(180, 207, 230, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.viewabilityConditionToggle span {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
+}
+
+.viewabilityConditionToggle.isSelected {
+  border-color: rgba(25, 240, 215, 0.46);
+  background: rgba(25, 240, 215, 0.14);
+  color: #ffffff;
+}
+
+.viewabilityVarianceToggle {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(180, 207, 230, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(234, 242, 255, 0.78);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.viewabilityVarianceToggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #19f0d7;
+}
+
+.viewabilityPlotModeToggle {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(180, 207, 230, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.viewabilityPlotModeToggle button {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.7);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.viewabilityPlotModeToggle button.isSelected {
+  background: rgba(25, 240, 215, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(25, 240, 215, 0.32);
+}
+
+.viewabilityChartIconBtn {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(180, 207, 230, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(234, 242, 255, 0.82);
+  cursor: pointer;
+}
+
+.viewabilityChartIconBtn:hover,
+.viewabilityChartIconBtn:focus-visible {
+  border-color: rgba(25, 240, 215, 0.46);
+  background: rgba(25, 240, 215, 0.14);
+  color: #ffffff;
+}
+
+.viewabilityChartIconBtn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.viewabilityChartIconBtn span {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.viewabilityAreaChart {
+  position: relative;
+  height: 238px;
+  padding: 8px 10px 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 207, 230, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.viewabilityAreaChart.isStacked {
+  height: 360px;
+}
+
+.viewabilityAreaChart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.viewabilityAreaChart svg:active {
+  cursor: grabbing;
+}
+
+.viewabilityAreaChart__grid {
+  stroke: rgba(210, 229, 244, 0.16);
+  stroke-width: 1;
+}
+
+.viewabilityAreaChart__axis {
+  stroke: rgba(210, 229, 244, 0.26);
+  stroke-width: 1.2;
+}
+
+.viewabilityAreaChart__tick {
+  fill: rgba(234, 242, 255, 0.62);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.viewabilityAreaChart__tick--end {
+  text-anchor: end;
+}
+
+.viewabilityAreaChart__laneBg {
+  fill: rgba(255, 255, 255, 0.032);
+  stroke: rgba(210, 229, 244, 0.1);
+  stroke-width: 1;
+  rx: 6;
+}
+
+.viewabilityAreaChart__laneLabel {
+  fill: rgba(234, 242, 255, 0.7);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.viewabilityAreaChart__box {
+  opacity: 0.18;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.viewabilityAreaChart__boxMean {
+  opacity: 0.86;
+  stroke-width: 1.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.viewabilityAreaChart__stackedBand {
+  opacity: 0.15;
+}
+
+.viewabilityAreaChart__line {
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.viewabilityAreaChart__cursor {
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.viewabilityAreaChart__empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(234, 242, 255, 0.7);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.viewabilityAreaTooltip {
+  position: absolute;
+  top: 14px;
+  z-index: 2;
+  min-width: 210px;
+  max-width: 280px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(25, 240, 215, 0.36);
+  background: rgba(8, 18, 44, 0.94);
+  color: rgba(234, 242, 255, 0.9);
+  box-shadow: var(--teal-glow-soft), 0 12px 26px rgba(8, 18, 44, 0.24);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.viewabilityAreaTooltip__date {
+  margin-bottom: 8px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.viewabilityAreaTooltip__metrics {
+  display: grid;
+  gap: 7px;
+}
+
+.viewabilityAreaTooltip__metric {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 4px 7px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.viewabilityAreaTooltip__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.viewabilityAreaTooltip__metric strong {
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.viewabilityAreaTooltip__metric em {
+  grid-column: 2 / -1;
+  color: rgba(234, 242, 255, 0.68);
+  font-style: normal;
+}
+
+.viewabilitySourceAnalysis {
+  display: grid;
+  gap: 10px;
+}
+
+.viewabilitySourceAnalysis__summary {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  color: rgba(234, 242, 255, 0.68);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.viewabilitySourceAnalysis__summary strong {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.viewabilitySourceDrawerChart {
+  height: 252px;
+  padding: 8px 10px 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 207, 230, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.viewabilitySourceDrawerChart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.viewabilitySourceDrawerChart__grid {
+  stroke: rgba(210, 229, 244, 0.15);
+  stroke-width: 1;
+}
+
+.viewabilitySourceDrawerChart__axis {
+  stroke: rgba(210, 229, 244, 0.28);
+  stroke-width: 1.2;
+}
+
+.viewabilitySourceDrawerChart__tick {
+  fill: rgba(234, 242, 255, 0.62);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.viewabilitySourceDrawerChart__tick--end {
+  text-anchor: end;
+}
+
+.viewabilitySourceDrawerChart__line {
+  stroke: #19f0d7;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .viewabilityTabs {
@@ -445,6 +901,63 @@
   height: 94px;
 }
 
+.viewabilitySourceSeries {
+  display: grid;
+  gap: 8px;
+}
+
+.viewabilitySourceSeries__summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: rgba(234, 242, 255, 0.68);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.viewabilitySourceSeries__summary strong {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.viewabilitySourceSeries svg {
+  width: 100%;
+  height: 132px;
+  display: block;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.viewabilitySourceSeries__grid {
+  stroke: rgba(210, 229, 244, 0.14);
+  stroke-width: 1;
+}
+
+.viewabilitySourceSeries__axis {
+  stroke: rgba(210, 229, 244, 0.24);
+  stroke-width: 1;
+}
+
+.viewabilitySourceSeries__tick {
+  fill: rgba(234, 242, 255, 0.6);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.viewabilitySourceSeries__tick--end {
+  text-anchor: end;
+}
+
+.viewabilitySourceSeries__line {
+  stroke: #19f0d7;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
 .viewabilityRelationshipChart__barWrap,
 .viewabilityMiniChart__barWrap {
   height: 100%;
@@ -478,29 +991,6 @@
   font-size: 12px;
   font-weight: 750;
   text-align: center;
-}
-
-.viewabilityStatusBar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(8, 18, 44, 0.9);
-  color: rgba(234, 242, 255, 0.74);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.viewabilityStatusBar span + span {
-  padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .viewabilityMapNotice {
@@ -597,6 +1087,12 @@
   .viewabilityLegend {
     right: 10px;
     width: 190px;
+  }
+
+  .viewabilityBottomDrawer.isOpen {
+    left: 10px;
+    right: 10px;
+    width: auto;
   }
 
   .viewabilityComponentGrid {
@@ -2488,6 +2984,13 @@
   box-shadow: 0 6px 16px rgba(16, 31, 52, 0.08);
 }
 
+.app:not(.app--dark) .viewabilityHeader {
+  background: linear-gradient(90deg, rgba(8, 18, 44, 0.96), rgba(11, 31, 58, 0.96));
+  color: #eaf2ff;
+  border-bottom: 1px solid rgba(25, 240, 215, 0.22);
+  box-shadow: 0 8px 22px rgba(8, 18, 44, 0.22);
+}
+
 .app:not(.app--dark) .brand__title {
   color: var(--ink-primary);
   text-shadow: none;
@@ -2495,6 +2998,15 @@
 
 .app:not(.app--dark) .brand__subtitle {
   color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityHeader .brand__title {
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(25, 240, 215, 0.16);
+}
+
+.app:not(.app--dark) .viewabilityHeader .brand__subtitle {
+  color: rgba(234, 242, 255, 0.82);
 }
 
 .app:not(.app--dark) .iconBtn,
@@ -2507,6 +3019,36 @@
   border-color: var(--ctrl-border);
   color: var(--ink-primary);
   box-shadow: 0 2px 8px rgba(18, 32, 56, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.app:not(.app--dark) .viewabilityHeader .iconBtn,
+.app:not(.app--dark) .viewabilitySegmented {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(25, 240, 215, 0.34);
+  color: #eaf2ff;
+  box-shadow: 0 0 12px rgba(25, 240, 215, 0.08);
+}
+
+.app:not(.app--dark) .viewabilityHeader .iconBtn:hover,
+.app:not(.app--dark) .viewabilityHeader .iconBtn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(25, 240, 215, 0.55);
+  box-shadow: 0 0 14px rgba(25, 240, 215, 0.18);
+}
+
+.app:not(.app--dark) .viewabilitySegmented__option {
+  color: rgba(234, 242, 255, 0.78);
+}
+
+.app:not(.app--dark) .viewabilitySegmented__option.isSelected {
+  background: rgba(25, 240, 215, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(25, 240, 215, 0.36);
+}
+
+.app:not(.app--dark) .viewabilitySegmented__playAffordance {
+  border-left-color: rgba(255, 255, 255, 0.16);
+  color: rgba(234, 242, 255, 0.68);
 }
 
 .app:not(.app--dark) .periodChip::before {
@@ -2612,6 +3154,276 @@
   background: rgba(235, 245, 255, 0.92);
   border-color: var(--ctrl-border);
   box-shadow: 0 6px 16px rgba(18, 34, 58, 0.12);
+}
+
+.app:not(.app--dark) .viewabilitySettings__panel {
+  background: rgba(242, 249, 255, 0.96);
+  border-color: rgba(14, 115, 136, 0.36);
+  box-shadow: 0 14px 30px rgba(18, 34, 58, 0.18);
+  color: var(--ink-primary);
+  backdrop-filter: blur(10px);
+}
+
+.app:not(.app--dark) .viewabilitySettings .viewabilityLayerToggles {
+  background: rgba(224, 236, 249, 0.86);
+  border-color: rgba(14, 115, 136, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(18, 34, 58, 0.08);
+}
+
+.app:not(.app--dark) .viewabilitySettings .viewabilityToggle {
+  color: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .viewabilitySettings .viewabilityToggle.isSelected {
+  background: rgba(14, 115, 136, 0.18);
+  color: var(--ink-primary);
+  box-shadow: inset 0 0 0 1px rgba(14, 115, 136, 0.38);
+}
+
+.app:not(.app--dark) .viewabilitySettings .viewabilityField,
+.app:not(.app--dark) .viewabilitySettings .viewabilityCheck {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilitySettings .select {
+  background: rgba(225, 236, 249, 0.92);
+  border-color: rgba(14, 115, 136, 0.42);
+  color: var(--ink-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.app:not(.app--dark) .viewabilitySettings .select:hover,
+.app:not(.app--dark) .viewabilitySettings .select:focus {
+  background: rgba(235, 245, 255, 0.98);
+  border-color: rgba(14, 115, 136, 0.62);
+  box-shadow: 0 3px 10px rgba(0, 176, 198, 0.12);
+}
+
+.app:not(.app--dark) .viewabilitySettings .viewabilityCheck input {
+  accent-color: #0e7388;
+}
+
+.app:not(.app--dark) .viewabilityLegend {
+  background: rgba(242, 249, 255, 0.94);
+  border-color: rgba(14, 115, 136, 0.34);
+  box-shadow: 0 12px 26px rgba(18, 34, 58, 0.16);
+  color: var(--ink-primary);
+  backdrop-filter: blur(10px);
+}
+
+.app:not(.app--dark) .viewabilityLegend__title {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityLegend__ramp {
+  border-color: rgba(14, 115, 136, 0.24);
+}
+
+.app:not(.app--dark) .viewabilityLegend__ticks {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityBottomDrawer {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityBottomDrawer__handle,
+.app:not(.app--dark) .viewabilityBottomDrawer__body {
+  background: rgba(242, 249, 255, 0.96);
+  border-color: rgba(14, 115, 136, 0.34);
+  color: var(--ink-primary);
+  box-shadow: 0 12px 26px rgba(18, 34, 58, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.app:not(.app--dark) .viewabilityBottomDrawer__handle {
+  border-bottom: 0;
+}
+
+.app:not(.app--dark) .viewabilityAnalysisTabs {
+  background: rgba(224, 236, 249, 0.86);
+}
+
+.app:not(.app--dark) .viewabilityAnalysisTabs button {
+  color: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .viewabilityAnalysisTabs button.isSelected {
+  background: rgba(14, 115, 136, 0.16);
+  color: var(--ink-primary);
+  box-shadow: inset 0 0 0 1px rgba(14, 115, 136, 0.34);
+}
+
+.app:not(.app--dark) .viewabilityAnalysisHeader h3 {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityAnalysisHeader p,
+.app:not(.app--dark) .viewabilityAreaChart__tick {
+  color: var(--ink-secondary);
+  fill: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityConditionToggle,
+.app:not(.app--dark) .viewabilityVarianceToggle,
+.app:not(.app--dark) .viewabilityPlotModeToggle,
+.app:not(.app--dark) .viewabilityChartIconBtn {
+  background: rgba(225, 236, 249, 0.82);
+  border-color: rgba(14, 115, 136, 0.24);
+  color: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .viewabilityConditionToggle.isSelected,
+.app:not(.app--dark) .viewabilityPlotModeToggle button.isSelected,
+.app:not(.app--dark) .viewabilityChartIconBtn:hover,
+.app:not(.app--dark) .viewabilityChartIconBtn:focus-visible {
+  background: rgba(14, 115, 136, 0.16);
+  border-color: rgba(14, 115, 136, 0.44);
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityPlotModeToggle button {
+  color: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .viewabilityVarianceToggle input {
+  accent-color: #0e7388;
+}
+
+.app:not(.app--dark) .viewabilityAreaChart {
+  background: rgba(225, 236, 249, 0.62);
+  border-color: rgba(14, 115, 136, 0.18);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__grid {
+  stroke: rgba(42, 59, 89, 0.12);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__laneBg {
+  fill: rgba(255, 255, 255, 0.34);
+  stroke: rgba(42, 59, 89, 0.1);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__laneLabel {
+  fill: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__axis {
+  stroke: rgba(42, 59, 89, 0.22);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__cursor {
+  stroke: rgba(13, 27, 48, 0.78);
+}
+
+.app:not(.app--dark) .viewabilityAreaChart__empty {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityAreaTooltip {
+  background: rgba(242, 249, 255, 0.97);
+  border-color: rgba(14, 115, 136, 0.34);
+  color: var(--ink-primary);
+  box-shadow: 0 12px 26px rgba(18, 34, 58, 0.16);
+}
+
+.app:not(.app--dark) .viewabilityAreaTooltip__date,
+.app:not(.app--dark) .viewabilityAreaTooltip__metric strong {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityAreaTooltip__metric em {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilitySourceAnalysis__summary {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilitySourceAnalysis__summary strong {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilitySourceDrawerChart {
+  background: rgba(225, 236, 249, 0.62);
+  border-color: rgba(14, 115, 136, 0.18);
+}
+
+.app:not(.app--dark) .viewabilitySourceDrawerChart__grid {
+  stroke: rgba(42, 59, 89, 0.12);
+}
+
+.app:not(.app--dark) .viewabilitySourceDrawerChart__axis {
+  stroke: rgba(42, 59, 89, 0.22);
+}
+
+.app:not(.app--dark) .viewabilitySourceDrawerChart__tick {
+  fill: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityTabs {
+  background: rgba(224, 236, 249, 0.86);
+}
+
+.app:not(.app--dark) .viewabilityTabs__tab {
+  color: rgba(42, 59, 89, 0.76);
+}
+
+.app:not(.app--dark) .viewabilityTabs__tab.isSelected {
+  background: rgba(14, 115, 136, 0.18);
+  color: var(--ink-primary);
+  box-shadow: inset 0 0 0 1px rgba(14, 115, 136, 0.38);
+}
+
+.app:not(.app--dark) .viewabilityDrawerPanel h3 {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilityComponentGrid > div,
+.app:not(.app--dark) .viewabilityRelationshipChart,
+.app:not(.app--dark) .viewabilityMiniChart {
+  background: rgba(224, 236, 249, 0.72);
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityRelationshipChart__barWrap,
+.app:not(.app--dark) .viewabilityMiniChart__barWrap,
+.app:not(.app--dark) .viewabilityDetailsGrid {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityDetailsGrid strong,
+.app:not(.app--dark) .viewabilityComponentGrid strong {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries__summary {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries__summary strong {
+  color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries svg {
+  background: rgba(224, 236, 249, 0.72);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries__grid {
+  stroke: rgba(42, 59, 89, 0.12);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries__axis {
+  stroke: rgba(42, 59, 89, 0.22);
+}
+
+.app:not(.app--dark) .viewabilitySourceSeries__tick {
+  fill: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityEmptyState {
+  border-color: rgba(42, 59, 89, 0.24);
+  color: var(--ink-secondary);
 }
 
 .app:not(.app--dark) .toolBtn {

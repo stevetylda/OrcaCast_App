@@ -10,7 +10,7 @@ import type {
   ViewabilitySourceFeatureCollection,
   ViewabilityTargetFeatureCollection,
 } from "../../../data/viewabilityTypes";
-import { applyBasemapVisualTuning, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM } from "../../../components/ForecastMap/buildLayers";
+import { applyBasemapVisualTuning, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, VOYAGER_STYLE } from "../../../components/ForecastMap/buildLayers";
 import { buildInspectorTargetCells } from "../utils/viewabilityLayerBuilders";
 import { buildViewabilityColorExpression, formatScore, getViewabilityScoreProperty } from "../utils/viewabilityColorScales";
 
@@ -23,9 +23,11 @@ const SOURCE_LINE_LAYER_ID = "viewability-source-line";
 const SOURCE_SELECTED_LAYER_ID = "viewability-source-selected";
 
 type Props = {
+  darkMode: boolean;
   targetCells: ViewabilityTargetFeatureCollection | null;
   sourceCells: ViewabilitySourceFeatureCollection | null;
   selectedVisibility: SourceTargetVisibilityRecord[];
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   mode: ViewabilityMapMode;
   scoreType: ViewabilityScoreType;
   showTargetCells: boolean;
@@ -46,9 +48,11 @@ function setVisibility(map: MapLibreMap, layerId: string, visible: boolean) {
 }
 
 export function ViewabilityMap({
+  darkMode,
   targetCells,
   sourceCells,
   selectedVisibility,
+  poiFilters,
   mode,
   scoreType,
   showTargetCells,
@@ -60,19 +64,25 @@ export function ViewabilityMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const poiMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const poiLoadedRef = useRef(false);
+  const poiDataRef = useRef<Array<{ type: string; name: string; latitude: number; longitude: number }> | null>(null);
   const onSelectSourceCellRef = useRef(onSelectSourceCell);
   const mapTargetsRef = useRef<FeatureCollection | null>(null);
   const sourceCellsRef = useRef(sourceCells);
   const scoreTypeRef = useRef(scoreType);
   const colorScaleSettingsRef = useRef(colorScaleSettings);
+  const showTargetCellsRef = useRef(showTargetCells);
+  const showSourceCellsRef = useRef(showSourceCells);
+  const selectedSourceCellIdRef = useRef(selectedSourceCellId);
 
   useEffect(() => {
     onSelectSourceCellRef.current = onSelectSourceCell;
   }, [onSelectSourceCell]);
 
   const mapTargets = useMemo(
-    () => (mode === "source-inspector" ? buildInspectorTargetCells(targetCells, selectedVisibility) : targetCells),
-    [mode, selectedVisibility, targetCells]
+    () => (mode === "source-inspector" ? buildInspectorTargetCells(targetCells, selectedVisibility, scoreType) : targetCells),
+    [mode, scoreType, selectedVisibility, targetCells]
   );
 
   useEffect(() => {
@@ -80,14 +90,17 @@ export function ViewabilityMap({
     sourceCellsRef.current = sourceCells;
     scoreTypeRef.current = scoreType;
     colorScaleSettingsRef.current = colorScaleSettings;
-  }, [colorScaleSettings, mapTargets, scoreType, sourceCells]);
+    showTargetCellsRef.current = showTargetCells;
+    showSourceCellsRef.current = showSourceCells;
+    selectedSourceCellIdRef.current = selectedSourceCellId;
+  }, [colorScaleSettings, mapTargets, scoreType, selectedSourceCellId, showSourceCells, showTargetCells, sourceCells]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: DARK_STYLE,
+      style: darkMode ? DARK_STYLE : VOYAGER_STYLE,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       attributionControl: false,
@@ -99,23 +112,103 @@ export function ViewabilityMap({
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
     map.on("load", () => {
-      applyBasemapVisualTuning(map, true);
+      applyBasemapVisualTuning(map, darkMode);
       if (!map.getSource(TARGET_SOURCE_ID)) {
         map.addSource(TARGET_SOURCE_ID, { type: "geojson", data: mapTargetsRef.current ?? { type: "FeatureCollection", features: [] } });
       }
       if (!map.getSource(SOURCE_SOURCE_ID)) {
         map.addSource(SOURCE_SOURCE_ID, { type: "geojson", data: sourceCellsRef.current ?? { type: "FeatureCollection", features: [] } });
       }
-      addLayers(map, colorScaleSettingsRef.current, getViewabilityScoreProperty(scoreTypeRef.current));
+      addLayers(map, colorScaleSettingsRef.current, getViewabilityScoreProperty(scoreTypeRef.current), {
+        showTargetCells: showTargetCellsRef.current,
+        showSourceCells: showSourceCellsRef.current,
+        selectedSourceCellId: selectedSourceCellIdRef.current,
+      });
       bindInteractions(map, popupRef, onSelectSourceCellRef);
     });
 
     return () => {
       popupRef.current?.remove();
+      poiMarkersRef.current.forEach((marker) => marker.remove());
+      poiMarkersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [darkMode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const showPoi = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
+    if (!showPoi) {
+      poiMarkersRef.current.forEach((marker) => marker.remove());
+      poiMarkersRef.current = [];
+      return;
+    }
+
+    let cancelled = false;
+
+    const renderPoiMarkers = (items: Array<{ type: string; name: string; latitude: number; longitude: number }>) => {
+      if (cancelled || !mapRef.current) return;
+      poiMarkersRef.current.forEach((marker) => marker.remove());
+      poiMarkersRef.current = [];
+
+      const iconMap: Record<string, string> = { Park: "park", Marina: "sailing", Ferry: "directions_boat" };
+      const typeToFilterKey = (value: string): keyof typeof poiFilters | null => {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "park") return "Park";
+        if (normalized === "marina") return "Marina";
+        if (normalized === "ferry") return "Ferry";
+        return null;
+      };
+
+      const safeItems = items
+        .map((poi) => ({
+          ...poi,
+          latitude: Number(poi.latitude),
+          longitude: Number(poi.longitude),
+          filterKey: typeToFilterKey(String(poi.type ?? "")),
+        }))
+        .filter((poi) => poi.filterKey !== null && Number.isFinite(poi.latitude) && Number.isFinite(poi.longitude));
+      const filteredItems = safeItems.filter((poi) => poi.filterKey && (poiFilters[poi.filterKey] ?? false));
+      const itemsToRender = filteredItems.length > 0 ? filteredItems : safeItems;
+
+      poiMarkersRef.current = itemsToRender.map((poi) => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "poiMarker";
+        el.setAttribute("aria-label", poi.name);
+        el.innerHTML = `<span class="material-symbols-rounded">${poi.filterKey ? iconMap[poi.filterKey] : "directions_boat"}</span>`;
+
+        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: true }).setHTML(
+          `<div class="poiPopup"><div class="poiPopup__title">${escapeHtml(poi.name)}</div><div class="poiPopup__meta">${poi.latitude.toFixed(4)}, ${poi.longitude.toFixed(4)}</div></div>`
+        );
+
+        return new maplibregl.Marker({ element: el, anchor: "bottom" })
+          .setLngLat([poi.longitude, poi.latitude])
+          .setPopup(popup)
+          .addTo(mapRef.current as MapLibreMap);
+      });
+    };
+
+    loadPoiData(poiLoadedRef, poiDataRef)
+      .then((items) => {
+        if (cancelled || !mapRef.current) return;
+        if (!mapRef.current.isStyleLoaded()) {
+          mapRef.current.once("load", () => renderPoiMarkers(items));
+          return;
+        }
+        renderPoiMarkers(items);
+      })
+      .catch((err) => {
+        if (!cancelled) console.warn("[POI] failed to load places_of_interest.json", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [poiFilters]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -135,24 +228,35 @@ export function ViewabilityMap({
     const map = mapRef.current;
     if (!map || !map.getLayer(TARGET_FILL_LAYER_ID)) return;
     const propertyName = mode === "source-inspector" ? "source_target_weight" : getViewabilityScoreProperty(scoreType);
+    const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, propertyName));
+    map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-color", lineColors.target);
+    map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score"));
+    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-color", lineColors.source);
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-opacity", [
       "case",
       ["all", ["==", ["literal", mode], "source-inspector"], ["!", ["coalesce", ["get", "visible_from_selected_source"], false]]],
-      0.1,
+      0,
       0.72,
+    ]);
+    map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-opacity", [
+      "case",
+      ["all", ["==", ["literal", mode], "source-inspector"], ["!", ["coalesce", ["get", "visible_from_selected_source"], false]]],
+      0,
+      1,
     ]);
   }, [colorScaleSettings, mode, scoreType]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    setVisibility(map, TARGET_FILL_LAYER_ID, showTargetCells);
-    setVisibility(map, TARGET_LINE_LAYER_ID, showTargetCells);
+    const showInspectorTargets = mode === "source-inspector";
+    setVisibility(map, TARGET_FILL_LAYER_ID, showTargetCells || showInspectorTargets);
+    setVisibility(map, TARGET_LINE_LAYER_ID, showTargetCells || showInspectorTargets);
     setVisibility(map, SOURCE_FILL_LAYER_ID, showSourceCells);
     setVisibility(map, SOURCE_LINE_LAYER_ID, showSourceCells);
     setVisibility(map, SOURCE_SELECTED_LAYER_ID, showSourceCells && Boolean(selectedSourceCellId));
-  }, [selectedSourceCellId, showSourceCells, showTargetCells]);
+  }, [mode, selectedSourceCellId, showSourceCells, showTargetCells]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -167,12 +271,24 @@ export function ViewabilityMap({
   );
 }
 
-function addLayers(map: MapLibreMap, colorScaleSettings: ViewabilityColorScaleSettings, propertyName: string) {
+function addLayers(
+  map: MapLibreMap,
+  colorScaleSettings: ViewabilityColorScaleSettings,
+  propertyName: string,
+  visibility: { showTargetCells: boolean; showSourceCells: boolean; selectedSourceCellId: string | null }
+) {
+  const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
+  const targetVisibility = visibility.showTargetCells ? "visible" : "none";
+  const sourceVisibility = visibility.showSourceCells ? "visible" : "none";
+  const selectedSourceVisibility = visibility.showSourceCells && visibility.selectedSourceCellId ? "visible" : "none";
   if (!map.getLayer(TARGET_FILL_LAYER_ID)) {
     map.addLayer({
       id: TARGET_FILL_LAYER_ID,
       type: "fill",
       source: TARGET_SOURCE_ID,
+      layout: {
+        visibility: targetVisibility,
+      },
       paint: {
         "fill-color": buildViewabilityColorExpression(colorScaleSettings, propertyName) as DataDrivenPropertyValueSpecification<string>,
         "fill-opacity": 0.72,
@@ -184,8 +300,11 @@ function addLayers(map: MapLibreMap, colorScaleSettings: ViewabilityColorScaleSe
       id: TARGET_LINE_LAYER_ID,
       type: "line",
       source: TARGET_SOURCE_ID,
+      layout: {
+        visibility: targetVisibility,
+      },
       paint: {
-        "line-color": "rgba(193,255,250,0.38)",
+        "line-color": lineColors.target,
         "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.4],
       },
     });
@@ -195,9 +314,12 @@ function addLayers(map: MapLibreMap, colorScaleSettings: ViewabilityColorScaleSe
       id: SOURCE_FILL_LAYER_ID,
       type: "fill",
       source: SOURCE_SOURCE_ID,
+      layout: {
+        visibility: sourceVisibility,
+      },
       paint: {
-        "fill-color": "rgba(25,240,215,0.08)",
-        "fill-opacity": 0.42,
+        "fill-color": buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score") as DataDrivenPropertyValueSpecification<string>,
+        "fill-opacity": 0.62,
       },
     });
   }
@@ -206,8 +328,11 @@ function addLayers(map: MapLibreMap, colorScaleSettings: ViewabilityColorScaleSe
       id: SOURCE_LINE_LAYER_ID,
       type: "line",
       source: SOURCE_SOURCE_ID,
+      layout: {
+        visibility: sourceVisibility,
+      },
       paint: {
-        "line-color": "rgba(25,240,215,0.95)",
+        "line-color": lineColors.source,
         "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.4, 9, 2.8],
         "line-dasharray": [1.4, 1],
       },
@@ -219,12 +344,34 @@ function addLayers(map: MapLibreMap, colorScaleSettings: ViewabilityColorScaleSe
       type: "line",
       source: SOURCE_SOURCE_ID,
       filter: ["==", ["get", "h3"], ""],
+      layout: {
+        visibility: selectedSourceVisibility,
+      },
       paint: {
-        "line-color": "#ffffff",
+        "line-color": "rgba(255,255,255,0.72)",
         "line-width": ["interpolate", ["linear"], ["zoom"], 5, 3, 9, 5],
       },
     });
   }
+}
+
+function getViewabilityLineColors(paletteId: ViewabilityColorScaleSettings["paletteId"]) {
+  if (paletteId === "relief_atlas") {
+    return {
+      target: "rgba(247,244,232,0.2)",
+      source: "rgba(31,102,112,0.42)",
+    };
+  }
+  if (paletteId === "red_atlas") {
+    return {
+      target: "rgba(220,164,154,0.2)",
+      source: "rgba(190,76,68,0.42)",
+    };
+  }
+  return {
+    target: "rgba(193,255,250,0.18)",
+    source: "rgba(25,240,215,0.42)",
+  };
 }
 
 function bindInteractions(
@@ -239,14 +386,9 @@ function bindInteractions(
     map.getCanvas().style.cursor = "";
     popupRef.current?.remove();
   });
-  map.on("mousemove", SOURCE_FILL_LAYER_ID, (event) => {
-    const feature = event.features?.[0];
-    if (!feature || !event.lngLat) return;
-    const props = feature.properties as Record<string, unknown>;
-    popupRef.current?.setLngLat(event.lngLat).setHTML(sourceTooltipHtml(props)).addTo(map);
-  });
   map.on("click", SOURCE_FILL_LAYER_ID, (event) => {
     const h3 = event.features?.[0]?.properties?.h3;
+    popupRef.current?.remove();
     if (typeof h3 === "string") onSelectSourceCellRef.current(h3);
   });
   map.on("mousemove", TARGET_FILL_LAYER_ID, (event) => {
@@ -260,17 +402,68 @@ function bindInteractions(
   });
 }
 
-function sourceTooltipHtml(props: Record<string, unknown>) {
-  return `
-    <div class="viewabilityPopup__title">Source cell</div>
-    <div>${escapeHtml(String(props.h3 ?? "-"))}</div>
-    <dl>
-      <dt>Source type</dt><dd>${escapeHtml(String(props.source_type ?? "-"))}</dd>
-      <dt>Source viewyness score</dt><dd>${formatScore(Number(props.source_viewyness_score))}</dd>
-      <dt>Reachable target cells</dt><dd>${escapeHtml(String(props.reachable_target_count ?? "-"))}</dd>
-      <dt>Mean target weight</dt><dd>${formatScore(Number(props.mean_target_weight))}</dd>
-    </dl>
-  `;
+async function loadPoiData(
+  loadedRef: MutableRefObject<boolean>,
+  dataRef: MutableRefObject<Array<{ type: string; name: string; latitude: number; longitude: number }> | null>
+) {
+  if (loadedRef.current && dataRef.current) return dataRef.current;
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const candidates = Array.from(new Set([
+    `${normalizedBase}data/places_of_interest.json`,
+    "/data/places_of_interest.json",
+    "data/places_of_interest.json",
+  ]));
+  let lastError: Error | null = null;
+
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        lastError = new Error(`Failed to load POI data from ${url}: ${response.status}`);
+        continue;
+      }
+      const payload = (await response.json()) as
+        | { items?: Array<{ type: string; name: string; latitude: number; longitude: number }> }
+        | Array<{ type: string; name: string; latitude: number; longitude: number }>
+        | { features?: Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: [number, number] } }> };
+
+      const items = Array.isArray(payload)
+        ? payload.map((entry) => ({
+            type: String((entry as { type?: string }).type ?? ""),
+            name: String((entry as { name?: string }).name ?? "POI"),
+            latitude: Number((entry as { latitude?: number }).latitude),
+            longitude: Number((entry as { longitude?: number }).longitude),
+          }))
+        : "items" in payload && Array.isArray(payload.items)
+          ? payload.items.map((entry) => ({
+              type: String(entry.type ?? ""),
+              name: String(entry.name ?? "POI"),
+              latitude: Number(entry.latitude),
+              longitude: Number(entry.longitude),
+            }))
+          : "features" in payload && Array.isArray(payload.features)
+            ? payload.features.map((feature) => {
+                const props = feature.properties ?? {};
+                const coordinates = feature.geometry?.coordinates ?? [Number.NaN, Number.NaN];
+                return {
+                  type: String(props.type ?? props.category ?? ""),
+                  name: String(props.name ?? "POI"),
+                  latitude: Number(coordinates[1]),
+                  longitude: Number(coordinates[0]),
+                };
+              })
+            : [];
+
+      loadedRef.current = true;
+      dataRef.current = items;
+      return items;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+
+  throw lastError ?? new Error("Failed to load POI data");
 }
 
 function targetTooltipHtml(props: Record<string, unknown>) {
@@ -279,7 +472,10 @@ function targetTooltipHtml(props: Record<string, unknown>) {
       <div class="viewabilityPopup__title">Target cell</div>
       <div>${escapeHtml(String(props.h3 ?? "-"))}</div>
       <dl>
-        <dt>Weight from selected source</dt><dd>${formatScore(Number(props.source_target_weight))}</dd>
+        <dt>Active source-target weight</dt><dd>${formatScore(Number(props.source_target_weight))}</dd>
+        <dt>Base source-target weight</dt><dd>${formatScore(Number(props.base_source_target_weight))}</dd>
+        <dt>Dynamic source-target weight</dt><dd>${formatScore(Number(props.dynamic_source_target_weight))}</dd>
+        <dt>Dynamic modifier</dt><dd>${formatScore(Number(props.source_target_modifier))}</dd>
         <dt>Distance km</dt><dd>${formatScore(Number(props.distance_km))}</dd>
         <dt>Terrain weight</dt><dd>${formatScore(Number(props.weight_terrain))}</dd>
         <dt>Vegetation weight</dt><dd>${formatScore(Number(props.weight_vegetation))}</dd>

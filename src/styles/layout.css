@@ -564,6 +564,38 @@
   backdrop-filter: blur(10px);
 }
 
+.periodPopover__dateRow,
+.periodPopover__range {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.periodPopover__date {
+  min-width: 0;
+  color: var(--panel-text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.periodPopover__count,
+.periodPopover__range {
+  color: var(--panel-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.periodPopover__range {
+  margin-top: -5px;
+}
+
 .periodPopover__slider {
   width: 100%;
   accent-color: rgba(25, 240, 215, 0.9);
