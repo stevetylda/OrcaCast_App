@@ -5,6 +5,7 @@ import { DEFAULT_COMPARE_SETTINGS, type CompareSettings, type CompareViewMode } 
 import { DEFAULT_PALETTE_ID, getPaletteOrDefault, type PaletteId } from "../constants/palettes";
 
 type ThemeMode = "light" | "dark" | "system";
+type ForecastPlaybackDirection = 1 | -1;
 
 type MapState = {
   themeMode: ThemeMode;
@@ -16,6 +17,10 @@ type MapState = {
   setModelId: (value: string) => void;
   forecastIndex: number;
   setForecastIndex: (value: number | ((prev: number) => number)) => void;
+  forecastPlaybackPlaying: boolean;
+  setForecastPlaybackPlaying: (value: boolean) => void;
+  forecastPlaybackDirection: ForecastPlaybackDirection;
+  setForecastPlaybackDirection: (value: ForecastPlaybackDirection) => void;
   lastWeekMode: "none" | "previous" | "selected" | "both";
   setLastWeekMode: (value: "none" | "previous" | "selected" | "both") => void;
   hotspotsEnabled: boolean;
@@ -62,6 +67,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
   const [resolution, setResolution] = useState<H3Resolution>("H4");
   const [modelId, setModelId] = useState(appConfig.bestModelId);
   const [forecastIndex, setForecastIndex] = useState(-1);
+  const [forecastPlaybackPlaying, setForecastPlaybackPlaying] = useState(false);
+  const [forecastPlaybackDirection, setForecastPlaybackDirection] = useState<ForecastPlaybackDirection>(-1);
   const [lastWeekMode, setLastWeekMode] = useState<
     "none" | "previous" | "selected" | "both"
   >("none");
@@ -107,6 +114,10 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setModelId,
       forecastIndex,
       setForecastIndex,
+      forecastPlaybackPlaying,
+      setForecastPlaybackPlaying,
+      forecastPlaybackDirection,
+      setForecastPlaybackDirection,
       lastWeekMode,
       setLastWeekMode,
       hotspotsEnabled,
@@ -138,6 +149,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       resolution,
       modelId,
       forecastIndex,
+      forecastPlaybackPlaying,
+      forecastPlaybackDirection,
       lastWeekMode,
       hotspotsEnabled,
       hotspotMode,
@@ -154,6 +167,8 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
       setResolution,
       setModelId,
       setForecastIndex,
+      setForecastPlaybackPlaying,
+      setForecastPlaybackDirection,
       setLastWeekMode,
       setHotspotsEnabled,
       setHotspotMode,

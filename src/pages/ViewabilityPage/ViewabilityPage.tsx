@@ -1,8 +1,10 @@
+import { useRef, useState } from "react";
 import { useMenu } from "../../state/MenuContext";
 import { useMapState } from "../../state/MapStateContext";
 import { ViewabilityBottomDrawer } from "./components/ViewabilityBottomDrawer";
+import { ViewabilityFooter } from "./components/ViewabilityFooter";
 import { ViewabilityLegend } from "./components/ViewabilityLegend";
-import { ViewabilityMap } from "./components/ViewabilityMap";
+import { ViewabilityMap, type ViewabilityMapHandle } from "./components/ViewabilityMap";
 import { ViewabilitySettingsPanel } from "./components/ViewabilitySettingsPanel";
 import { ViewabilityTopControls } from "./components/ViewabilityTopControls";
 import { useViewabilityPageController } from "./useViewabilityPageController";
@@ -11,6 +13,67 @@ export function ViewabilityPage() {
   const controller = useViewabilityPageController();
   const { setMenuOpen } = useMenu();
   const { darkMode, setThemeMode } = useMapState();
+  const mapRef = useRef<ViewabilityMapHandle | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+
+  const selectedDateToken = controller.selectedDateOrPeriod.replace(/[^0-9-]+/g, "_");
+
+  const captureSnapshot = async () => {
+    const blob = await mapRef.current?.captureSnapshot();
+    if (!blob) throw new Error("Snapshot not available");
+    return blob;
+  };
+
+  const downloadSnapshot = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const handleDownloadSnapshot = async () => {
+    if (shareBusy) return;
+    setShareBusy(true);
+    try {
+      const blob = await captureSnapshot();
+      downloadSnapshot(blob, `orcacast_viewability_${selectedDateToken}.png`);
+    } catch (error) {
+      console.error("[Viewability Download] Snapshot failed", error);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleShareSnapshot = async () => {
+    if (shareBusy) return;
+    setShareBusy(true);
+    try {
+      const blob = await captureSnapshot();
+      const fileName = `orcacast_viewability_${selectedDateToken}.png`;
+      const snapshotFile = new File([blob], fileName, { type: "image/png" });
+      const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+      const canNativeShareFiles =
+        typeof nav.share === "function" &&
+        (typeof nav.canShare !== "function" || nav.canShare({ files: [snapshotFile] }));
+
+      if (canNativeShareFiles) {
+        await nav.share({
+          files: [snapshotFile],
+          title: "OrcaCast Viewability Snapshot",
+        });
+      } else {
+        downloadSnapshot(blob, fileName);
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        console.error("[Viewability Share] Snapshot failed", error);
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  };
 
   return (
     <div className="mapPageRoot viewabilityPage">
@@ -54,6 +117,7 @@ export function ViewabilityPage() {
 
       <main className="app__main">
         <ViewabilityMap
+          ref={mapRef}
           key={darkMode ? "viewability-map-dark" : "viewability-map-light"}
           darkMode={darkMode}
           targetCells={controller.targetCells}
@@ -104,8 +168,13 @@ export function ViewabilityPage() {
           sourceCellId={controller.selectedSourceCellId}
           sourceTimeSeries={controller.selectedSourceTimeSeries}
         />
-
       </main>
+
+      <ViewabilityFooter
+        onDownloadSnapshot={handleDownloadSnapshot}
+        onShareSnapshot={handleShareSnapshot}
+        shareBusy={shareBusy}
+      />
     </div>
   );
 }

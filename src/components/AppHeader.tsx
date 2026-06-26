@@ -13,6 +13,10 @@ type Props = {
   forecastPeriods: Period[];
   forecastIndex: number;
   onForecastIndexChange: (idx: number) => void;
+  forecastPlaybackPlaying: boolean;
+  onForecastPlaybackPlayingChange: (value: boolean) => void;
+  forecastPlaybackDirection: 1 | -1;
+  onForecastPlaybackDirectionChange: (value: 1 | -1) => void;
   expectedActivityCount: number | null;
   expectedActivityVsPriorWeek: number | null;
   expectedActivityVs12WeekAvg: number | null;
@@ -44,6 +48,10 @@ export function AppHeader({
   forecastPeriods,
   forecastIndex,
   onForecastIndexChange,
+  forecastPlaybackPlaying,
+  onForecastPlaybackPlayingChange,
+  forecastPlaybackDirection,
+  onForecastPlaybackDirectionChange,
   expectedActivityCount,
   expectedActivityVsPriorWeek,
   expectedActivityVs12WeekAvg,
@@ -111,6 +119,10 @@ export function AppHeader({
                 periods={forecastPeriods}
                 selectedIndex={forecastIndex}
                 onChangeIndex={onForecastIndexChange}
+                isPlaying={forecastPlaybackPlaying}
+                onPlayingChange={onForecastPlaybackPlayingChange}
+                playDir={forecastPlaybackDirection}
+                onPlayDirChange={onForecastPlaybackDirectionChange}
                 disabled={forecastPeriods.length === 0}
                 tourId="forecast-period"
               />

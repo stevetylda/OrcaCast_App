@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, type MutableRefObject } from "react";
 import maplibregl, { Map as MapLibreMap, type DataDrivenPropertyValueSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
@@ -37,6 +37,10 @@ type Props = {
   onSelectSourceCell: (sourceCellId: string) => void;
 };
 
+export type ViewabilityMapHandle = {
+  captureSnapshot: () => Promise<Blob | null>;
+};
+
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -47,7 +51,40 @@ function setVisibility(map: MapLibreMap, layerId: string, visible: boolean) {
   }
 }
 
-export function ViewabilityMap({
+function extendBoundsFromCoordinates(bounds: maplibregl.LngLatBounds, coordinates: unknown) {
+  if (!Array.isArray(coordinates)) return;
+
+  if (
+    coordinates.length >= 2 &&
+    typeof coordinates[0] === "number" &&
+    Number.isFinite(coordinates[0]) &&
+    typeof coordinates[1] === "number" &&
+    Number.isFinite(coordinates[1])
+  ) {
+    bounds.extend([coordinates[0], coordinates[1]]);
+    return;
+  }
+
+  for (const child of coordinates) {
+    extendBoundsFromCoordinates(bounds, child);
+  }
+}
+
+function extendBoundsFromFeatureCollection(bounds: maplibregl.LngLatBounds, collection: FeatureCollection | null | undefined) {
+  for (const feature of collection?.features ?? []) {
+    const geometry = feature.geometry;
+    if (!geometry) continue;
+    if (geometry.type === "Point") {
+      bounds.extend(geometry.coordinates as [number, number]);
+      continue;
+    }
+    if ("coordinates" in geometry) {
+      extendBoundsFromCoordinates(bounds, geometry.coordinates);
+    }
+  }
+}
+
+export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function ViewabilityMap({
   darkMode,
   targetCells,
   sourceCells,
@@ -60,7 +97,7 @@ export function ViewabilityMap({
   selectedSourceCellId,
   colorScaleSettings,
   onSelectSourceCell,
-}: Props) {
+}, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -75,6 +112,25 @@ export function ViewabilityMap({
   const showTargetCellsRef = useRef(showTargetCells);
   const showSourceCellsRef = useRef(showSourceCells);
   const selectedSourceCellIdRef = useRef(selectedSourceCellId);
+  const lastInspectorFitKeyRef = useRef<string | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      captureSnapshot: async () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        return await new Promise<Blob | null>((resolve) => {
+          try {
+            map.getCanvas().toBlob((blob) => resolve(blob), "image/png");
+          } catch {
+            resolve(null);
+          }
+        });
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     onSelectSourceCellRef.current = onSelectSourceCell;
@@ -109,7 +165,6 @@ export function ViewabilityMap({
     popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: "viewabilityPopup" });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-left");
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
     map.on("load", () => {
       applyBasemapVisualTuning(map, darkMode);
@@ -229,6 +284,11 @@ export function ViewabilityMap({
     if (!map || !map.getLayer(TARGET_FILL_LAYER_ID)) return;
     const propertyName = mode === "source-inspector" ? "source_target_weight" : getViewabilityScoreProperty(scoreType);
     const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
+    const hideUnselectedSourcesExpression = [
+      "all",
+      ["==", ["literal", mode], "source-inspector"],
+      ["!=", ["get", "h3"], selectedSourceCellId ?? ""],
+    ] as const;
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, propertyName));
     map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-color", lineColors.target);
     map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score"));
@@ -237,7 +297,7 @@ export function ViewabilityMap({
       "case",
       ["all", ["==", ["literal", mode], "source-inspector"], ["!", ["coalesce", ["get", "visible_from_selected_source"], false]]],
       0,
-      0.72,
+      0.88,
     ]);
     map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-opacity", [
       "case",
@@ -245,7 +305,9 @@ export function ViewabilityMap({
       0,
       1,
     ]);
-  }, [colorScaleSettings, mode, scoreType]);
+    map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-opacity", ["case", hideUnselectedSourcesExpression, 0, 0.8]);
+    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-opacity", ["case", hideUnselectedSourcesExpression, 0, 0.9]);
+  }, [colorScaleSettings, mode, scoreType, selectedSourceCellId]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -264,12 +326,40 @@ export function ViewabilityMap({
     map.setFilter(SOURCE_SELECTED_LAYER_ID, ["==", ["get", "h3"], selectedSourceCellId ?? ""]);
   }, [selectedSourceCellId]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || mode !== "source-inspector" || !selectedSourceCellId) {
+      lastInspectorFitKeyRef.current = null;
+      return;
+    }
+
+    const inspectorTargetCount = mapTargets?.features.length ?? 0;
+    const fitKey = `${selectedSourceCellId}:${inspectorTargetCount}`;
+    if (fitKey === lastInspectorFitKeyRef.current) return;
+
+    const selectedSourceFeatureCollection: FeatureCollection = {
+      type: "FeatureCollection",
+      features: (sourceCells?.features ?? []).filter((feature) => feature.properties.h3 === selectedSourceCellId),
+    };
+    const bounds = new maplibregl.LngLatBounds();
+    extendBoundsFromFeatureCollection(bounds, selectedSourceFeatureCollection);
+    extendBoundsFromFeatureCollection(bounds, mapTargets);
+    if (bounds.isEmpty()) return;
+
+    lastInspectorFitKeyRef.current = fitKey;
+    map.fitBounds(bounds, {
+      padding: { top: 88, right: 88, bottom: 360, left: 88 },
+      duration: 700,
+      maxZoom: 9,
+    });
+  }, [mapTargets, mode, selectedSourceCellId, sourceCells]);
+
   return (
     <div className="mapStage viewabilityMapStage">
       <div ref={containerRef} className="map" data-tour="viewability-map-canvas" />
     </div>
   );
-}
+});
 
 function addLayers(
   map: MapLibreMap,
@@ -291,7 +381,7 @@ function addLayers(
       },
       paint: {
         "fill-color": buildViewabilityColorExpression(colorScaleSettings, propertyName) as DataDrivenPropertyValueSpecification<string>,
-        "fill-opacity": 0.72,
+        "fill-opacity": 0.88,
       },
     });
   }
@@ -319,7 +409,7 @@ function addLayers(
       },
       paint: {
         "fill-color": buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score") as DataDrivenPropertyValueSpecification<string>,
-        "fill-opacity": 0.62,
+        "fill-opacity": 0.8,
       },
     });
   }
@@ -335,6 +425,7 @@ function addLayers(
         "line-color": lineColors.source,
         "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.4, 9, 2.8],
         "line-dasharray": [1.4, 1],
+        "line-opacity": 0.9,
       },
     });
   }

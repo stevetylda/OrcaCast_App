@@ -1,4 +1,5 @@
 import type { Feature, MultiPolygon, Polygon } from "geojson";
+import { getParquetColumns, queryParquetFile, sqlLiteral } from "./duckdbBrowser";
 import { fetchJson } from "./fetchClient";
 import {
   sourceCellTimeSeriesFixture,
@@ -109,6 +110,7 @@ type AreaConditionsMonthFile = {
 type SourceVisibilityIndexFile = {
   source_h3?: string[];
   bundles?: Record<string, string>;
+  bundle_format?: string;
 };
 
 type SourceVisibilityIndex = {
@@ -122,6 +124,7 @@ type SourceVisibilityBundleFile = {
 
 type SourceTimeSeriesIndexFile = {
   bundles?: Record<string, string>;
+  bundle_format?: string;
 };
 
 type SourceTimeSeriesBundleFile = {
@@ -131,7 +134,8 @@ type SourceTimeSeriesBundleFile = {
 const dynamicMonthCache = new Map<string, Promise<DynamicMonthFile>>();
 const areaConditionsMonthCache = new Map<string, Promise<AreaConditionsMonthFile>>();
 const sourceTimeseriesIndexCache = new Map<string, Promise<SourceTimeSeriesIndexFile>>();
-const sourceTimeseriesBundleCache = new Map<string, Promise<SourceTimeSeriesBundleFile>>();
+const sourceVisibilityBundleCache = new Map<string, Promise<SourceTargetVisibilityRecord[]>>();
+const sourceTimeseriesBundleCache = new Map<string, Promise<SourceCellTimeSeriesPoint[]>>();
 let areaConditionsSeriesPromise: Promise<ViewabilityAreaConditionPoint[]> | null = null;
 
 function viewabilityPath(path: string): string {
@@ -363,26 +367,82 @@ async function loadBundledSourceVisibility(
 ): Promise<SourceTargetVisibilityRecord[] | null> {
   const bundlePath = index.bundlesBySourceH3.get(sourceCellId);
   if (!bundlePath) return null;
+  const resolvedPath = viewabilityPath(viewabilityBaseRelativePath(bundlePath));
+  let promise = sourceVisibilityBundleCache.get(`${resolvedPath}|${sourceCellId}`);
+  if (!promise) {
+    promise = (async () => {
+      if (!resolvedPath.endsWith(".parquet")) {
+        const { data } = await fetchJson<SourceVisibilityBundleFile>(resolvedPath);
+        const records = data.sources[sourceCellId] ?? [];
+        return records.flatMap((record) => {
+          const targetH3 = asString(record.target_h3) ?? asString(record.h3);
+          if (!targetH3) return [];
+          const weight = coalesceNumber(record.weight, record.source_target_weight, record.base_source_target_weight);
+          return [{
+            source_h3: sourceCellId,
+            target_h3: targetH3,
+            source_target_weight: weight,
+            base_source_target_weight: weight,
+            distance_km: asNumber(record.distance_km),
+            weight_distance: asNumber(record.weight_distance),
+            weight_terrain: asNumber(record.weight_terrain),
+            weight_vegetation: asNumber(record.weight_vegetation),
+          }];
+        });
+      }
+      const columns = await getParquetColumns(resolvedPath);
+      const pickText = (...names: string[]) => names.find((name) => columns.has(name));
+      const pickNumber = (...names: string[]) => names.find((name) => columns.has(name));
+      const sourceColumn = pickText("source_h3");
+      const targetColumn = pickText("target_h3", "h3");
+      const weightColumn = pickNumber("source_target_weight", "base_source_target_weight", "weight");
+      if (!sourceColumn || !targetColumn) return [];
 
-  const { data } = await fetchJson<SourceVisibilityBundleFile>(
-    viewabilityPath(viewabilityBaseRelativePath(bundlePath))
-  );
-  const records = data.sources[sourceCellId] ?? [];
-  return records.flatMap((record) => {
-    const targetH3 = asString(record.target_h3) ?? asString(record.h3);
-    if (!targetH3) return [];
-    const weight = coalesceNumber(record.weight, record.source_target_weight, record.base_source_target_weight);
-    return [{
-      source_h3: sourceCellId,
-      target_h3: targetH3,
-      source_target_weight: weight,
-      base_source_target_weight: weight,
-      distance_km: asNumber(record.distance_km),
-      weight_distance: asNumber(record.weight_distance),
-      weight_terrain: asNumber(record.weight_terrain),
-      weight_vegetation: asNumber(record.weight_vegetation),
-    }];
-  });
+      const optionalColumns = [
+        pickNumber("base_source_target_weight"),
+        pickNumber("distance_km"),
+        pickNumber("weight_distance"),
+        pickNumber("weight_terrain"),
+        pickNumber("weight_vegetation"),
+      ];
+      const selectExpressions = [
+        `${sourceColumn} AS source_h3`,
+        `${targetColumn} AS target_h3`,
+        `${weightColumn ?? "NULL"} AS source_target_weight`,
+        `${pickNumber("base_source_target_weight", "source_target_weight", "weight") ?? "NULL"} AS base_source_target_weight`,
+        `${optionalColumns[1] ?? "NULL"} AS distance_km`,
+        `${optionalColumns[2] ?? "NULL"} AS weight_distance`,
+        `${optionalColumns[3] ?? "NULL"} AS weight_terrain`,
+        `${optionalColumns[4] ?? "NULL"} AS weight_vegetation`,
+      ];
+
+      const rows = await queryParquetFile(
+        resolvedPath,
+        (fileName) => `
+          SELECT ${selectExpressions.join(", ")}
+          FROM read_parquet(${sqlLiteral(fileName)})
+          WHERE ${sourceColumn} = ${sqlLiteral(sourceCellId)}
+        `
+      );
+
+      return rows.flatMap((record) => {
+        const targetH3 = asString(record.target_h3);
+        if (!targetH3) return [];
+        return [{
+          source_h3: asString(record.source_h3) ?? sourceCellId,
+          target_h3: targetH3,
+          source_target_weight: asNumber(record.source_target_weight),
+          base_source_target_weight: asNumber(record.base_source_target_weight),
+          distance_km: asNumber(record.distance_km),
+          weight_distance: asNumber(record.weight_distance),
+          weight_terrain: asNumber(record.weight_terrain),
+          weight_vegetation: asNumber(record.weight_vegetation),
+        }];
+      });
+    })();
+    sourceVisibilityBundleCache.set(`${resolvedPath}|${sourceCellId}`, promise);
+  }
+  return promise;
 }
 
 export async function loadViewabilityTargetCells(date?: string): Promise<ViewabilityTargetFeatureCollection> {
@@ -563,18 +623,51 @@ export async function loadSourceCellTimeSeries(sourceCellId?: string): Promise<S
       const bundlePath = index.bundles?.[sourceCellId];
       if (bundlePath) {
         const resolvedBundlePath = viewabilityPath(viewabilityDynamicRelativePath(bundlePath));
-        let bundlePromise = sourceTimeseriesBundleCache.get(resolvedBundlePath);
+        const bundleCacheKey = `${resolvedBundlePath}|${sourceCellId}`;
+        let bundlePromise = sourceTimeseriesBundleCache.get(bundleCacheKey);
         if (!bundlePromise) {
-          bundlePromise = fetchJson<SourceTimeSeriesBundleFile>(resolvedBundlePath).then((result) => result.data);
-          sourceTimeseriesBundleCache.set(resolvedBundlePath, bundlePromise);
+          bundlePromise = (async () => {
+            if (!resolvedBundlePath.endsWith(".parquet")) {
+              const bundle = (await fetchJson<SourceTimeSeriesBundleFile>(resolvedBundlePath)).data;
+              const rows = bundle.sources[sourceCellId] ?? [];
+              return rows.map((point) => ({
+                period: asString(point.date) ?? "",
+                dynamic_viewability: asNumber(point.dynamic_viewyness_score),
+                sighting_count: asNumber(point.sighting_count),
+              }));
+            }
+            const columns = await getParquetColumns(resolvedBundlePath);
+            const sourceColumn = columns.has("source_h3") ? "source_h3" : columns.has("h3") ? "h3" : null;
+            const dateColumn = columns.has("date") ? "date" : columns.has("period") ? "period" : null;
+            const viewabilityColumn = columns.has("dynamic_viewyness_score")
+              ? "dynamic_viewyness_score"
+              : columns.has("dynamic_viewability")
+                ? "dynamic_viewability"
+                : null;
+            if (!sourceColumn || !dateColumn) return [];
+
+            const rows = await queryParquetFile(
+              resolvedBundlePath,
+              (fileName) => `
+                SELECT
+                  ${dateColumn} AS period,
+                  ${viewabilityColumn ?? "NULL"} AS dynamic_viewability,
+                  ${columns.has("sighting_count") ? "sighting_count" : "NULL"} AS sighting_count
+                FROM read_parquet(${sqlLiteral(fileName)})
+                WHERE ${sourceColumn} = ${sqlLiteral(sourceCellId)}
+                ORDER BY ${dateColumn}
+              `
+            );
+
+            return rows.map((point) => ({
+              period: asString(point.period) ?? "",
+              dynamic_viewability: asNumber(point.dynamic_viewability),
+              sighting_count: asNumber(point.sighting_count),
+            }));
+          })();
+          sourceTimeseriesBundleCache.set(bundleCacheKey, bundlePromise);
         }
-        const bundle = await bundlePromise;
-        const rows = bundle.sources[sourceCellId] ?? [];
-        return rows.map((point) => ({
-          period: asString(point.date) ?? "",
-          dynamic_viewability: asNumber(point.dynamic_viewyness_score),
-          sighting_count: asNumber(point.sighting_count),
-        }));
+        return bundlePromise;
       }
     }
 

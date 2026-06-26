@@ -4,15 +4,17 @@ import { attribution, basemapSources } from "../config/attribution";
 
 type Props = {
   className?: string;
+  sources?: string[];
 };
 
-export function AttributionHover({ className }: Props) {
+export function AttributionHover({ className, sources }: Props) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties | undefined>(undefined);
   const [open, setOpen] = useState(false);
+  const resolvedSources = sources ?? attribution.sources;
   const extraCount = useMemo(
-    () => Math.max(0, attribution.sources.length - basemapSources.length),
-    []
+    () => Math.max(0, resolvedSources.length - basemapSources.length),
+    [resolvedSources]
   );
 
   const inlineText =
@@ -59,7 +61,7 @@ export function AttributionHover({ className }: Props) {
           >
             <div className="attribHover__title">Sources</div>
             <ul className="attribHover__list">
-              {attribution.sources.map((source) => (
+              {resolvedSources.map((source) => (
                 <li key={source}>{source}</li>
               ))}
             </ul>

@@ -7,6 +7,10 @@ type Props = {
   periods: Period[];
   selectedIndex: number;
   onChangeIndex: (idx: number) => void;
+  isPlaying: boolean;
+  onPlayingChange: (value: boolean) => void;
+  playDir: 1 | -1;
+  onPlayDirChange: (value: 1 | -1) => void;
   disabled?: boolean;
   tourId?: string;
 };
@@ -27,14 +31,16 @@ export function ForecastPeriodPill({
   periods,
   selectedIndex,
   onChangeIndex,
+  isPlaying,
+  onPlayingChange,
+  playDir,
+  onPlayDirChange,
   disabled = false,
   tourId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playDir, setPlayDir] = useState<1 | -1>(-1);
   const [scrubIndex, setScrubIndex] = useState(selectedIndex);
   const [isDragging, setIsDragging] = useState(false);
   const debounceRef = useRef<number | null>(null);
@@ -57,12 +63,10 @@ export function ForecastPeriodPill({
       if (!containerRef.current) return;
       if (containerRef.current.contains(event.target as Node)) return;
       setOpen(false);
-      setIsPlaying(false);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setOpen(false);
-      setIsPlaying(false);
     };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
@@ -79,13 +83,18 @@ export function ForecastPeriodPill({
       const current = selectedIndex;
       const next = current + playDir;
       if (next < 0 || next > maxIndex) {
-        setIsPlaying(false);
+        const reversedDir: 1 | -1 = playDir === 1 ? -1 : 1;
+        onPlayDirChange(reversedDir);
+        const bounced = current + reversedDir;
+        if (bounced >= 0 && bounced <= maxIndex) {
+          onChangeIndex(bounced);
+        }
         return;
       }
       onChangeIndex(next);
     }, SPEED_MS[speed]);
     return () => window.clearTimeout(id);
-  }, [disabled, isPlaying, playDir, periods.length, selectedIndex, speed, onChangeIndex]);
+  }, [disabled, isPlaying, onPlayDirChange, playDir, periods.length, selectedIndex, speed, onChangeIndex]);
 
   const currentLabel = useMemo(() => periods[selectedIndex]?.label ?? "Forecast", [
     periods,
@@ -108,18 +117,12 @@ export function ForecastPeriodPill({
     }, 150);
   };
 
-  const stopPlayback = () => {
-    if (isPlaying) setIsPlaying(false);
-  };
-
   const handleSliderChange = (value: number) => {
-    stopPlayback();
     setScrubIndex(value);
     scheduleCommit(value);
   };
 
   const handleSliderCommit = (value: number) => {
-    stopPlayback();
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -130,17 +133,16 @@ export function ForecastPeriodPill({
   const handlePlayToggle = () => {
     if (periods.length === 0) return;
     if (isPlaying) {
-      setIsPlaying(false);
+      onPlayingChange(false);
       return;
     }
     const maxIndex = periods.length - 1;
     const dir: 1 | -1 = selectedIndex >= maxIndex ? -1 : 1;
-    setPlayDir(dir);
-    setIsPlaying(true);
+    onPlayDirChange(dir);
+    onPlayingChange(true);
   };
 
   const moveTo = (idx: number) => {
-    stopPlayback();
     if (idx < 0 || idx >= periods.length) return;
     commitIndex(idx);
   };

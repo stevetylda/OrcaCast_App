@@ -15,6 +15,7 @@
     "data:validate": "bash scripts/check_artifacts.sh"
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.33.1-dev57.0",
     "d3-shape": "^3.2.0",
     "dagre": "^0.8.5",
     "driver.js": "^1.4.0",
