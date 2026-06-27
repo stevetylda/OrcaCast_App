@@ -15,6 +15,7 @@ export function ViewabilityPage() {
   const { darkMode, setThemeMode } = useMapState();
   const mapRef = useRef<ViewabilityMapHandle | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
+  const [hoveredSourceCellId, setHoveredSourceCellId] = useState<string | null>(null);
 
   const selectedDateToken = controller.selectedDateOrPeriod.replace(/[^0-9-]+/g, "_");
 
@@ -128,6 +129,8 @@ export function ViewabilityPage() {
           showTargetCells={controller.showTargetCells}
           showSourceCells={controller.showSourceCells}
           selectedSourceCellId={controller.selectedSourceCellId}
+          selectedSourceCellIds={controller.selectedSourceCellIds}
+          hoveredSourceCellId={hoveredSourceCellId}
           colorScaleSettings={controller.colorScaleSettings}
           poiFilters={controller.poiFilters}
           onSelectSourceCell={controller.selectSourceCell}
@@ -166,7 +169,10 @@ export function ViewabilityPage() {
           selectedDate={controller.selectedDateOrPeriod}
           scoreType={controller.scoreType}
           sourceCellId={controller.selectedSourceCellId}
-          sourceTimeSeries={controller.selectedSourceTimeSeries}
+          sourceCellIds={controller.selectedSourceCellIds}
+          sourceTimeSeriesBySource={controller.selectedSourceTimeSeriesBySource}
+          hoveredSourceCellId={hoveredSourceCellId}
+          onHoverSourceCell={setHoveredSourceCellId}
         />
       </main>
       <div className="app__footer">

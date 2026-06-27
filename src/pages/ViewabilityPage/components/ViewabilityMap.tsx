@@ -21,6 +21,7 @@ const TARGET_LINE_LAYER_ID = "viewability-target-line";
 const SOURCE_FILL_LAYER_ID = "viewability-source-fill";
 const SOURCE_LINE_LAYER_ID = "viewability-source-line";
 const SOURCE_SELECTED_LAYER_ID = "viewability-source-selected";
+const SOURCE_HOVER_LAYER_ID = "viewability-source-hover";
 
 type Props = {
   darkMode: boolean;
@@ -33,8 +34,10 @@ type Props = {
   showTargetCells: boolean;
   showSourceCells: boolean;
   selectedSourceCellId: string | null;
+  selectedSourceCellIds: string[];
+  hoveredSourceCellId: string | null;
   colorScaleSettings: ViewabilityColorScaleSettings;
-  onSelectSourceCell: (sourceCellId: string) => void;
+  onSelectSourceCell: (sourceCellId: string, additive?: boolean) => void;
 };
 
 export type ViewabilityMapHandle = {
@@ -95,6 +98,8 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
   showTargetCells,
   showSourceCells,
   selectedSourceCellId,
+  selectedSourceCellIds,
+  hoveredSourceCellId,
   colorScaleSettings,
   onSelectSourceCell,
 }, ref) {
@@ -149,7 +154,7 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     showTargetCellsRef.current = showTargetCells;
     showSourceCellsRef.current = showSourceCells;
     selectedSourceCellIdRef.current = selectedSourceCellId;
-  }, [colorScaleSettings, mapTargets, scoreType, selectedSourceCellId, showSourceCells, showTargetCells, sourceCells]);
+  }, [colorScaleSettings, mapTargets, scoreType, selectedSourceCellId, selectedSourceCellIds, showSourceCells, showTargetCells, sourceCells]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -284,15 +289,15 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     if (!map || !map.getLayer(TARGET_FILL_LAYER_ID)) return;
     const propertyName = mode === "source-inspector" ? "source_target_weight" : getViewabilityScoreProperty(scoreType);
     const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
+    const selectedIds = selectedSourceCellIds.length > 0 ? selectedSourceCellIds : ["__none__"];
     const hideUnselectedSourcesExpression = [
       "all",
       ["==", ["literal", mode], "source-inspector"],
-      ["!=", ["get", "h3"], selectedSourceCellId ?? ""],
+      ["!", ["in", ["get", "h3"], ["literal", selectedIds]]],
     ] as const;
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, propertyName));
     map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-color", lineColors.target);
     map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score"));
-    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-color", lineColors.source);
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-opacity", [
       "case",
       ["all", ["==", ["literal", mode], "source-inspector"], ["!", ["coalesce", ["get", "visible_from_selected_source"], false]]],
@@ -306,8 +311,20 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
       1,
     ]);
     map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-opacity", ["case", hideUnselectedSourcesExpression, 0, 0.8]);
-    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-opacity", ["case", hideUnselectedSourcesExpression, 0, 0.9]);
-  }, [colorScaleSettings, mode, scoreType, selectedSourceCellId]);
+    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-color", [
+      "case",
+      hideUnselectedSourcesExpression,
+      "rgba(22, 42, 66, 0.72)",
+      lineColors.source,
+    ]);
+    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-opacity", ["case", hideUnselectedSourcesExpression, 0.82, 0.95]);
+    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-width", [
+      "case",
+      hideUnselectedSourcesExpression,
+      ["interpolate", ["linear"], ["zoom"], 5, 0.8, 9, 1.5],
+      ["interpolate", ["linear"], ["zoom"], 5, 1.6, 9, 3.0],
+    ]);
+  }, [colorScaleSettings, mode, scoreType, selectedSourceCellIds]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -317,29 +334,42 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     setVisibility(map, TARGET_LINE_LAYER_ID, showTargetCells || showInspectorTargets);
     setVisibility(map, SOURCE_FILL_LAYER_ID, showSourceCells);
     setVisibility(map, SOURCE_LINE_LAYER_ID, showSourceCells);
-    setVisibility(map, SOURCE_SELECTED_LAYER_ID, showSourceCells && Boolean(selectedSourceCellId));
-  }, [mode, selectedSourceCellId, showSourceCells, showTargetCells]);
+    setVisibility(map, SOURCE_SELECTED_LAYER_ID, showSourceCells && selectedSourceCellIds.length > 0);
+    setVisibility(map, SOURCE_HOVER_LAYER_ID, showSourceCells && Boolean(hoveredSourceCellId));
+  }, [hoveredSourceCellId, mode, selectedSourceCellIds, showSourceCells, showTargetCells]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.getLayer(SOURCE_SELECTED_LAYER_ID)) return;
-    map.setFilter(SOURCE_SELECTED_LAYER_ID, ["==", ["get", "h3"], selectedSourceCellId ?? ""]);
-  }, [selectedSourceCellId]);
+    map.setFilter(
+      SOURCE_SELECTED_LAYER_ID,
+      selectedSourceCellIds.length > 0
+        ? ["in", ["get", "h3"], ["literal", selectedSourceCellIds]]
+        : ["==", ["get", "h3"], ""]
+    );
+  }, [selectedSourceCellIds]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || mode !== "source-inspector" || !selectedSourceCellId) {
+    if (!map || !map.getLayer(SOURCE_HOVER_LAYER_ID)) return;
+    map.setFilter(SOURCE_HOVER_LAYER_ID, ["==", ["get", "h3"], hoveredSourceCellId ?? ""]);
+  }, [hoveredSourceCellId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || mode !== "source-inspector" || selectedSourceCellIds.length === 0) {
       lastInspectorFitKeyRef.current = null;
       return;
     }
 
     const inspectorTargetCount = mapTargets?.features.length ?? 0;
-    const fitKey = `${selectedSourceCellId}:${inspectorTargetCount}`;
+    const fitKey = `${selectedSourceCellIds.join("|")}:${inspectorTargetCount}`;
     if (fitKey === lastInspectorFitKeyRef.current) return;
 
+    const selectedIds = new Set(selectedSourceCellIds);
     const selectedSourceFeatureCollection: FeatureCollection = {
       type: "FeatureCollection",
-      features: (sourceCells?.features ?? []).filter((feature) => feature.properties.h3 === selectedSourceCellId),
+      features: (sourceCells?.features ?? []).filter((feature) => selectedIds.has(feature.properties.h3)),
     };
     const bounds = new maplibregl.LngLatBounds();
     extendBoundsFromFeatureCollection(bounds, selectedSourceFeatureCollection);
@@ -352,7 +382,7 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
       duration: 700,
       maxZoom: 9,
     });
-  }, [mapTargets, mode, selectedSourceCellId, sourceCells]);
+  }, [mapTargets, mode, selectedSourceCellIds, sourceCells]);
 
   return (
     <div className="mapStage viewabilityMapStage">
@@ -444,6 +474,22 @@ function addLayers(
       },
     });
   }
+  if (!map.getLayer(SOURCE_HOVER_LAYER_ID)) {
+    map.addLayer({
+      id: SOURCE_HOVER_LAYER_ID,
+      type: "line",
+      source: SOURCE_SOURCE_ID,
+      filter: ["==", ["get", "h3"], ""],
+      layout: {
+        visibility: "none",
+      },
+      paint: {
+        "line-color": "rgba(255,255,255,0.96)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 5, 9, 8],
+        "line-opacity": 0.95,
+      },
+    });
+  }
 }
 
 function getViewabilityLineColors(paletteId: ViewabilityColorScaleSettings["paletteId"]) {
@@ -468,7 +514,7 @@ function getViewabilityLineColors(paletteId: ViewabilityColorScaleSettings["pale
 function bindInteractions(
   map: MapLibreMap,
   popupRef: MutableRefObject<maplibregl.Popup | null>,
-  onSelectSourceCellRef: MutableRefObject<(sourceCellId: string) => void>
+  onSelectSourceCellRef: MutableRefObject<(sourceCellId: string, additive?: boolean) => void>
 ) {
   map.on("mouseenter", SOURCE_FILL_LAYER_ID, () => {
     map.getCanvas().style.cursor = "pointer";
@@ -480,7 +526,9 @@ function bindInteractions(
   map.on("click", SOURCE_FILL_LAYER_ID, (event) => {
     const h3 = event.features?.[0]?.properties?.h3;
     popupRef.current?.remove();
-    if (typeof h3 === "string") onSelectSourceCellRef.current(h3);
+    const original = event.originalEvent as MouseEvent | undefined;
+    const additive = Boolean(original?.ctrlKey || original?.metaKey || original?.shiftKey);
+    if (typeof h3 === "string") onSelectSourceCellRef.current(h3, additive);
   });
   map.on("mousemove", TARGET_FILL_LAYER_ID, (event) => {
     const feature = event.features?.[0];
@@ -564,6 +612,7 @@ function targetTooltipHtml(props: Record<string, unknown>) {
       <div>${escapeHtml(String(props.h3 ?? "-"))}</div>
       <dl>
         <dt>Active source-target weight</dt><dd>${formatScore(Number(props.source_target_weight))}</dd>
+        <dt>Selected source cells</dt><dd>${escapeHtml(String(props.selected_source_count ?? 1))}</dd>
         <dt>Base source-target weight</dt><dd>${formatScore(Number(props.base_source_target_weight))}</dd>
         <dt>Dynamic source-target weight</dt><dd>${formatScore(Number(props.dynamic_source_target_weight))}</dd>
         <dt>Dynamic modifier</dt><dd>${formatScore(Number(props.source_target_modifier))}</dd>

@@ -43,6 +43,8 @@ export type ViewabilitySourceProperties = {
 export type SourceTargetVisibilityProperties = {
   source_h3: string;
   target_h3: string;
+  source_h3s?: string[];
+  selected_source_count?: number;
   source_target_weight?: number;
   base_source_target_weight?: number;
   dynamic_source_target_weight?: number;

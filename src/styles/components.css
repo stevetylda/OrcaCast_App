@@ -844,11 +844,13 @@
 }
 
 .viewabilitySourceDrawerChart__line {
-  stroke: #19f0d7;
-  stroke-width: 3;
+  stroke: var(--source-line-color, #19f0d7);
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  opacity: 0.72;
   vector-effect: non-scaling-stroke;
+  transition: opacity 120ms ease, stroke-width 120ms ease, filter 120ms ease;
 }
 
 .viewabilityTabs {
@@ -7062,4 +7064,90 @@
     var(--control-h) +
     var(--left-control-gap)
   ) !important;
+}
+/* Viewability multi-source inspector overrides */
+.mapPageRoot .viewabilityBottomDrawer {
+  bottom: var(--footer-h);
+  z-index: 35;
+}
+
+.mapPageRoot .viewabilityBottomDrawer.isOpen {
+  bottom: calc(var(--footer-h) + 14px);
+}
+
+.mapPageRoot .viewabilityLegend {
+  bottom: calc(var(--footer-h) + 24px);
+  z-index: 20;
+}
+
+.viewabilitySourceChartControls {
+  justify-content: flex-start;
+  margin-top: -4px;
+}
+
+.viewabilitySourceDrawerChart__hitLine {
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+  vector-effect: non-scaling-stroke;
+}
+
+/* .viewabilitySourceDrawerChart__line {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.72;
+  vector-effect: non-scaling-stroke;
+  transition: opacity 120ms ease, stroke-width 120ms ease, filter 120ms ease;
+} */
+ .viewabilitySourceDrawerChart__line {
+  stroke: var(--source-line-color, #19f0d7);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.viewabilitySourceDrawerChart__line.isHovered {
+  stroke-width: 4.5;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px rgba(25, 240, 215, 0.58));
+}
+
+.viewabilitySourceDrawerLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.viewabilitySourceDrawerLegend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(180, 207, 230, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(234, 242, 255, 0.78);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.viewabilitySourceDrawerLegend__item span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.18);
+}
+
+.viewabilitySourceDrawerLegend__item.isHovered,
+.viewabilitySourceDrawerLegend__item:hover,
+.viewabilitySourceDrawerLegend__item:focus-visible {
+  outline: none;
+  border-color: rgba(25, 240, 215, 0.55);
+  background: rgba(25, 240, 215, 0.12);
+  color: rgba(255, 255, 255, 0.95);
 }

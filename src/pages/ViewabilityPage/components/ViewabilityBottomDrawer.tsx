@@ -19,7 +19,10 @@ type Props = {
   selectedDate: string;
   scoreType: ViewabilityScoreType;
   sourceCellId: string | null;
-  sourceTimeSeries: SourceCellTimeSeriesPoint[];
+  sourceCellIds: string[];
+  sourceTimeSeriesBySource: Record<string, SourceCellTimeSeriesPoint[]>;
+  hoveredSourceCellId: string | null;
+  onHoverSourceCell: (sourceCellId: string | null) => void;
 };
 
 type MetricConfig = {
@@ -132,6 +135,11 @@ function periodLabel(value: string | undefined): string {
   return value && value.length >= 7 ? value.slice(0, 7) : value ?? "";
 }
 
+function sourceLineColor(index: number): string {
+  const hue = (178 + index * 47) % 360;
+  return `hsl(${hue} 86% 52%)`;
+}
+
 function stackedLaneLayout(laneIndex: number, laneCount: number): { top: number; height: number; middle: number } {
   const laneGap = 12;
   const totalHeight = STACKED_HEIGHT - MARGIN.top - MARGIN.bottom;
@@ -179,7 +187,10 @@ export function ViewabilityBottomDrawer({
   selectedDate,
   scoreType,
   sourceCellId,
-  sourceTimeSeries,
+  sourceCellIds,
+  sourceTimeSeriesBySource,
+  hoveredSourceCellId,
+  onHoverSourceCell,
 }: Props) {
   const [visibleMetrics, setVisibleMetrics] = useState<Record<Metric, boolean>>({
     weather: true,
@@ -191,6 +202,8 @@ export function ViewabilityBottomDrawer({
   const [visibleWindow, setVisibleWindow] = useState<{ start: number; end: number } | null>(null);
   const [dragStart, setDragStart] = useState<{ clientX: number; start: number; end: number } | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [sourceVisibleWindow, setSourceVisibleWindow] = useState<{ start: number; end: number } | null>(null);
+  const [sourceDragStart, setSourceDragStart] = useState<{ clientX: number; start: number; end: number } | null>(null);
 
   const selectedIndex = useMemo(
     () => points.findIndex((point) => point.date === selectedDate),
@@ -210,11 +223,27 @@ export function ViewabilityBottomDrawer({
 
   const activeMetrics = METRICS.filter((metric) => visibleMetrics[metric.key]);
   const chartHeight = plotMode === "stacked" ? STACKED_HEIGHT : HEIGHT;
-  const sourceValues = sourceTimeSeries.map((point) => sourceScoreValue(point) ?? 0);
+  const selectedSourceSeries = sourceCellIds.map((sourceId, index) => ({
+    sourceId,
+    color: sourceLineColor(index),
+    points: sourceTimeSeriesBySource[sourceId] ?? [],
+  }));
+  const maxSourceSeriesLength = Math.max(0, ...selectedSourceSeries.map((series) => series.points.length));
+  const sourceClampedWindow = sourceVisibleWindow
+    ? clampWindow(sourceVisibleWindow.start, sourceVisibleWindow.end, maxSourceSeriesLength)
+    : { start: 0, end: Math.max(0, maxSourceSeriesLength - 1) };
+  const visibleSourceSeries = selectedSourceSeries.map((series) => ({
+    ...series,
+    points: series.points.slice(sourceClampedWindow.start, sourceClampedWindow.end + 1),
+  }));
+  const sourceValues = visibleSourceSeries.flatMap((series) => series.points.map((point) => sourceScoreValue(point) ?? 0));
   const sourceMax = Math.max(...sourceValues, 1);
-  const sourcePath = sourceLinePath(sourceTimeSeries, sourceMax);
-  const latestSourcePoint = sourceTimeSeries.at(-1);
+  const latestSourceSeries = sourceCellId ? sourceTimeSeriesBySource[sourceCellId] ?? [] : [];
+  const latestSourcePoint = latestSourceSeries.at(-1);
   const latestSourceValue = latestSourcePoint ? sourceScoreValue(latestSourcePoint) : undefined;
+  const firstVisibleSourcePoint = visibleSourceSeries.find((series) => series.points.length > 0)?.points[0];
+  const lastVisibleSourcePoint = [...visibleSourceSeries].reverse().find((series) => series.points.length > 0)?.points.at(-1);
+  const isSourceZoomed = maxSourceSeriesLength > 0 && (sourceClampedWindow.start > 0 || sourceClampedWindow.end < maxSourceSeriesLength - 1);
 
   const zoomChart = (factor: number, focusFraction = 0.5) => {
     setVisibleWindow((current) => {
@@ -272,6 +301,47 @@ export function ViewabilityBottomDrawer({
     setVisibleWindow(clampWindow(nextStart, nextStart + span - 1, count));
   };
 
+  const zoomSourceChart = (factor: number, focusFraction = 0.5) => {
+    setSourceVisibleWindow((current) => {
+      const count = maxSourceSeriesLength;
+      if (count <= 0) return current;
+      const window = current
+        ? clampWindow(current.start, current.end, count)
+        : { start: 0, end: count - 1 };
+      const span = window.end - window.start + 1;
+      const minSpan = Math.min(MIN_VISIBLE_DAYS, count);
+      const nextSpan = Math.max(minSpan, Math.min(count, Math.round(span * factor)));
+      const focusIndex = window.start + focusFraction * (span - 1);
+      const nextStart = Math.round(focusIndex - focusFraction * (nextSpan - 1));
+      return clampWindow(nextStart, nextStart + nextSpan - 1, count);
+    });
+  };
+
+  const resetSourceZoom = () => {
+    setSourceVisibleWindow(null);
+  };
+
+  const handleSourceWheel = (event: WheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const viewX = ((event.clientX - bounds.left) / bounds.width) * WIDTH;
+    const focusFraction = Math.max(0, Math.min(1, (viewX - MARGIN.left) / PLOT_WIDTH));
+    zoomSourceChart(event.deltaY < 0 ? 0.78 : 1.28, focusFraction);
+  };
+
+  const handleSourcePointerMove = (event: PointerEvent<SVGSVGElement>) => {
+    if (!sourceDragStart) return;
+
+    const count = maxSourceSeriesLength;
+    const span = sourceDragStart.end - sourceDragStart.start + 1;
+    if (count <= span) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const deltaIndices = Math.round(((event.clientX - sourceDragStart.clientX) / bounds.width) * span);
+    const nextStart = sourceDragStart.start - deltaIndices;
+    setSourceVisibleWindow(clampWindow(nextStart, nextStart + span - 1, count));
+  };
+
   return (
     <section className={`viewabilityBottomDrawer${open ? " isOpen" : ""}`} aria-label="Viewability analysis drawer">
       <button type="button" className="viewabilityBottomDrawer__handle" onClick={onToggleOpen} aria-expanded={open}>
@@ -296,7 +366,7 @@ export function ViewabilityBottomDrawer({
               type="button"
               className={activeTab === "source" ? "isSelected" : ""}
               onClick={() => onTabChange("source")}
-              disabled={!sourceCellId}
+              disabled={sourceCellIds.length === 0}
               role="tab"
               aria-selected={activeTab === "source"}
             >
@@ -552,31 +622,129 @@ export function ViewabilityBottomDrawer({
               <div className="viewabilityAnalysisHeader">
                 <div>
                   <h3>Source Time Series</h3>
-                  <p>{sourceCellId ?? "No source selected"}</p>
+                  <p>
+                    {sourceCellIds.length === 0
+                      ? "No source selected"
+                      : `${sourceCellIds.length} selected${sourceCellId ? ` · primary ${sourceCellId}` : ""}`}
+                  </p>
                 </div>
                 <div className="viewabilitySourceAnalysis__summary">
-                  <span>{sourceTimeSeries.length} days</span>
+                  <span>{maxSourceSeriesLength} days</span>
                   <strong>{latestSourceValue === undefined ? "-" : latestSourceValue.toFixed(3)}</strong>
                 </div>
               </div>
 
-              {sourceTimeSeries.length > 0 ? (
-                <div className="viewabilitySourceDrawerChart" aria-label="Selected source viewable target score over time">
-                  <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" role="img">
-                    <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax, sourceMax)} y2={sourceYForValue(sourceMax, sourceMax)} />
-                    <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax / 2, sourceMax)} y2={sourceYForValue(sourceMax / 2, sourceMax)} />
-                    <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(0, sourceMax)} y2={sourceYForValue(0, sourceMax)} />
-                    <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={HEIGHT - MARGIN.bottom} y2={HEIGHT - MARGIN.bottom} />
-                    <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={MARGIN.left} y1={MARGIN.top} y2={HEIGHT - MARGIN.bottom} />
-                    <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceMax, sourceMax) + 4}>{sourceMax.toFixed(2)}</text>
-                    <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(0, sourceMax) + 4}>0</text>
-                    <text className="viewabilitySourceDrawerChart__tick" x={MARGIN.left} y={HEIGHT - 8}>{periodLabel(sourceTimeSeries[0]?.period)}</text>
-                    <text className="viewabilitySourceDrawerChart__tick viewabilitySourceDrawerChart__tick--end" x={WIDTH - MARGIN.right} y={HEIGHT - 8}>
-                      {periodLabel(latestSourcePoint?.period)}
-                    </text>
-                    {sourcePath && <path className="viewabilitySourceDrawerChart__line" d={sourcePath} fill="none" />}
-                  </svg>
-                </div>
+              {maxSourceSeriesLength > 0 ? (
+                <>
+                  <div className="viewabilityConditionControls viewabilitySourceChartControls" aria-label="Source chart controls">
+                    <button
+                      type="button"
+                      className="viewabilityChartIconBtn"
+                      onClick={() => zoomSourceChart(0.72)}
+                      aria-label="Zoom source chart in"
+                      title="Zoom in"
+                    >
+                      <span className="material-symbols-rounded" aria-hidden="true">zoom_in</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="viewabilityChartIconBtn"
+                      onClick={() => zoomSourceChart(1.36)}
+                      aria-label="Zoom source chart out"
+                      title="Zoom out"
+                    >
+                      <span className="material-symbols-rounded" aria-hidden="true">zoom_out</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="viewabilityChartIconBtn"
+                      onClick={resetSourceZoom}
+                      disabled={!isSourceZoomed}
+                      aria-label="Reset source chart zoom"
+                      title="Reset zoom"
+                    >
+                      <span className="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+                    </button>
+                  </div>
+
+                  <div className="viewabilitySourceDrawerChart" aria-label="Selected source viewable target score over time">
+                    <svg
+                      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                      preserveAspectRatio="none"
+                      role="img"
+                      onWheel={handleSourceWheel}
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        setSourceDragStart({ clientX: event.clientX, start: sourceClampedWindow.start, end: sourceClampedWindow.end });
+                      }}
+                      onPointerMove={handleSourcePointerMove}
+                      onPointerUp={(event) => {
+                        event.currentTarget.releasePointerCapture(event.pointerId);
+                        setSourceDragStart(null);
+                      }}
+                      onPointerCancel={() => {
+                        setSourceDragStart(null);
+                        onHoverSourceCell(null);
+                      }}
+                      onPointerLeave={() => {
+                        if (!sourceDragStart) onHoverSourceCell(null);
+                      }}
+                      onDoubleClick={resetSourceZoom}
+                    >
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax, sourceMax)} y2={sourceYForValue(sourceMax, sourceMax)} />
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax / 2, sourceMax)} y2={sourceYForValue(sourceMax / 2, sourceMax)} />
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(0, sourceMax)} y2={sourceYForValue(0, sourceMax)} />
+                      <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={HEIGHT - MARGIN.bottom} y2={HEIGHT - MARGIN.bottom} />
+                      <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={MARGIN.left} y1={MARGIN.top} y2={HEIGHT - MARGIN.bottom} />
+                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceMax, sourceMax) + 4}>{sourceMax.toFixed(2)}</text>
+                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(0, sourceMax) + 4}>0</text>
+                      <text className="viewabilitySourceDrawerChart__tick" x={MARGIN.left} y={HEIGHT - 8}>{periodLabel(firstVisibleSourcePoint?.period)}</text>
+                      <text className="viewabilitySourceDrawerChart__tick viewabilitySourceDrawerChart__tick--end" x={WIDTH - MARGIN.right} y={HEIGHT - 8}>
+                        {periodLabel(lastVisibleSourcePoint?.period)}
+                      </text>
+
+                      {visibleSourceSeries.map((series) => {
+                        const path = sourceLinePath(series.points, sourceMax);
+                        if (!path) return null;
+                        const isHovered = hoveredSourceCellId === series.sourceId;
+                        return (
+                          <g
+                            key={series.sourceId}
+                            style={{ "--source-line-color": series.color } as React.CSSProperties}
+                          >
+                            <path
+                              className="viewabilitySourceDrawerChart__hitLine"
+                              d={path}
+                              fill="none"
+                              onPointerEnter={() => onHoverSourceCell(series.sourceId)}
+                              onPointerLeave={() => onHoverSourceCell(null)}
+                            />
+                            <path
+                              className={`viewabilitySourceDrawerChart__line${isHovered ? " isHovered" : ""}`}
+                              d={path}
+                              fill="none"
+                            />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+
+                  <div className="viewabilitySourceDrawerLegend" aria-label="Selected source cells">
+                    {selectedSourceSeries.map((series) => (
+                      <button
+                        key={series.sourceId}
+                        type="button"
+                        className={`viewabilitySourceDrawerLegend__item${hoveredSourceCellId === series.sourceId ? " isHovered" : ""}`}
+                        onPointerEnter={() => onHoverSourceCell(series.sourceId)}
+                        onPointerLeave={() => onHoverSourceCell(null)}
+                      >
+                        <span style={{ backgroundColor: series.color }} aria-hidden="true" />
+                        {series.sourceId}
+                      </button>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="viewabilityEmptyState">Select a source cell to view its time series.</div>
               )}
