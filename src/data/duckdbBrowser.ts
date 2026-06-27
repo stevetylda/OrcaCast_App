@@ -1,20 +1,5 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
-import duckdbWasmMvp from "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url";
-import duckdbWorkerMvp from "@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url";
-import duckdbWasmEh from "@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url";
-import duckdbWorkerEh from "@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url";
 import { getDataVersionToken } from "./meta";
-
-const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-  mvp: {
-    mainModule: duckdbWasmMvp,
-    mainWorker: duckdbWorkerMvp,
-  },
-  eh: {
-    mainModule: duckdbWasmEh,
-    mainWorker: duckdbWorkerEh,
-  },
-};
 
 const schemaCache = new Map<string, Promise<Set<string>>>();
 const registeredFiles = new Set<string>();
@@ -53,8 +38,8 @@ function toJsonRow(value: unknown): Record<string, unknown> {
 async function getDb(): Promise<duckdb.AsyncDuckDB> {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-      const worker = new Worker(bundle.mainWorker!);
+      const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+      const worker = await duckdb.createWorker(bundle.mainWorker!);
       const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
       await db.open({
