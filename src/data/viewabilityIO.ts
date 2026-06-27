@@ -41,6 +41,7 @@ type ViewabilityManifest = {
     source_conditions_template?: string;
     source_timeseries_template?: string;
     months_template?: string;
+    monthly_scores_template?: string;
     monthly_area_conditions_template?: string;
     source_timeseries_index?: string;
     source_timeseries_bundle_dir?: string;
@@ -132,6 +133,7 @@ type SourceTimeSeriesBundleFile = {
 };
 
 const dynamicMonthCache = new Map<string, Promise<DynamicMonthFile>>();
+const dynamicMonthParquetCache = new Map<string, Promise<Map<string, Record<string, unknown>>>>();
 const areaConditionsMonthCache = new Map<string, Promise<AreaConditionsMonthFile>>();
 const sourceTimeseriesIndexCache = new Map<string, Promise<SourceTimeSeriesIndexFile>>();
 const sourceVisibilityBundleCache = new Map<string, Promise<SourceTargetVisibilityRecord[]>>();
@@ -235,7 +237,7 @@ function dynamicScoreRows(scores: DynamicScoresFile | Array<Record<string, unkno
 
 async function loadDynamicMonth(manifest: ViewabilityManifest, date: string): Promise<DynamicMonthDate | null> {
   const template = manifest.dynamic?.months_template;
-  if (!template) return null;
+  if (!template || template.endsWith(".parquet")) return null;
 
   const month = monthFromDate(date);
   const path = viewabilityPath(templatePath(template, { month, yyyy_mm: month }));
@@ -247,6 +249,33 @@ async function loadDynamicMonth(manifest: ViewabilityManifest, date: string): Pr
 
   const monthData = await promise;
   return monthData.dates[date] ?? null;
+}
+
+async function loadDynamicMonthParquet(
+  manifest: ViewabilityManifest,
+  date: string,
+  entity: "target" | "source"
+): Promise<Map<string, Record<string, unknown>> | null> {
+  const template = manifest.dynamic?.monthly_scores_template ?? manifest.dynamic?.months_template;
+  if (!template || !template.endsWith(".parquet")) return null;
+
+  const month = monthFromDate(date);
+  const path = viewabilityPath(templatePath(template, { month, yyyy_mm: month }));
+  const cacheKey = `${path}|${date}|${entity}`;
+  let promise = dynamicMonthParquetCache.get(cacheKey);
+  if (!promise) {
+    promise = queryParquetFile(
+      path,
+      (fileName) => `
+        SELECT h3, weather_score, daylight_score, dynamic_score
+        FROM read_parquet(${sqlLiteral(fileName)})
+        WHERE date = ${sqlLiteral(date)}
+          AND entity = ${sqlLiteral(entity)}
+      `
+    ).then((rows) => new Map(rows.map((row) => [String(row.h3), row])));
+    dynamicMonthParquetCache.set(cacheKey, promise);
+  }
+  return promise;
 }
 
 function statValue(stat: AreaConditionStat | undefined): { value?: number; low?: number; high?: number } {
@@ -323,6 +352,20 @@ export async function loadViewabilityAreaConditions(): Promise<ViewabilityAreaCo
 }
 
 async function loadDynamicTargetScoresByH3(manifest: ViewabilityManifest, date: string): Promise<Map<string, Record<string, unknown>>> {
+  const parquetRows = await loadDynamicMonthParquet(manifest, date, "target");
+  if (parquetRows) {
+    return new Map(
+      [...parquetRows].map(([h3, row]) => [
+        h3,
+        {
+          h3,
+          weather_viewability_score: asNumber(row.weather_score),
+          daylight_viewability_score: asNumber(row.daylight_score),
+          dynamic_viewability_score: asNumber(row.dynamic_score),
+        },
+      ])
+    );
+  }
   const day = await loadDynamicMonth(manifest, date);
   if (day?.target_viewability) {
     return new Map(dynamicScoreRows(day.target_viewability).map((row) => [String(row.h3), row]));
@@ -331,6 +374,20 @@ async function loadDynamicTargetScoresByH3(manifest: ViewabilityManifest, date: 
 }
 
 async function loadDynamicSourceScoresByH3(manifest: ViewabilityManifest, date: string): Promise<Map<string, Record<string, unknown>>> {
+  const parquetRows = await loadDynamicMonthParquet(manifest, date, "source");
+  if (parquetRows) {
+    return new Map(
+      [...parquetRows].map(([h3, row]) => [
+        h3,
+        {
+          h3,
+          weather_viewyness_score: asNumber(row.weather_score),
+          daylight_viewyness_score: asNumber(row.daylight_score),
+          dynamic_viewyness_score: asNumber(row.dynamic_score),
+        },
+      ])
+    );
+  }
   const day = await loadDynamicMonth(manifest, date);
   if (day?.source_viewyness) {
     return new Map(dynamicScoreRows(day.source_viewyness).map((row) => [String(row.h3), row]));

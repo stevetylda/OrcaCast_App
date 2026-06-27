@@ -5274,13 +5274,97 @@
   width: 100%;
 }
 
+.explainabilityWindowComposer {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(132, 188, 246, 0.16);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(42, 228, 214, 0.08), transparent 52%),
+    rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.explainabilityWindowPresetRow {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .explainabilityWindowBanner {
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(233, 243, 255, 0.86);
-  padding: 8px 10px;
-  font-size: 13px;
+  display: grid;
+  gap: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(132, 188, 246, 0.18);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 218, 225, 0.1), transparent 56%),
+    linear-gradient(180deg, rgba(10, 26, 56, 0.44), rgba(7, 18, 42, 0.36));
+  color: rgba(233, 243, 255, 0.9);
+  padding: 14px 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(2, 10, 24, 0.18);
+}
+
+.explainabilityWindowBanner__eyebrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.explainabilityWindowBanner__tag,
+.explainabilityWindowBanner__meta,
+.explainabilityComparePicker__badge,
+.explainabilityCompareSummary__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 213, 242, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(224, 240, 255, 0.78);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.explainabilityWindowBanner__range {
+  font-size: 21px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: rgba(244, 250, 255, 0.98);
+}
+
+.explainabilityWindowBanner__stats,
+.explainabilityCompareSummary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.explainabilityWindowBanner__chip,
+.explainabilityCompareSummary__card {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(138, 202, 232, 0.16);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.explainabilityWindowBanner__chip strong,
+.explainabilityCompareSummary__value {
+  font-size: 15px;
+  font-weight: 760;
+  color: rgba(244, 250, 255, 0.97);
+}
+
+.explainabilityWindowBanner__chip span,
+.explainabilityCompareSummary__detail {
+  color: rgba(214, 229, 245, 0.72);
+  font-size: 12px;
 }
 
 .explainabilityPanel__actions {
@@ -5799,25 +5883,103 @@
 
 .explainabilityPairList__item {
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+  background:
+    radial-gradient(140% 160% at 0% 0%, rgba(66, 196, 222, 0.08), transparent 56%),
+    rgba(255, 255, 255, 0.02);
   color: rgba(238, 246, 255, 0.9);
-  border-radius: 10px;
-  min-height: 44px;
+  border-radius: 12px;
+  min-height: 58px;
   font-family: inherit;
   font-size: 13px;
   text-align: left;
-  padding: 8px 10px;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
   cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.explainabilityPairList__item:hover,
+.explainabilityPairList__item:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(130, 209, 234, 0.44);
+  box-shadow: 0 10px 24px rgba(2, 8, 24, 0.22);
 }
 
 .explainabilityPairList__item--active {
   border-color: rgba(103, 199, 229, 0.72);
   box-shadow: inset 0 0 0 1px rgba(103, 199, 229, 0.46);
   background: rgba(103, 199, 229, 0.1);
+}
+
+.explainabilityPairList__rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(136, 201, 230, 0.34);
+  background: rgba(10, 30, 62, 0.58);
+  color: rgba(228, 242, 255, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.explainabilityPairList__content {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.explainabilityPairList__pair {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.explainabilityPairList__feature {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.explainabilityPairList__operator {
+  color: rgba(155, 211, 234, 0.78);
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.explainabilityPairList__bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.explainabilityPairList__barFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(74, 191, 227, 0.9), rgba(108, 226, 255, 0.98));
+  box-shadow: 0 0 12px rgba(82, 211, 255, 0.28);
+}
+
+.explainabilityPairList__score {
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  color: rgba(239, 247, 255, 0.96);
 }
 
 .explainabilityEmptyState {
@@ -5838,12 +6000,75 @@
 }
 
 .explainabilityComparePicker {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 10px;
+  border: 1px solid rgba(132, 188, 246, 0.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(42, 228, 214, 0.08), transparent 54%),
+    rgba(255, 255, 255, 0.025);
+  padding: 14px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.explainabilityComparePicker__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.explainabilityComparePicker__head strong {
+  font-size: 14px;
+  color: rgba(242, 249, 255, 0.95);
+}
+
+.explainabilityComparePicker__inputs {
+  display: grid;
+  gap: 10px;
+}
+
+.explainabilityCompareSummary__detail {
+  line-height: 1.35;
+}
+
+.explainabilityCompareTableWrap {
+  border-radius: 14px;
+  border: 1px solid rgba(132, 188, 246, 0.16);
+  background:
+    radial-gradient(circle at 10% 8%, rgba(42, 228, 214, 0.06), transparent 48%),
+    rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: auto;
+}
+
+.explainabilityCompareTableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.explainabilityCompareTableWrap th,
+.explainabilityCompareTableWrap td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.explainabilityCompareTableWrap th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(214, 229, 245, 0.72);
+}
+
+.explainabilityCompareTableWrap td {
+  color: rgba(236, 245, 255, 0.9);
+  font-size: 13px;
+}
+
+.explainabilityCompareTableWrap tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .explainabilityBottomBar {
@@ -5869,6 +6094,11 @@
   }
 
   .explainabilityComparePickers {
+    grid-template-columns: 1fr;
+  }
+
+  .explainabilityWindowBanner__stats,
+  .explainabilityCompareSummary {
     grid-template-columns: 1fr;
   }
 
@@ -5981,8 +6211,8 @@
 
 .app:not(.app--dark) .explainabilityContextDock {
   border-color: rgba(11, 27, 58, 0.14);
-  background: rgba(247, 251, 255, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.04);
+  background: linear-gradient(180deg, rgba(251, 253, 255, 0.96), rgba(241, 247, 253, 0.94));
+  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.04), 0 10px 24px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityStrip {
@@ -6001,6 +6231,20 @@
   background: rgba(248, 252, 255, 0.97);
   color: rgba(19, 39, 70, 0.92);
   box-shadow: 0 10px 24px rgba(16, 32, 56, 0.18);
+}
+
+.app:not(.app--dark) .driversSubcopy,
+.app:not(.app--dark) .explainabilityDrilldown__head p,
+.app:not(.app--dark) .explainabilityPanel__foot {
+  color: rgba(50, 69, 98, 0.78);
+}
+
+.app:not(.app--dark) .explainabilitySectionTitle,
+.app:not(.app--dark) .explainabilityPanel__head h3,
+.app:not(.app--dark) .explainabilityDrilldown__takeaway,
+.app:not(.app--dark) .explainabilityDriversSummary__body strong,
+.app:not(.app--dark) .activeGridsChartCard__head h4 {
+  color: rgba(18, 34, 58, 0.94);
 }
 
 .app:not(.app--dark) .explainabilityStrip__toggle,
@@ -6024,8 +6268,18 @@
 .app:not(.app--dark) .explainabilityComparePicker,
 .app:not(.app--dark) .explainabilityPairList__item {
   border-color: rgba(11, 27, 58, 0.14);
-  background: rgba(11, 27, 58, 0.03);
+  background: rgba(248, 251, 255, 0.9);
   color: rgba(19, 39, 70, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.app:not(.app--dark) .explainabilityWindowComposer,
+.app:not(.app--dark) .explainabilityCompareTableWrap {
+  border-color: rgba(118, 142, 175, 0.18);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(73, 194, 209, 0.06), transparent 52%),
+    linear-gradient(180deg, rgba(251, 253, 255, 0.96), rgba(241, 247, 253, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 24px rgba(16, 32, 56, 0.06);
 }
 
 .app:not(.app--dark) .explainabilityGroupToggle {
@@ -6042,7 +6296,10 @@
 .app:not(.app--dark) .explainabilityDriversSummary__card,
 .app:not(.app--dark) .explainabilityDrilldown {
   border-color: rgba(11, 27, 58, 0.14);
-  background: rgba(11, 27, 58, 0.03);
+  background:
+    radial-gradient(140% 160% at 0% 0%, rgba(0, 176, 198, 0.05), transparent 58%),
+    linear-gradient(180deg, rgba(251, 253, 255, 0.96), rgba(242, 248, 255, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 24px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityDriversSummary__card:hover,
@@ -6061,7 +6318,7 @@
 }
 
 .app:not(.app--dark) .activeGridsChartCard__head h4 {
-  color: rgba(26, 54, 92, 0.8);
+  color: rgba(18, 34, 58, 0.94);
 }
 
 .app:not(.app--dark) .activeGridsLegendChip {
@@ -6131,7 +6388,17 @@
 
 .app:not(.app--dark) .explainabilityDriversSummary__card--active {
   border-color: rgba(66, 176, 214, 0.72);
-  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.4), 0 0 12px rgba(66, 176, 214, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 0 0 1px rgba(66, 176, 214, 0.34),
+    0 12px 28px rgba(16, 32, 56, 0.1);
+}
+
+.app:not(.app--dark) .explainabilityDriversSummary__rank {
+  border-color: rgba(66, 176, 214, 0.38);
+  background: rgba(236, 245, 255, 0.96);
+  color: rgba(18, 34, 58, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .app:not(.app--dark) .explainabilityDriversSummary__effectChip {
@@ -6160,20 +6427,58 @@
 
 .app:not(.app--dark) .explainabilityDriversPlotCard {
   border-color: rgba(11, 27, 58, 0.16);
-  background: rgba(11, 27, 58, 0.03);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background:
+    radial-gradient(140% 160% at 0% 0%, rgba(0, 176, 198, 0.05), transparent 58%),
+    linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(242, 248, 255, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 12px 28px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityDependenceCard {
   border-color: rgba(11, 27, 58, 0.16);
-  background: rgba(11, 27, 58, 0.03);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background:
+    radial-gradient(140% 160% at 0% 0%, rgba(0, 176, 198, 0.05), transparent 58%),
+    linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(242, 248, 255, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 12px 28px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityPairList__item--active {
   border-color: rgba(0, 158, 175, 0.54);
   box-shadow: inset 0 0 0 1px rgba(0, 158, 175, 0.3);
   background: rgba(0, 176, 198, 0.12);
+}
+
+.app:not(.app--dark) .explainabilityPairList__item:hover,
+.app:not(.app--dark) .explainabilityPairList__item:focus-visible {
+  border-color: rgba(66, 176, 214, 0.42);
+  box-shadow: 0 12px 28px rgba(16, 32, 56, 0.08);
+}
+
+.app:not(.app--dark) .explainabilityPairList__rank {
+  border-color: rgba(66, 176, 214, 0.24);
+  background: rgba(235, 245, 252, 0.98);
+  color: rgba(18, 34, 58, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.app:not(.app--dark) .explainabilityPairList__feature {
+  color: rgba(19, 39, 70, 0.9);
+}
+
+.app:not(.app--dark) .explainabilityPairList__operator {
+  color: rgba(66, 176, 214, 0.82);
+}
+
+.app:not(.app--dark) .explainabilityPairList__bar {
+  background: rgba(174, 197, 222, 0.22);
+}
+
+.app:not(.app--dark) .explainabilityPairList__barFill {
+  background: linear-gradient(90deg, rgba(44, 153, 196, 0.86), rgba(83, 194, 214, 0.96));
+  box-shadow: none;
+}
+
+.app:not(.app--dark) .explainabilityPairList__score {
+  color: rgba(18, 34, 58, 0.92);
 }
 
 .app:not(.app--dark) .explainabilityPlot__rowLine,
@@ -6225,46 +6530,83 @@
   border-color: rgba(80, 163, 210, 0.3);
 }
 
+.app:not(.app--dark) .explainabilityPageContent .select,
+.app:not(.app--dark) .explainabilityDriversSelectorDock,
+.app:not(.app--dark) .explainabilityPanelSelectorDock {
+  border-color: rgba(118, 142, 175, 0.3);
+  background:
+    radial-gradient(circle at 16% 8%, rgba(73, 194, 209, 0.08), transparent 48%),
+    linear-gradient(180deg, rgba(252, 254, 255, 0.98), rgba(240, 247, 253, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 22px rgba(16, 32, 56, 0.08);
+}
+
+.app:not(.app--dark) .explainabilityPageContent .select {
+  color: rgba(18, 34, 58, 0.92);
+  font-weight: 700;
+}
+
+.app:not(.app--dark) .explainabilityPageContent .select:hover,
+.app:not(.app--dark) .explainabilityPageContent .select:focus {
+  border-color: rgba(66, 176, 214, 0.54);
+  background:
+    radial-gradient(circle at 16% 8%, rgba(73, 194, 209, 0.12), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(235, 245, 252, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 0 0 1px rgba(66, 176, 214, 0.16),
+    0 10px 24px rgba(16, 32, 56, 0.1);
+}
+
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option {
-  color: rgba(18, 34, 58, 0.72);
+  color: rgba(18, 34, 58, 0.78);
 }
 
 .app:not(.app--dark) .explainabilityToggle {
   border-color: rgba(11, 27, 58, 0.14);
-  background: rgba(247, 251, 255, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.03);
+  background: linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(240, 246, 252, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.03), 0 8px 20px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical {
   border-color: rgba(80, 163, 210, 0.38);
   background:
-    radial-gradient(circle at 12% 8%, rgba(72, 202, 230, 0.14), transparent 56%),
-    linear-gradient(160deg, rgba(242, 250, 255, 0.9), rgba(232, 246, 255, 0.94));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    radial-gradient(circle at 12% 8%, rgba(72, 202, 230, 0.1), transparent 56%),
+    linear-gradient(160deg, rgba(249, 252, 255, 0.98), rgba(235, 245, 252, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 12px 28px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option {
-  border-color: rgba(80, 163, 210, 0.34);
-  background: rgba(238, 247, 255, 0.92);
+  border-color: rgba(118, 142, 175, 0.26);
+  background: rgba(250, 252, 255, 0.96);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.app:not(.app--dark) .explainabilityToggle__icon {
+  color: rgba(29, 53, 84, 0.72);
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:hover,
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:focus-visible {
-  border-color: rgba(66, 176, 214, 0.62);
-  background: rgba(224, 243, 255, 0.98);
-  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.2), 0 0 12px rgba(66, 176, 214, 0.16);
+  border-color: rgba(66, 176, 214, 0.48);
+  background: linear-gradient(180deg, rgba(242, 250, 255, 1), rgba(227, 241, 250, 0.98));
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.16), 0 10px 22px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option.isActive {
-  border-color: rgba(66, 176, 214, 0.78);
+  border-color: rgba(66, 176, 214, 0.6);
   background:
-    radial-gradient(circle at 18% 12%, rgba(112, 235, 255, 0.3), transparent 56%),
-    linear-gradient(180deg, rgba(208, 243, 255, 0.98), rgba(179, 230, 250, 0.96));
+    radial-gradient(circle at 18% 12%, rgba(112, 235, 255, 0.18), transparent 56%),
+    linear-gradient(180deg, rgba(230, 246, 255, 1), rgba(209, 236, 248, 0.98));
   box-shadow:
-    inset 2px 0 0 rgba(46, 162, 206, 0.92),
-    0 0 0 1px rgba(66, 176, 214, 0.38),
-    0 0 14px rgba(66, 176, 214, 0.24);
+    inset 2px 0 0 rgba(46, 162, 206, 0.76),
+    0 0 0 1px rgba(66, 176, 214, 0.22),
+    0 12px 26px rgba(16, 32, 56, 0.1);
+}
+
+.app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option.isActive .explainabilityToggle__icon {
+  color: rgba(16, 45, 78, 0.96);
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option:hover::before,
@@ -6275,21 +6617,21 @@
 }
 
 .app:not(.app--dark) .explainabilityToggle--vertical .lineageViewToggle__option.isActive::after {
-  background: linear-gradient(180deg, rgba(208, 243, 255, 0.98), rgba(179, 230, 250, 0.96));
-  border-top-color: rgba(66, 176, 214, 0.64);
-  border-bottom-color: rgba(66, 176, 214, 0.64);
+  background: linear-gradient(180deg, rgba(230, 246, 255, 1), rgba(209, 236, 248, 0.98));
+  border-top-color: rgba(66, 176, 214, 0.46);
+  border-bottom-color: rgba(66, 176, 214, 0.46);
 }
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option:hover,
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option:focus-visible {
   color: rgba(16, 31, 52, 0.95);
-  background: rgba(11, 27, 58, 0.06);
+  background: rgba(201, 220, 242, 0.34);
 }
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option.isActive {
   color: rgba(10, 23, 40, 0.96);
-  background: rgba(11, 27, 58, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(11, 27, 58, 0.14);
+  background: linear-gradient(180deg, rgba(225, 238, 250, 0.92), rgba(211, 228, 244, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(101, 126, 160, 0.18);
 }
 
 .app:not(.app--dark) .explainabilityToggle .lineageViewToggle__option:not(:last-child)::after {
@@ -6297,40 +6639,126 @@
 }
 
 .app:not(.app--dark) .explainabilityResolutionToggle {
-  border-color: rgba(80, 163, 210, 0.24);
-  background: rgba(228, 243, 255, 0.5);
-  box-shadow: inset 0 0 0 1px rgba(95, 182, 224, 0.18);
+  border-color: rgba(118, 142, 175, 0.28);
+  background: linear-gradient(180deg, rgba(252, 254, 255, 0.98), rgba(239, 246, 253, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(118, 142, 175, 0.1), 0 10px 24px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option {
   color: rgba(18, 49, 82, 0.9);
-  border-color: rgba(80, 163, 210, 0.38);
-  background: linear-gradient(180deg, rgba(232, 246, 255, 0.98), rgba(219, 238, 255, 0.96));
+  border-color: rgba(118, 142, 175, 0.24);
+  background: linear-gradient(180deg, rgba(252, 254, 255, 1), rgba(236, 244, 251, 0.98));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:hover,
 .app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:focus-visible {
   color: rgba(10, 36, 63, 0.96);
-  border-color: rgba(66, 176, 214, 0.66);
-  background: linear-gradient(180deg, rgba(224, 244, 255, 0.99), rgba(198, 236, 247, 0.98));
-  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.26), 0 0 12px rgba(66, 176, 214, 0.2);
+  border-color: rgba(66, 176, 214, 0.48);
+  background: linear-gradient(180deg, rgba(244, 251, 255, 1), rgba(225, 241, 249, 0.98));
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.18), 0 10px 24px rgba(16, 32, 56, 0.08);
 }
 
 .app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option.isActive {
   color: rgba(8, 31, 58, 0.98);
-  border-color: rgba(94, 197, 232, 0.94);
+  border-color: rgba(66, 176, 214, 0.62);
   background:
-    radial-gradient(circle at 20% 8%, rgba(113, 236, 255, 0.32), transparent 52%),
-    linear-gradient(180deg, rgba(209, 243, 255, 0.98), rgba(180, 231, 251, 0.96));
+    radial-gradient(circle at 20% 8%, rgba(113, 236, 255, 0.18), transparent 52%),
+    linear-gradient(180deg, rgba(231, 247, 255, 1), rgba(210, 236, 247, 0.98));
   box-shadow:
-    0 0 0 1px rgba(94, 197, 232, 0.72),
-    0 0 14px rgba(65, 189, 228, 0.38),
+    0 0 0 1px rgba(66, 176, 214, 0.22),
+    0 12px 26px rgba(16, 32, 56, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.94);
 }
 
 .app:not(.app--dark) .explainabilityResolutionToggle .lineageViewToggle__option:not(:last-child)::after {
-  background: rgba(65, 189, 228, 0.26);
+  background: rgba(118, 142, 175, 0.18);
+}
+
+.app:not(.app--dark) .explainabilityResolutionToggle__hex {
+  background: rgba(66, 176, 214, 0.84);
+  box-shadow: 0 0 0 1px rgba(66, 176, 214, 0.34);
+}
+
+.app:not(.app--dark) .explainabilityPlot__modeRail {
+  fill: rgba(239, 246, 253, 0.96);
+  stroke: rgba(118, 142, 175, 0.24);
+}
+
+.app:not(.app--dark) .explainabilityPlot__modeBtn rect {
+  fill: transparent;
+  stroke: rgba(118, 142, 175, 0.28);
+}
+
+.app:not(.app--dark) .explainabilityPlot__modeBtn circle,
+.app:not(.app--dark) .explainabilityPlot__modeBtn path,
+.app:not(.app--dark) .explainabilityPlot__modeBtn line {
+  fill: rgba(39, 63, 94, 0.72);
+  stroke: rgba(39, 63, 94, 0.72);
+}
+
+.app:not(.app--dark) .explainabilityPlot__modeBtn.isActive rect {
+  fill: rgba(66, 176, 214, 0.12);
+  stroke: rgba(66, 176, 214, 0.54);
+}
+
+.app:not(.app--dark) .explainabilityPlot__modeBtn.isActive circle,
+.app:not(.app--dark) .explainabilityPlot__modeBtn.isActive path,
+.app:not(.app--dark) .explainabilityPlot__modeBtn.isActive line {
+  fill: rgba(18, 34, 58, 0.92);
+  stroke: rgba(18, 34, 58, 0.92);
+}
+
+.app:not(.app--dark) .explainabilityWindowBanner {
+  border-color: rgba(118, 142, 175, 0.22);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(73, 194, 209, 0.08), transparent 56%),
+    linear-gradient(180deg, rgba(250, 253, 255, 0.98), rgba(236, 244, 251, 0.96));
+  color: rgba(19, 39, 70, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 12px 28px rgba(16, 32, 56, 0.08);
+}
+
+.app:not(.app--dark) .explainabilityWindowBanner__tag,
+.app:not(.app--dark) .explainabilityWindowBanner__meta,
+.app:not(.app--dark) .explainabilityComparePicker__badge,
+.app:not(.app--dark) .explainabilityCompareSummary__label {
+  border-color: rgba(118, 142, 175, 0.2);
+  background: rgba(231, 241, 249, 0.7);
+  color: rgba(49, 69, 98, 0.78);
+}
+
+.app:not(.app--dark) .explainabilityWindowBanner__range,
+.app:not(.app--dark) .explainabilityCompareSummary__value,
+.app:not(.app--dark) .explainabilityComparePicker__head strong {
+  color: rgba(18, 34, 58, 0.95);
+}
+
+.app:not(.app--dark) .explainabilityWindowBanner__chip,
+.app:not(.app--dark) .explainabilityCompareSummary__card {
+  border-color: rgba(118, 142, 175, 0.16);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.app:not(.app--dark) .explainabilityWindowBanner__chip span,
+.app:not(.app--dark) .explainabilityCompareSummary__detail {
+  color: rgba(50, 69, 98, 0.74);
+}
+
+.app:not(.app--dark) .explainabilityCompareTableWrap th {
+  color: rgba(50, 69, 98, 0.7);
+}
+
+.app:not(.app--dark) .explainabilityCompareTableWrap td {
+  color: rgba(19, 39, 70, 0.88);
+}
+
+.app:not(.app--dark) .explainabilityCompareTableWrap th,
+.app:not(.app--dark) .explainabilityCompareTableWrap td {
+  border-bottom-color: rgba(118, 142, 175, 0.14);
+}
+
+.app:not(.app--dark) .explainabilityCompareTableWrap tbody tr:hover {
+  background: rgba(218, 232, 245, 0.28);
 }
 
 .app:not(.app--dark) .explainabilityControlDock {

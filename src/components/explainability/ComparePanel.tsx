@@ -34,6 +34,7 @@ export function ComparePanel({
   const rows = useMemo(() => computeCompareRows(allSamples, a, b), [allSamples, a, b]);
   const nA = useMemo(() => uniqueSampleCount(filterSamplesByWindow(allSamples, a)), [allSamples, a]);
   const nB = useMemo(() => uniqueSampleCount(filterSamplesByWindow(allSamples, b)), [allSamples, b]);
+  const topRow = rows[0] ?? null;
 
   const applyA = (next: DateWindow) => {
     setA(next);
@@ -59,38 +60,81 @@ export function ComparePanel({
         </label>
       </div>
       <div className="explainabilityPanel__head">
-        <h3>Compare driver shifts</h3>
+        <div className="explainabilityPanel__titleWrap">
+          <div className="explainabilityPanel__titleRow">
+            <h3>Compare driver shifts</h3>
+          </div>
+          <p className="driversSubcopy">
+            Hold two time windows side by side to see which drivers gained or lost relative importance.
+          </p>
+        </div>
         <div className="explainabilityComparePickers">
           <div className="explainabilityComparePicker">
-            <strong>Window A</strong>
-            <input className="select" type="date" min={minIso} max={maxIso} value={a.start} onChange={(event) => applyA({ ...a, start: event.target.value })} />
-            <input className="select" type="date" min={minIso} max={maxIso} value={a.end} onChange={(event) => applyA({ ...a, end: event.target.value })} />
+            <div className="explainabilityComparePicker__head">
+              <strong>Window A</strong>
+              <span className="explainabilityComparePicker__badge">{nA.toLocaleString()} samples</span>
+            </div>
+            <div className="explainabilityComparePicker__inputs">
+              <input className="select" type="date" min={minIso} max={maxIso} value={a.start} onChange={(event) => applyA({ ...a, start: event.target.value })} />
+              <input className="select" type="date" min={minIso} max={maxIso} value={a.end} onChange={(event) => applyA({ ...a, end: event.target.value })} />
+            </div>
             <span className="explainabilityPanel__foot">
               {toMonthLabel(a.start)}
               {" -> "}
               {toMonthLabel(a.end)}
-              {" | n="}
-              {nA.toLocaleString()}
             </span>
           </div>
           <div className="explainabilityComparePicker">
-            <strong>Window B</strong>
-            <input className="select" type="date" min={minIso} max={maxIso} value={b.start} onChange={(event) => applyB({ ...b, start: event.target.value })} />
-            <input className="select" type="date" min={minIso} max={maxIso} value={b.end} onChange={(event) => applyB({ ...b, end: event.target.value })} />
+            <div className="explainabilityComparePicker__head">
+              <strong>Window B</strong>
+              <span className="explainabilityComparePicker__badge">{nB.toLocaleString()} samples</span>
+            </div>
+            <div className="explainabilityComparePicker__inputs">
+              <input className="select" type="date" min={minIso} max={maxIso} value={b.start} onChange={(event) => applyB({ ...b, start: event.target.value })} />
+              <input className="select" type="date" min={minIso} max={maxIso} value={b.end} onChange={(event) => applyB({ ...b, end: event.target.value })} />
+            </div>
             <span className="explainabilityPanel__foot">
               {toMonthLabel(b.start)}
               {" -> "}
               {toMonthLabel(b.end)}
-              {" | n="}
-              {nB.toLocaleString()}
             </span>
           </div>
         </div>
       </div>
 
+      <div className="explainabilityCompareSummary" role="list" aria-label="Compare summary">
+        <div className="explainabilityCompareSummary__card" role="listitem">
+          <span className="explainabilityCompareSummary__label">Coverage</span>
+          <strong className="explainabilityCompareSummary__value">
+            {toMonthLabel(a.start)}
+            {" -> "}
+            {toMonthLabel(a.end)}
+          </strong>
+          <span className="explainabilityCompareSummary__detail">Window A baseline slice</span>
+        </div>
+        <div className="explainabilityCompareSummary__card" role="listitem">
+          <span className="explainabilityCompareSummary__label">Coverage</span>
+          <strong className="explainabilityCompareSummary__value">
+            {toMonthLabel(b.start)}
+            {" -> "}
+            {toMonthLabel(b.end)}
+          </strong>
+          <span className="explainabilityCompareSummary__detail">Window B comparison slice</span>
+        </div>
+        <div className="explainabilityCompareSummary__card" role="listitem">
+          <span className="explainabilityCompareSummary__label">Top shift</span>
+          <strong className="explainabilityCompareSummary__value">
+            {topRow ? topRow.feature_name : "No overlap"}
+          </strong>
+          <span className="explainabilityCompareSummary__detail">
+            {topRow ? `Delta ${topRow.delta >= 0 ? "+" : ""}${topRow.delta.toFixed(4)}` : "No overlapping SHAP samples"}
+          </span>
+        </div>
+      </div>
+
       <DeltaBarChart rows={rows} />
 
-      <div className="insightsExplorer__tableWrap">
+      <div className="insightsExplorer__tableWrap explainabilityCompareTableWrap">
         <table className="insightsExplorer__table">
           <thead>
             <tr>

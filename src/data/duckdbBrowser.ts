@@ -14,8 +14,8 @@ function withBase(url: string): string {
 }
 
 function applyCacheToken(url: string, cacheToken?: string | null): string {
-  if (!cacheToken) return url;
   const resolved = new URL(withBase(url), window.location.origin);
+  if (!cacheToken) return resolved.toString();
   resolved.searchParams.set("v", cacheToken);
   return resolved.toString();
 }

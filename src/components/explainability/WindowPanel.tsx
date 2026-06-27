@@ -43,6 +43,15 @@ export function WindowPanel({
   const [window, setWindow] = useState<DateWindow>(initialWindow);
   const [topN, setTopN] = useState(20);
   const [units, setUnits] = useState<"logit" | "probability">("probability");
+  const presetOptions = useMemo(
+    () => [
+      { key: "last4w", label: "Last 4w", window: buildPresetWindow("last4w", minIso, maxIso) },
+      { key: "last12w", label: "Last 12w", window: buildPresetWindow("last12w", minIso, maxIso) },
+      { key: "year", label: "This year", window: buildPresetWindow("year", minIso, maxIso) },
+      { key: "all", label: "All data", window: buildPresetWindow("all", minIso, maxIso) },
+    ],
+    [minIso, maxIso]
+  );
 
   const clamped = useMemo(() => clampWindow(window, minIso, maxIso), [window, minIso, maxIso]);
   const filtered = useMemo(() => filterSamplesByWindow(allSamples, clamped), [allSamples, clamped]);
@@ -61,6 +70,8 @@ export function WindowPanel({
       ? topN
       : highestAvailableTopN;
   const effectiveTopN = Math.min(safeTopN, maxAvailable || safeTopN);
+  const activePresetKey =
+    presetOptions.find((option) => option.window.start === clamped.start && option.window.end === clamped.end)?.key ?? "custom";
 
   const applyWindow = (next: DateWindow) => {
     const normalized = clampWindow(next, minIso, maxIso);
@@ -102,55 +113,82 @@ export function WindowPanel({
         </label>
       </div>
       <div className="explainabilityPanel__head">
-        <h3>Drivers (Window)</h3>
+        <div className="explainabilityPanel__titleWrap">
+          <div className="explainabilityPanel__titleRow">
+            <h3>Drivers (Window)</h3>
+          </div>
+          <p className="driversSubcopy">
+            Narrow the time slice, compare how the ranking shifts, and inspect the same SHAP view within a focused window.
+          </p>
+        </div>
       </div>
 
-      <div className="explainabilityPanel__controls explainabilityPanel__controls--window">
-        <label className="insightsExplorer__field">
-          <span>Start</span>
-          <input
-            className="select"
-            type="date"
-            value={clamped.start}
-            min={minIso}
-            max={maxIso}
-            onChange={(event) => applyWindow({ ...clamped, start: event.target.value })}
-          />
-        </label>
-        <label className="insightsExplorer__field">
-          <span>End</span>
-          <input
-            className="select"
-            type="date"
-            value={clamped.end}
-            min={minIso}
-            max={maxIso}
-            onChange={(event) => applyWindow({ ...clamped, end: event.target.value })}
-          />
-        </label>
-      </div>
+      <div className="explainabilityWindowComposer">
+        <div className="explainabilityPanel__controls explainabilityPanel__controls--window">
+          <label className="insightsExplorer__field">
+            <span>Start</span>
+            <input
+              className="select"
+              type="date"
+              value={clamped.start}
+              min={minIso}
+              max={maxIso}
+              onChange={(event) => applyWindow({ ...clamped, start: event.target.value })}
+            />
+          </label>
+          <label className="insightsExplorer__field">
+            <span>End</span>
+            <input
+              className="select"
+              type="date"
+              value={clamped.end}
+              min={minIso}
+              max={maxIso}
+              onChange={(event) => applyWindow({ ...clamped, end: event.target.value })}
+            />
+          </label>
+        </div>
 
-      <div className="insightsExplorer__chips" role="tablist" aria-label="Window presets">
-        <button type="button" className="pageToggle" onClick={() => applyWindow(buildPresetWindow("last4w", minIso, maxIso))}>
-          Last 4w
-        </button>
-        <button type="button" className="pageToggle" onClick={() => applyWindow(buildPresetWindow("last12w", minIso, maxIso))}>
-          Last 12w
-        </button>
-        <button type="button" className="pageToggle" onClick={() => applyWindow(buildPresetWindow("year", minIso, maxIso))}>
-          This year
-        </button>
-        <button type="button" className="pageToggle" onClick={() => applyWindow(buildPresetWindow("all", minIso, maxIso))}>
-          Custom
-        </button>
+        <div className="insightsExplorer__chips explainabilityWindowPresetRow" role="tablist" aria-label="Window presets">
+          {presetOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={activePresetKey === option.key ? "pageToggle pageToggle--active" : "pageToggle"}
+              onClick={() => applyWindow(option.window)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="explainabilityWindowBanner">
-        Window: {toMonthLabel(clamped.start)}
-        {" -> "}
-        {toMonthLabel(clamped.end)}
-        {" | n="}
-        {n.toLocaleString()}
+        <div className="explainabilityWindowBanner__eyebrow">
+          <span className="explainabilityWindowBanner__tag">
+            {activePresetKey === "custom" ? "Custom window" : presetOptions.find((option) => option.key === activePresetKey)?.label ?? "Window"}
+          </span>
+          <span className="explainabilityWindowBanner__meta">Sorted by mean(|impact|)</span>
+        </div>
+        <div className="explainabilityWindowBanner__range">
+          {toMonthLabel(clamped.start)}
+          {" -> "}
+          {toMonthLabel(clamped.end)}
+        </div>
+        <div className="explainabilityWindowBanner__stats" role="list" aria-label="Window summary">
+          <span className="explainabilityWindowBanner__chip" role="listitem">
+            <strong>{n.toLocaleString()}</strong>
+            <span>samples</span>
+          </span>
+          <span className="explainabilityWindowBanner__chip" role="listitem">
+            <strong>{effectiveTopN}</strong>
+            <span>visible drivers</span>
+          </span>
+          <span className="explainabilityWindowBanner__chip" role="listitem">
+            <strong>{maxAvailable}</strong>
+            <span>available features</span>
+          </span>
+        </div>
       </div>
 
       <ShapSummaryPlot
@@ -165,12 +203,8 @@ export function WindowPanel({
         Window: {clamped.start}
         {" -> "}
         {clamped.end}
-        {" | n="}
-        {n.toLocaleString()}
-        {" | Sorted by mean(|impact|) | Top N: "}
+        {" | Top N: "}
         {effectiveTopN}
-        {" | Available features: "}
-        {maxAvailable}
       </p>
 
       <div className="explainabilityPanel__actions">
