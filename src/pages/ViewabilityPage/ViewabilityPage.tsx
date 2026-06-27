@@ -169,12 +169,6 @@ export function ViewabilityPage() {
           sourceTimeSeries={controller.selectedSourceTimeSeries}
         />
       </main>
-
-      {/* <ViewabilityFooter
-        onDownloadSnapshot={handleDownloadSnapshot}
-        onShareSnapshot={handleShareSnapshot}
-        shareBusy={shareBusy}
-      /> */}
       <div className="app__footer">
         <ViewabilityFooter
           onDownloadSnapshot={handleDownloadSnapshot}
