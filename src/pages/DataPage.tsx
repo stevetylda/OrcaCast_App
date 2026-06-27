@@ -1,8 +1,9 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { SrkwPopulationChart } from "../components/charts/SrkwPopulationChart";
 import { SightingsActivitySummaryChart } from "../components/charts/SightingsActivitySummaryChart";
 import { DataLineageGraph } from "../components/data/DataLineageGraph";
 import { PageShell } from "../components/PageShell";
+import { loadDataSources } from "../data/dataSources";
 import {
   type DataLineageEdge,
   type DataLineageNodeMeta,
@@ -10,11 +11,30 @@ import {
   modelLineageEdges,
   modelLineageNodes,
 } from "./data/lineageConfig";
-import { coverageRows, coverageYears } from "./data/coverageMatrix";
+import { coverageRows, coverageYears, staticCoverageRows } from "./data/coverageMatrix";
 
 export function DataPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [lineageView, setLineageView] = useState<"high-level" | "full-feature">("high-level");
+  const [dynamicCoverageRows, setDynamicCoverageRows] = useState(coverageRows);
+  const [staticSourceRows, setStaticSourceRows] = useState(staticCoverageRows);
+
+  useEffect(() => {
+    let active = true;
+    loadDataSources()
+      .then((payload) => {
+        if (!active) return;
+        setDynamicCoverageRows(payload.dynamicSources);
+        setStaticSourceRows(payload.staticSources);
+      })
+      .catch((err) => {
+        console.warn("[DataPage] failed to load data sources config", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const highLevelNodes = useMemo<DataLineageNodeMeta[]>(
     () => [
@@ -274,9 +294,12 @@ export function DataPage() {
                   role="table"
                   aria-label="Yearly coverage by data source"
                   style={{
-                    gridTemplateColumns: `minmax(190px, 1.7fr) repeat(${coverageYears.length}, minmax(22px, 0.5fr))`,
+                    gridTemplateColumns: `minmax(140px, 1fr) minmax(190px, 1.7fr) repeat(${coverageYears.length}, minmax(22px, 0.5fr))`,
                   }}
                 >
+                  <div className="dataCoverageCell dataCoverageCell--head dataCoverageCell--sourceType">
+                    Source Type
+                  </div>
                   <div className="dataCoverageCell dataCoverageCell--head dataCoverageCell--source">
                     Data Source
                   </div>
@@ -286,38 +309,41 @@ export function DataPage() {
                     </div>
                   ))}
 
-                  {coverageRows.map((row) => {
+                  {dynamicCoverageRows.map((row, index) => {
                     const rowHasAnyAvailable = coverageYears.some(
                       (year) => row.availabilityByYear[year]
                     );
+                    const previousType = index > 0 ? dynamicCoverageRows[index - 1]?.sourceType : null;
+                    const showSourceType = row.sourceType !== previousType;
 
                     return (
                       <Fragment key={row.source}>
-                      <div
-                        className="dataCoverageCell dataCoverageCell--source"
-                      >
-                        {row.source}
-                      </div>
-                      {coverageYears.map((year) => {
-                        const available = row.availabilityByYear[year];
-                        const showMissingMarker = rowHasAnyAvailable;
-                        return (
-                          <div
-                            key={`${row.source}-${year}`}
-                            className={`dataCoverageCell dataCoverageCell--value ${
-                              available
-                                ? "dataCoverageCell--available"
-                                : showMissingMarker
-                                  ? "dataCoverageCell--missing"
-                                  : ""
-                            }`}
-                            aria-label={`${row.source} ${year} ${available ? "available" : "not available"}`}
-                            title={`${row.source} ${year}: ${available ? "available" : "not available"}`}
-                          >
-                            {available ? "●" : showMissingMarker ? "x" : ""}
-                          </div>
-                        );
-                      })}
+                        <div className="dataCoverageCell dataCoverageCell--sourceType">
+                          {showSourceType ? row.sourceType : "\u00A0"}
+                        </div>
+                        <div className="dataCoverageCell dataCoverageCell--source">
+                          <SourceLabelCell source={row.source} description={row.description} />
+                        </div>
+                        {coverageYears.map((year) => {
+                          const available = row.availabilityByYear[year];
+                          const showMissingMarker = rowHasAnyAvailable;
+                          return (
+                            <div
+                              key={`${row.source}-${year}`}
+                              className={`dataCoverageCell dataCoverageCell--value ${
+                                available
+                                  ? "dataCoverageCell--available"
+                                  : showMissingMarker
+                                    ? "dataCoverageCell--missing"
+                                    : ""
+                              }`}
+                              aria-label={`${row.source} ${year} ${available ? "available" : "not available"}`}
+                              title={`${row.source} ${year}: ${available ? "available" : "not available"}`}
+                            >
+                              {available ? "●" : showMissingMarker ? "x" : ""}
+                            </div>
+                          );
+                        })}
                       </Fragment>
                     );
                   })}
@@ -326,17 +352,30 @@ export function DataPage() {
               <div className="dataCoverageStatic">
                 <div className="dataCoverageStatic__title">Static Sources</div>
                 <div className="dataStaticTable" role="table" aria-label="Static data sources">
+                  <div className="dataStaticTable__cell dataStaticTable__cell--head">Source Type</div>
                   <div className="dataStaticTable__cell dataStaticTable__cell--head">Data Source</div>
-                  <div className="dataStaticTable__cell dataStaticTable__cell--head">Recency</div>
-
-                  <div className="dataStaticTable__cell">Coastline boundaries</div>
-                  <div className="dataStaticTable__cell">&nbsp;</div>
-
-                  <div className="dataStaticTable__cell">Hydro polygons</div>
-                  <div className="dataStaticTable__cell">&nbsp;</div>
-
-                  <div className="dataStaticTable__cell">GEBCO 10M</div>
-                  <div className="dataStaticTable__cell">&nbsp;</div>
+                  <div className="dataStaticTable__cell dataStaticTable__cell--head">Available</div>
+                  {staticSourceRows.map((row, index) => (
+                    <Fragment key={row.source}>
+                      <div className="dataStaticTable__cell dataStaticTable__cell--sourceType">
+                        {index === 0 || staticSourceRows[index - 1]?.sourceType !== row.sourceType
+                          ? row.sourceType
+                          : "\u00A0"}
+                      </div>
+                      <div className="dataStaticTable__cell dataStaticTable__cell--source">
+                        <SourceLabelCell source={row.source} description={row.description} />
+                      </div>
+                      <div
+                        className={`dataStaticTable__cell dataStaticTable__cell--available ${
+                          row.available ? "dataStaticTable__cell--availableYes" : "dataStaticTable__cell--availableNo"
+                        }`}
+                        aria-label={`${row.source} ${row.available ? "available" : "not available"}`}
+                        title={`${row.source}: ${row.available ? "available" : "not available"}`}
+                      >
+                        {row.available ? "●" : "x"}
+                      </div>
+                    </Fragment>
+                  ))}
                 </div>
               </div>
             </section>
@@ -402,5 +441,17 @@ export function DataPage() {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+function SourceLabelCell({ source, description }: { source: string; description: string }) {
+  return (
+    <div className="dataSourceCell" tabIndex={0}>
+      <span className="dataSourceCell__label">{source}</span>
+      <div className="dataSourceCell__tooltip" role="tooltip">
+        <div className="dataSourceCell__tooltipTitle">{source}</div>
+        <div className="dataSourceCell__tooltipBody">{description}</div>
+      </div>
+    </div>
   );
 }

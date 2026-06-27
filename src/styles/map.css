@@ -166,7 +166,7 @@
 .toolDrawer {
   position: absolute;
   left: 14px;
-  bottom: 60px;
+  bottom: 18px;
   z-index: 12;
   display: block;
 }
@@ -2411,7 +2411,7 @@
 
   .toolDrawer {
     left: 10px;
-    bottom: 80px;
+    bottom: 18px;
   }
 
   .toolDrawer__panel {

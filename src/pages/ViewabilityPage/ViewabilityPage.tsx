@@ -170,11 +170,18 @@ export function ViewabilityPage() {
         />
       </main>
 
-      <ViewabilityFooter
+      {/* <ViewabilityFooter
         onDownloadSnapshot={handleDownloadSnapshot}
         onShareSnapshot={handleShareSnapshot}
         shareBusy={shareBusy}
-      />
+      /> */}
+      <div className="app__footer">
+        <ViewabilityFooter
+          onDownloadSnapshot={handleDownloadSnapshot}
+          onShareSnapshot={handleShareSnapshot}
+          shareBusy={shareBusy}
+        />
+      </div>
     </div>
   );
 }
