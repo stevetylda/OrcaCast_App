@@ -19,7 +19,7 @@ export type PaletteDef<TId extends string = PaletteId> = {
   dominant: string;
 };
 
-export const DEFAULT_PALETTE_ID: PaletteId = "orcacast_classic";
+export const DEFAULT_PALETTE_ID: PaletteId = "mediterranean_atlas";
 
 export const PALETTES: Record<PaletteId, PaletteDef> = {
   orcacast_classic: {

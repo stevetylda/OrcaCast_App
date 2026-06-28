@@ -1,16 +1,21 @@
 import { useEffect, useRef } from "react";
 import { VIEWABILITY_PALETTE_OPTIONS } from "../../../constants/palettes";
 import type { ViewabilityColorScaleSettings } from "../../../data/viewabilityTypes";
+import type { ViewabilitySelectionMode } from "../useViewabilityPageController";
 
 type Props = {
   open: boolean;
   settings: ViewabilityColorScaleSettings;
   showTargetCells: boolean;
   showSourceCells: boolean;
+  selectionMode: ViewabilitySelectionMode;
+  drawSelectionKind: "target" | "source";
   poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onChange: (next: Partial<ViewabilityColorScaleSettings>) => void;
   onToggleTargetCells: () => void;
   onToggleSourceCells: () => void;
+  onSelectCellMode: () => void;
+  onSelectAreaMode: () => void;
   onTogglePoiAll: () => void;
   onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
   onToggleOpen: () => void;
@@ -22,10 +27,14 @@ export function ViewabilitySettingsPanel({
   settings,
   showTargetCells,
   showSourceCells,
+  selectionMode,
+  drawSelectionKind,
   poiFilters,
   onChange,
   onToggleTargetCells,
   onToggleSourceCells,
+  onSelectCellMode,
+  onSelectAreaMode,
   onTogglePoiAll,
   onTogglePoiType,
   onToggleOpen,
@@ -78,6 +87,28 @@ export function ViewabilitySettingsPanel({
             >
               Source cells
             </button>
+          </div>
+          <div className="viewabilityField">
+            <span>Selection mode</span>
+            <div className="viewabilityLayerToggles viewabilityLayerToggles--settings" aria-label="Selection mode">
+              <button
+                type="button"
+                className={`viewabilityToggle${selectionMode === "cell" ? " isSelected" : ""}`}
+                aria-pressed={selectionMode === "cell"}
+                onClick={onSelectCellMode}
+              >
+                Cell select
+              </button>
+              <button
+                type="button"
+                className={`viewabilityToggle${selectionMode === "area" ? " isSelected" : ""}`}
+                aria-pressed={selectionMode === "area"}
+                onClick={onSelectAreaMode}
+                title={`Open area selection for ${drawSelectionKind} cells`}
+              >
+                Area selection
+              </button>
+            </div>
           </div>
           <div className="viewabilitySettings__toolRow">
             <div className="toolMenu toolMenu--open">

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useMenu } from "../../state/MenuContext";
 import { useMapState } from "../../state/MapStateContext";
+import { ViewabilityAreaSelectionModal } from "./components/ViewabilityAreaSelectionModal";
 import { ViewabilityBottomDrawer } from "./components/ViewabilityBottomDrawer";
 import { ViewabilityFooter } from "./components/ViewabilityFooter";
 import { ViewabilityLegend } from "./components/ViewabilityLegend";
@@ -76,6 +77,16 @@ export function ViewabilityPage() {
     }
   };
 
+  const handleAreaSelectionSelect = () => {
+    mapRef.current?.confirmAreaSelection();
+  };
+
+  const handleAreaSelectionClear = () => {
+    mapRef.current?.clearAreaSelection();
+    controller.setAreaSelectionMetrics(0, false);
+    controller.resetSelection();
+  };
+
   return (
     <div className="mapPageRoot viewabilityPage">
       <header className="header viewabilityHeader">
@@ -99,7 +110,7 @@ export function ViewabilityPage() {
             onSelectedDateOrPeriodChange={controller.setSelectedDateOrPeriod}
             scoreType={controller.scoreType}
             onScoreTypeChange={controller.setScoreType}
-            selectedSourceCellId={controller.selectedSourceCellId}
+            hasSelection={controller.selectedSourceCellIds.length > 0 || controller.selectedTargetCellIds.length > 0}
             onResetSelection={controller.resetSelection}
           />
           <button
@@ -123,17 +134,26 @@ export function ViewabilityPage() {
           darkMode={darkMode}
           targetCells={controller.targetCells}
           sourceCells={controller.sourceCells}
-          selectedVisibility={controller.selectedVisibility}
+          selectedTargetVisibility={controller.selectedVisibility}
+          selectedSourceVisibility={controller.selectedTargetSources}
           mode={controller.mapMode}
           scoreType={controller.scoreType}
           showTargetCells={controller.showTargetCells}
           showSourceCells={controller.showSourceCells}
           selectedSourceCellId={controller.selectedSourceCellId}
           selectedSourceCellIds={controller.selectedSourceCellIds}
+          selectedTargetCellIds={controller.selectedTargetCellIds}
           hoveredSourceCellId={hoveredSourceCellId}
           colorScaleSettings={controller.colorScaleSettings}
           poiFilters={controller.poiFilters}
+          selectionMode={controller.selectionMode}
+          areaSelectionTool={controller.areaSelectionTool}
+          drawSelectionKind={controller.drawSelectionKind}
+          onAreaSelectionMetricsChange={controller.setAreaSelectionMetrics}
           onSelectSourceCell={controller.selectSourceCell}
+          onSelectSourceCells={controller.selectSourceCells}
+          onSelectTargetCell={controller.selectTargetCell}
+          onSelectTargetCells={controller.selectTargetCells}
         />
 
         <ViewabilitySettingsPanel
@@ -141,20 +161,36 @@ export function ViewabilityPage() {
           settings={controller.colorScaleSettings}
           showTargetCells={controller.showTargetCells}
           showSourceCells={controller.showSourceCells}
+          selectionMode={controller.selectionMode}
+          drawSelectionKind={controller.drawSelectionKind}
           poiFilters={controller.poiFilters}
           onChange={controller.setColorScale}
           onToggleTargetCells={controller.toggleTargetCells}
           onToggleSourceCells={controller.toggleSourceCells}
+          onSelectCellMode={controller.closeAreaSelection}
+          onSelectAreaMode={controller.openAreaSelection}
           onTogglePoiAll={controller.togglePoiAll}
           onTogglePoiType={controller.togglePoiType}
           onToggleOpen={() => controller.setSettingsOpen(!controller.settingsOpen)}
           onClose={() => controller.setSettingsOpen(false)}
         />
 
+        <ViewabilityAreaSelectionModal
+          open={controller.selectionMode === "area"}
+          targetLabel={controller.drawSelectionKind}
+          tool={controller.areaSelectionTool}
+          areaKm2={controller.areaSelectionAreaKm2}
+          ready={controller.areaSelectionReady}
+          onToolChange={controller.setAreaSelectionTool}
+          onClear={handleAreaSelectionClear}
+          onClose={controller.closeAreaSelection}
+          onSelect={handleAreaSelectionSelect}
+        />
+
         <ViewabilityLegend
           scoreType={controller.scoreType}
           settings={controller.colorScaleSettings}
-          inspectorMode={controller.mapMode === "source-inspector"}
+          inspectorMode={controller.mapMode !== "overview"}
         />
 
         {controller.loading && <div className="viewabilityMapNotice">Loading viewability data...</div>}

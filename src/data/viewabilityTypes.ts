@@ -3,7 +3,7 @@ import type { ViewabilityPaletteId } from "../constants/palettes";
 
 export type ViewabilityScoreType = "base" | "dynamic";
 
-export type ViewabilityMapMode = "overview" | "source-inspector";
+export type ViewabilityMapMode = "overview" | "source-inspector" | "target-inspector";
 
 export type SourceCellType = "land" | "water" | "mixed" | "unknown";
 
@@ -44,7 +44,9 @@ export type SourceTargetVisibilityProperties = {
   source_h3: string;
   target_h3: string;
   source_h3s?: string[];
+  target_h3s?: string[];
   selected_source_count?: number;
+  selected_target_count?: number;
   source_target_weight?: number;
   base_source_target_weight?: number;
   dynamic_source_target_weight?: number;

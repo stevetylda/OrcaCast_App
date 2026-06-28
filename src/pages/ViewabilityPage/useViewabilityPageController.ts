@@ -12,6 +12,7 @@ import type {
   ViewabilityTargetFeatureCollection,
 } from "../../data/viewabilityTypes";
 import {
+  loadTargetSourceVisibility,
   loadViewabilityAreaConditions,
   loadSourceCellConditions,
   loadSourceCellTimeSeries,
@@ -23,14 +24,15 @@ import {
 
 export type ViewabilityPageController = ReturnType<typeof useViewabilityPageController>;
 export type ViewabilityAnalysisTab = "conditions" | "source";
+export type ViewabilityDrawSelectionKind = "target" | "source";
+export type ViewabilitySelectionMode = "cell" | "area";
+export type ViewabilityAreaSelectionTool = "freehand" | "polygon" | "circle";
 
 const DEFAULT_COLOR_SETTINGS: ViewabilityColorScaleSettings = {
   paletteId: "mediterranean_atlas",
   normalizeValues: true,
   reversePalette: false,
 };
-
-const MAX_SELECTED_SOURCE_CELLS = 12;
 
 function finiteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -78,10 +80,13 @@ export function useViewabilityPageController() {
   const [showTargetCells, setShowTargetCells] = useState(true);
   const [showSourceCells, setShowSourceCells] = useState(false);
   const [selectedSourceCellIds, setSelectedSourceCellIds] = useState<string[]>([]);
+  const [selectedTargetCellIds, setSelectedTargetCellIds] = useState<string[]>([]);
   const selectedSourceCellId = selectedSourceCellIds.at(-1) ?? null;
+  const selectedTargetCellId = selectedTargetCellIds.at(-1) ?? null;
   const [targetCells, setTargetCells] = useState<ViewabilityTargetFeatureCollection | null>(null);
   const [sourceCells, setSourceCells] = useState<ViewabilitySourceFeatureCollection | null>(null);
   const [sourceTargetVisibility, setSourceTargetVisibility] = useState<SourceTargetVisibilityRecord[]>([]);
+  const [targetSourceVisibility, setTargetSourceVisibility] = useState<SourceTargetVisibilityRecord[]>([]);
   const [selectedSourceConditions, setSelectedSourceConditions] = useState<SourceCellConditions | null>(null);
   const [selectedSourceTimeSeriesBySource, setSelectedSourceTimeSeriesBySource] = useState<Record<string, SourceCellTimeSeriesPoint[]>>({});
   const [areaConditions, setAreaConditions] = useState<ViewabilityAreaConditionPoint[]>([]);
@@ -92,11 +97,16 @@ export function useViewabilityPageController() {
   const [bottomDrawerOpen, setBottomDrawerOpen] = useState(false);
   const [analysisTab, setAnalysisTab] = useState<ViewabilityAnalysisTab>("conditions");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<ViewabilitySelectionMode>("cell");
+  const [areaSelectionTool, setAreaSelectionTool] = useState<ViewabilityAreaSelectionTool>("freehand");
+  const [areaSelectionAreaKm2, setAreaSelectionAreaKm2] = useState(0);
+  const [areaSelectionReady, setAreaSelectionReady] = useState(false);
 
-  const mapMode: ViewabilityMapMode = selectedSourceCellIds.length > 0 ? "source-inspector" : "overview";
-  const selectedSourceTimeSeries = selectedSourceCellId
-    ? selectedSourceTimeSeriesBySource[selectedSourceCellId] ?? []
-    : [];
+  const mapMode: ViewabilityMapMode = selectedSourceCellIds.length > 0
+    ? "source-inspector"
+    : selectedTargetCellIds.length > 0
+      ? "target-inspector"
+      : "overview";
 
   useEffect(() => {
     let cancelled = false;
@@ -163,30 +173,21 @@ export function useViewabilityPageController() {
     if (selectedSourceCellIds.length === 0) {
       setSourceTargetVisibility([]);
       setSelectedSourceConditions(null);
-      setSelectedSourceTimeSeriesBySource({});
       return;
     }
 
     Promise.all([
       Promise.all(selectedSourceCellIds.map((sourceCellId) => loadSourceTargetVisibility(sourceCellId))).then((groups) => groups.flat()),
-      Promise.all(
-        selectedSourceCellIds.map(async (sourceCellId) => [
-          sourceCellId,
-          await loadSourceCellTimeSeries(sourceCellId),
-        ] as const)
-      ).then((entries) => Object.fromEntries(entries)),
       loadSourceCellConditions(selectedSourceCellId ?? undefined, selectedDateOrPeriod),
     ])
-      .then(([visibility, timeSeriesBySource, conditions]) => {
+      .then(([visibility, conditions]) => {
         if (cancelled) return;
         setSourceTargetVisibility(visibility);
-        setSelectedSourceTimeSeriesBySource(timeSeriesBySource);
         setSelectedSourceConditions(conditions);
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
         setSourceTargetVisibility([]);
-        setSelectedSourceTimeSeriesBySource({});
         setSelectedSourceConditions(null);
         setError(reason instanceof Error ? reason.message : "Selected source viewability failed to load.");
       });
@@ -195,6 +196,30 @@ export function useViewabilityPageController() {
       cancelled = true;
     };
   }, [selectedDateOrPeriod, selectedSourceCellId, selectedSourceCellIds]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (selectedTargetCellIds.length === 0) {
+      setTargetSourceVisibility([]);
+      return;
+    }
+
+    Promise.all(selectedTargetCellIds.map((targetCellId) => loadTargetSourceVisibility(targetCellId)))
+      .then((groups) => {
+        if (cancelled) return;
+        setTargetSourceVisibility(groups.flat());
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        setTargetSourceVisibility([]);
+        setError(reason instanceof Error ? reason.message : "Selected target visibility failed to load.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTargetCellIds]);
 
   const selectedSourceSummary = useMemo<ViewabilitySourceFeature | null>(() => {
     if (!selectedSourceCellId) return null;
@@ -250,7 +275,96 @@ export function useViewabilityPageController() {
     });
   }, [scoreType, selectedSourceCellIds, sourceTargetVisibility, targetCells]);
 
+  const selectedTargetSources = useMemo(() => {
+    if (selectedTargetCellIds.length === 0) return [];
+
+    const selectedIds = new Set(selectedTargetCellIds);
+    const modifierByTargetH3 = new Map(
+      (targetCells?.features ?? []).map((feature) => [
+        feature.properties.h3,
+        targetDynamicModifier(feature.properties),
+      ])
+    );
+
+    const recordsBySource = new Map<string, SourceTargetVisibilityRecord[]>();
+    for (const record of targetSourceVisibility) {
+      if (!selectedIds.has(record.target_h3)) continue;
+      const records = recordsBySource.get(record.source_h3) ?? [];
+      records.push(record);
+      recordsBySource.set(record.source_h3, records);
+    }
+
+    return Array.from(recordsBySource.entries())
+      .map(([sourceH3, records]) => {
+        const targetIds = Array.from(new Set(records.map((record) => record.target_h3)));
+        const baseWeights = records.map(
+          (record) => finiteNumber(record.base_source_target_weight) ?? finiteNumber(record.source_target_weight) ?? 0
+        );
+        const dynamicWeights = records.map((record) => {
+          const baseWeight = finiteNumber(record.base_source_target_weight) ?? finiteNumber(record.source_target_weight) ?? 0;
+          return clamp01(baseWeight * (modifierByTargetH3.get(record.target_h3) ?? 1));
+        });
+        const baseWeight = mean(baseWeights);
+        const dynamicWeight = mean(dynamicWeights);
+        const activeWeight = scoreType === "dynamic" ? dynamicWeight : baseWeight;
+        const first = records[0];
+
+        return {
+          ...first,
+          source_h3: sourceH3,
+          target_h3: targetIds.length === 1 ? targetIds[0] : "multiple",
+          target_h3s: targetIds,
+          selected_target_count: targetIds.length,
+          base_source_target_weight: baseWeight,
+          dynamic_source_target_weight: dynamicWeight,
+          source_target_weight: activeWeight,
+        } satisfies SourceTargetVisibilityRecord;
+      })
+      .sort((a, b) => (b.source_target_weight ?? 0) - (a.source_target_weight ?? 0));
+  }, [scoreType, selectedTargetCellIds, targetCells, targetSourceVisibility]);
+
+  const inspectedSourceCellIds = useMemo(
+    () => (mapMode === "source-inspector" ? selectedSourceCellIds : []),
+    [mapMode, selectedSourceCellIds]
+  );
+
+  const inspectedSourceCellId = inspectedSourceCellIds.at(-1) ?? null;
+  const selectedSourceTimeSeries = inspectedSourceCellId
+    ? selectedSourceTimeSeriesBySource[inspectedSourceCellId] ?? []
+    : [];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (inspectedSourceCellIds.length === 0) {
+      setSelectedSourceTimeSeriesBySource({});
+      return;
+    }
+
+    Promise.all(
+      inspectedSourceCellIds.map(async (sourceCellId) => [
+        sourceCellId,
+        await loadSourceCellTimeSeries(sourceCellId),
+      ] as const)
+    )
+      .then((entries) => {
+        if (cancelled) return;
+        setSelectedSourceTimeSeriesBySource(Object.fromEntries(entries));
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        setSelectedSourceTimeSeriesBySource({});
+        setError(reason instanceof Error ? reason.message : "Source time series failed to load.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inspectedSourceCellIds]);
+
   const selectSourceCell = useCallback((sourceCellId: string, additive = false) => {
+    setSelectedTargetCellIds([]);
+    setTargetSourceVisibility([]);
     setSelectedSourceCellIds((current) => {
       if (!additive) return [sourceCellId];
 
@@ -258,15 +372,61 @@ export function useViewabilityPageController() {
         return current.filter((id) => id !== sourceCellId);
       }
 
-      return [...current, sourceCellId].slice(-MAX_SELECTED_SOURCE_CELLS);
+      return [...current, sourceCellId];
     });
-    setShowSourceCells(true);
-    setBottomDrawerOpen(true);
     setAnalysisTab("source");
+  }, []);
+
+  const selectSourceCells = useCallback((sourceCellIds: string[], additive = false) => {
+    const nextIds = Array.from(new Set(sourceCellIds.filter(Boolean)));
+    if (nextIds.length === 0) return;
+    setSelectedTargetCellIds([]);
+    setTargetSourceVisibility([]);
+    setSelectedSourceCellIds((current) => {
+      if (!additive) return nextIds;
+      return Array.from(new Set([...current, ...nextIds]));
+    });
+    setAnalysisTab("source");
+  }, []);
+
+  const selectTargetCell = useCallback((targetCellId: string, additive = false) => {
+    setSelectedSourceCellIds([]);
+    setSourceTargetVisibility([]);
+    setSelectedSourceConditions(null);
+    setSelectedSourceTimeSeriesBySource({});
+    setSelectedTargetCellIds((current) => {
+      if (!additive) return [targetCellId];
+
+      if (current.includes(targetCellId)) {
+        return current.filter((id) => id !== targetCellId);
+      }
+
+      return [...current, targetCellId];
+    });
+    setBottomDrawerOpen(false);
+    setAnalysisTab("conditions");
+  }, []);
+
+  const selectTargetCells = useCallback((targetCellIds: string[], additive = false) => {
+    const nextIds = Array.from(new Set(targetCellIds.filter(Boolean)));
+    if (nextIds.length === 0) return;
+    setSelectedSourceCellIds([]);
+    setSourceTargetVisibility([]);
+    setSelectedSourceConditions(null);
+    setSelectedSourceTimeSeriesBySource({});
+    setSelectedTargetCellIds((current) => {
+      if (!additive) return nextIds;
+      return Array.from(new Set([...current, ...nextIds]));
+    });
+    setBottomDrawerOpen(false);
+    setAnalysisTab("conditions");
   }, []);
 
   const resetSelection = useCallback(() => {
     setSelectedSourceCellIds([]);
+    setSelectedTargetCellIds([]);
+    setSourceTargetVisibility([]);
+    setTargetSourceVisibility([]);
     setSelectedSourceConditions(null);
     setSelectedSourceTimeSeriesBySource({});
     setAnalysisTab("conditions");
@@ -287,6 +447,42 @@ export function useViewabilityPageController() {
     setPoiFilters((current) => ({ ...current, [type]: !current[type] }));
   }, []);
 
+  const toggleTargetCells = useCallback(() => {
+    setShowTargetCells((currentTargetVisible) => {
+      const nextTargetVisible = !currentTargetVisible;
+      if (nextTargetVisible) {
+        setShowSourceCells(false);
+      }
+      return nextTargetVisible;
+    });
+  }, []);
+
+  const toggleSourceCells = useCallback(() => {
+    setShowSourceCells((currentSourceVisible) => {
+      const nextSourceVisible = !currentSourceVisible;
+      if (nextSourceVisible) {
+        setShowTargetCells(false);
+      }
+      return nextSourceVisible;
+    });
+  }, []);
+
+  const drawSelectionKind: ViewabilityDrawSelectionKind = showSourceCells ? "source" : "target";
+  const openAreaSelection = useCallback(() => {
+    setSelectionMode("area");
+  }, []);
+
+  const closeAreaSelection = useCallback(() => {
+    setSelectionMode("cell");
+    setAreaSelectionAreaKm2(0);
+    setAreaSelectionReady(false);
+  }, []);
+
+  const setAreaSelectionMetrics = useCallback((areaKm2: number, ready: boolean) => {
+    setAreaSelectionAreaKm2(areaKm2);
+    setAreaSelectionReady(ready);
+  }, []);
+
   return {
     selectedDateOrPeriod,
     availableDates,
@@ -298,11 +494,16 @@ export function useViewabilityPageController() {
     showSourceCells,
     selectedSourceCellId,
     selectedSourceCellIds,
+    selectedTargetCellId,
+    selectedTargetCellIds,
     selectedSourceSummary,
     selectedSourceConditions,
     selectedSourceTimeSeries,
     selectedSourceTimeSeriesBySource,
     selectedVisibility,
+    selectedTargetSources,
+    inspectedSourceCellId,
+    inspectedSourceCellIds,
     areaConditions,
     colorScaleSettings,
     poiFilters,
@@ -311,15 +512,28 @@ export function useViewabilityPageController() {
     targetCells,
     sourceCells,
     sourceTargetVisibility,
+    targetSourceVisibility,
     bottomDrawerOpen,
     setBottomDrawerOpen,
     analysisTab,
     setAnalysisTab,
     settingsOpen,
     setSettingsOpen,
-    toggleTargetCells: () => setShowTargetCells((value) => !value),
-    toggleSourceCells: () => setShowSourceCells((value) => !value),
+    selectionMode,
+    drawSelectionKind,
+    areaSelectionTool,
+    setAreaSelectionTool,
+    areaSelectionAreaKm2,
+    areaSelectionReady,
+    openAreaSelection,
+    closeAreaSelection,
+    setAreaSelectionMetrics,
+    toggleTargetCells,
+    toggleSourceCells,
     selectSourceCell,
+    selectSourceCells,
+    selectTargetCell,
+    selectTargetCells,
     resetSelection,
     setColorScale,
     togglePoiAll,

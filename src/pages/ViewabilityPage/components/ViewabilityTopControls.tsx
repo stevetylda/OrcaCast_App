@@ -23,7 +23,7 @@ type Props = {
   onSelectedDateOrPeriodChange: (value: string) => void;
   scoreType: ViewabilityScoreType;
   onScoreTypeChange: (value: ViewabilityScoreType) => void;
-  selectedSourceCellId: string | null;
+  hasSelection: boolean;
   onResetSelection: () => void;
 };
 
@@ -247,7 +247,7 @@ export function ViewabilityTopControls({
   onSelectedDateOrPeriodChange,
   scoreType,
   onScoreTypeChange,
-  selectedSourceCellId,
+  hasSelection,
   onResetSelection,
 }: Props) {
   return (
@@ -271,7 +271,7 @@ export function ViewabilityTopControls({
         />
       </div>
 
-      {selectedSourceCellId && (
+      {hasSelection && (
         <button type="button" className="iconBtn viewabilityResetBtn" onClick={onResetSelection} aria-label="Reset source selection" title="Reset selection">
           <span className="material-symbols-rounded" aria-hidden="true">
             close

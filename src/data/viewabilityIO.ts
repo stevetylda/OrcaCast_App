@@ -1,5 +1,5 @@
 import type { Feature, MultiPolygon, Polygon } from "geojson";
-import { getParquetColumns, queryParquetFile, sqlLiteral } from "./duckdbBrowser";
+import { getParquetColumns, queryParquetFile, queryParquetFiles, sqlLiteral } from "./duckdbBrowser";
 import { fetchJson } from "./fetchClient";
 import {
   sourceCellTimeSeriesFixture,
@@ -138,6 +138,7 @@ const areaConditionsMonthCache = new Map<string, Promise<AreaConditionsMonthFile
 const sourceTimeseriesIndexCache = new Map<string, Promise<SourceTimeSeriesIndexFile>>();
 const sourceVisibilityBundleCache = new Map<string, Promise<SourceTargetVisibilityRecord[]>>();
 const sourceTimeseriesBundleCache = new Map<string, Promise<SourceCellTimeSeriesPoint[]>>();
+let allBundledSourceVisibilityPromise: Promise<SourceTargetVisibilityRecord[]> | null = null;
 let areaConditionsSeriesPromise: Promise<ViewabilityAreaConditionPoint[]> | null = null;
 
 function viewabilityPath(path: string): string {
@@ -502,6 +503,71 @@ async function loadBundledSourceVisibility(
   return promise;
 }
 
+async function loadAllBundledSourceVisibility(index: SourceVisibilityIndex): Promise<SourceTargetVisibilityRecord[]> {
+  if (!allBundledSourceVisibilityPromise) {
+    allBundledSourceVisibilityPromise = (async () => {
+      const bundlePaths = Array.from(new Set(index.bundlesBySourceH3.values()));
+      const parquetPaths = bundlePaths
+        .filter((bundlePath) => bundlePath.endsWith(".parquet"))
+        .map((bundlePath) => viewabilityPath(viewabilityBaseRelativePath(bundlePath)));
+      const jsonPaths = bundlePaths
+        .filter((bundlePath) => !bundlePath.endsWith(".parquet"))
+        .map((bundlePath) => viewabilityPath(viewabilityBaseRelativePath(bundlePath)));
+
+      const [parquetRecords, jsonRecords] = await Promise.all([
+        parquetPaths.length === 0
+          ? Promise.resolve<SourceTargetVisibilityRecord[]>([])
+          : queryParquetFiles(parquetPaths, (fileNames) => `
+              SELECT
+                source_h3,
+                target_h3,
+                weight AS source_target_weight,
+                weight AS base_source_target_weight
+              FROM read_parquet([${fileNames.map((fileName) => sqlLiteral(fileName)).join(", ")}])
+            `).then((rows) =>
+              rows.flatMap((record) => {
+                const sourceH3 = asString(record.source_h3);
+                const targetH3 = asString(record.target_h3);
+                if (!sourceH3 || !targetH3) return [];
+                return [{
+                  source_h3: sourceH3,
+                  target_h3: targetH3,
+                  source_target_weight: asNumber(record.source_target_weight),
+                  base_source_target_weight: asNumber(record.base_source_target_weight),
+                }];
+              })
+            ),
+        Promise.all(
+          jsonPaths.map(async (path) => {
+            const bundle = (await fetchJson<SourceVisibilityBundleFile>(path)).data;
+            return Object.entries(bundle.sources).flatMap(([sourceCellId, records]) =>
+              records.flatMap((record) => {
+                const targetH3 = asString(record.target_h3) ?? asString(record.h3);
+                if (!targetH3) return [];
+                const weight = coalesceNumber(record.weight, record.source_target_weight, record.base_source_target_weight);
+                return [{
+                  source_h3: sourceCellId,
+                  target_h3: targetH3,
+                  source_target_weight: weight,
+                  base_source_target_weight: weight,
+                  distance_km: asNumber(record.distance_km),
+                  weight_distance: asNumber(record.weight_distance),
+                  weight_terrain: asNumber(record.weight_terrain),
+                  weight_vegetation: asNumber(record.weight_vegetation),
+                }];
+              })
+            );
+          })
+        ).then((groups) => groups.flat()),
+      ]);
+
+      return [...parquetRecords, ...jsonRecords];
+    })();
+  }
+
+  return allBundledSourceVisibilityPromise;
+}
+
 export async function loadViewabilityTargetCells(date?: string): Promise<ViewabilityTargetFeatureCollection> {
   const selectedDate = selectedDateOrDefault(date);
   const manifest = await loadManifest();
@@ -630,6 +696,17 @@ export async function loadSourceTargetVisibility(sourceCellId?: string): Promise
       weight_vegetation: asNumber(props.weight_vegetation),
     };
   });
+}
+
+export async function loadTargetSourceVisibility(targetCellId?: string): Promise<SourceTargetVisibilityRecord[]> {
+  if (!targetCellId) return [];
+
+  const manifest = await loadManifest();
+  const index = await loadSourceVisibilityIndex(manifest);
+  if (!index?.bundlesBySourceH3.size) return [];
+
+  const records = await loadAllBundledSourceVisibility(index);
+  return records.filter((record) => record.target_h3 === targetCellId);
 }
 
 export async function loadSourceCellConditions(sourceCellId?: string, date?: string): Promise<SourceCellConditions | null> {

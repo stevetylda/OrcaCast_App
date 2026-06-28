@@ -1,14 +1,10 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
 import { getDataVersionToken } from "./meta";
 
-import duckdbMvpWasm from "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url";
-import duckdbMvpWorker from "@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url";
-import duckdbEhWasm from "@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url";
-import duckdbEhWorker from "@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url";
-
 const schemaCache = new Map<string, Promise<Set<string>>>();
 const registeredFiles = new Set<string>();
 let dbPromise: Promise<duckdb.AsyncDuckDB> | null = null;
+let bundlePromise: Promise<duckdb.DuckDBBundle> | null = null;
 
 function withBase(url: string): string {
   const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || "/";
@@ -49,30 +45,48 @@ function toJsonRow(value: unknown): Record<string, unknown> {
   return (value ?? {}) as Record<string, unknown>;
 }
 
+async function getBundle(): Promise<duckdb.DuckDBBundle> {
+  if (!bundlePromise) {
+    bundlePromise = (async () => {
+      if (!import.meta.env.DEV) {
+        return duckdb.selectBundle(duckdb.getJsDelivrBundles());
+      }
+
+      const [duckdbMvpWasm, duckdbMvpWorker, duckdbEhWasm, duckdbEhWorker] = await Promise.all([
+        import("@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url"),
+        import("@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url"),
+        import("@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url"),
+        import("@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url"),
+      ]);
+
+      return duckdb.selectBundle({
+        mvp: {
+          mainModule: duckdbMvpWasm.default,
+          mainWorker: duckdbMvpWorker.default,
+        },
+        eh: {
+          mainModule: duckdbEhWasm.default,
+          mainWorker: duckdbEhWorker.default,
+        },
+      });
+    })();
+  }
+
+  return bundlePromise;
+}
+
 async function getDb(): Promise<duckdb.AsyncDuckDB> {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const bundles = {
-        mvp: {
-          mainModule: duckdbMvpWasm,
-          mainWorker: duckdbMvpWorker,
-        },
-        eh: {
-          mainModule: duckdbEhWasm,
-          mainWorker: duckdbEhWorker,
-        },
-      };
-
-      const bundle = await duckdb.selectBundle(bundles);
+      const bundle = await getBundle();
 
       if (!bundle.mainWorker || !bundle.mainModule) {
         throw new Error("DuckDB WASM bundle could not be resolved.");
       }
 
-      // Important:
-      // Use a real Worker URL from Vite assets, not duckdb.createWorker(...).
-      // createWorker wraps the worker in a blob and can produce bad local sourcemap URLs.
-      const worker = new Worker(bundle.mainWorker);
+      const worker = import.meta.env.DEV
+        ? new Worker(bundle.mainWorker)
+        : await duckdb.createWorker(bundle.mainWorker);
 
       const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), worker);
 
@@ -112,6 +126,10 @@ async function registerParquetUrl(path: string): Promise<string> {
   }
 
   return fileName;
+}
+
+async function registerParquetUrls(paths: string[]): Promise<string[]> {
+  return Promise.all(paths.map((path) => registerParquetUrl(path)));
 }
 
 export async function queryParquetRows(
@@ -164,6 +182,19 @@ export async function queryParquetFile(
   ]);
 
   return queryParquetRows(buildSql(fileName, columns));
+}
+
+export async function queryParquetFiles(
+  paths: string[],
+  buildSql: (fileNames: string[], columnsByPath: Map<string, Set<string>>) => string
+): Promise<Array<Record<string, unknown>>> {
+  const uniquePaths = Array.from(new Set(paths));
+  const [fileNames, columnEntries] = await Promise.all([
+    registerParquetUrls(uniquePaths),
+    Promise.all(uniquePaths.map(async (path) => [path, await getParquetColumns(path)] as const)),
+  ]);
+
+  return queryParquetRows(buildSql(fileNames, new Map(columnEntries)));
 }
 
 export function sqlLiteral(value: string): string {

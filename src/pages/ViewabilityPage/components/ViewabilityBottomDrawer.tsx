@@ -22,6 +22,7 @@ type Props = {
   sourceCellId: string | null;
   sourceCellIds: string[];
   sourceTimeSeriesBySource: Record<string, SourceCellTimeSeriesPoint[]>;
+  sourceSelectionLabel?: string;
   hoveredSourceCellId: string | null;
   onHoverSourceCell: (sourceCellId: string | null) => void;
 };
@@ -244,6 +245,7 @@ export function ViewabilityBottomDrawer({
   sourceCellId,
   sourceCellIds,
   sourceTimeSeriesBySource,
+  sourceSelectionLabel,
   hoveredSourceCellId,
   onHoverSourceCell,
 }: Props) {
@@ -730,9 +732,9 @@ export function ViewabilityBottomDrawer({
                 <div>
                   <h3>Source Time Series</h3>
                   <p>
-                    {sourceCellIds.length === 0
+                    {sourceSelectionLabel ?? (sourceCellIds.length === 0
                       ? "No source selected"
-                      : `${sourceCellIds.length} selected${sourceCellId ? ` · primary ${sourceCellId}` : ""}`}
+                      : `${sourceCellIds.length} selected${sourceCellId ? ` · primary ${sourceCellId}` : ""}`)}
                   </p>
                 </div>
                 <div className="viewabilitySourceAnalysis__summary">
