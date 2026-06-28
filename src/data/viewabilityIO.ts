@@ -539,55 +539,64 @@ export async function loadViewabilitySourceCells(
 ): Promise<ViewabilitySourceFeatureCollection> {
   const selectedDate = selectedDateOrDefault(date);
   const manifest = await loadManifest();
-  const [targets, sourceSummary, dynamicScores, sourceVisibilityIndex] = await Promise.all([
-    loadBaseTargetCells(manifest),
-    fetchJson<ViewabilitySourceFeatureCollection>(viewabilityPath(manifest.base.source_viewyness)).then((result) => result.data),
+
+  const [sourceSummary, dynamicScores, sourceVisibilityIndex] = await Promise.all([
+    fetchJson<ViewabilitySourceFeatureCollection>(
+      viewabilityPath(manifest.base.source_viewyness)
+    ).then((result) => result.data),
     loadDynamicSourceScoresByH3(manifest, selectedDate),
     loadSourceVisibilityIndex(manifest),
   ]);
 
-  const targetGeometryByH3 = new Map(
-    targets.features.map((feature) => [feature.properties.h3, feature.geometry])
-  );
-
   const features = sourceSummary.features.flatMap((feature) => {
     const h3 = feature.properties.h3;
-    if (sourceVisibilityIndex && !sourceVisibilityIndex.sourceH3.has(h3)) return [];
 
-    const geometry = targetGeometryByH3.get(h3);
-    if (!geometry) return [];
+    // Keep this only if you want the map to show selectable source cells
+    // that actually have source-target lookup records.
+    if (sourceVisibilityIndex && !sourceVisibilityIndex.sourceH3.has(h3)) {
+      return [];
+    }
 
     const dynamic = dynamicScores.get(h3);
     const baseScore = feature.properties.base_viewyness_score;
     const weatherScore = asNumber(dynamic?.weather_viewyness_score);
-    const dynamicScore = coalesceNumber(dynamic?.dynamic_viewyness_score, dynamic?.weather_viewyness_score);
+    const dynamicScore = coalesceNumber(
+      dynamic?.dynamic_viewyness_score,
+      dynamic?.weather_viewyness_score
+    );
     const sourceScore = scoreType === "base" ? baseScore : dynamicScore ?? baseScore;
     const visibleTargetCount = asNumber(dynamic?.visible_target_count);
 
-    return [{
-      type: "Feature" as const,
-      properties: {
-        ...feature.properties,
-        base_viewyness_score: baseScore,
-        dynamic_viewyness_score: dynamicScore,
-        weather_viewyness_score: weatherScore,
-        daylight_viewyness_score: asNumber(dynamic?.daylight_viewyness_score),
-        lunar_viewyness_score: asNumber(dynamic?.lunar_viewyness_score),
-        weather_modifier_mean: asNumber(dynamic?.weather_modifier_mean),
-        daylight_modifier_mean: asNumber(dynamic?.daylight_modifier_mean),
-        lunar_modifier_mean: asNumber(dynamic?.lunar_modifier_mean),
-        source_viewyness_score: sourceScore,
-        visible_target_count: visibleTargetCount,
-        dynamic_weight_sum: asNumber(dynamic?.dynamic_weight_sum),
-        reachable_target_count: visibleTargetCount ?? feature.properties.reachable_target_count,
+    return [
+      {
+        type: "Feature" as const,
+        properties: {
+          ...feature.properties,
+          base_viewyness_score: baseScore,
+          dynamic_viewyness_score: dynamicScore,
+          weather_viewyness_score: weatherScore,
+          daylight_viewyness_score: asNumber(dynamic?.daylight_viewyness_score),
+          lunar_viewyness_score: asNumber(dynamic?.lunar_viewyness_score),
+          weather_modifier_mean: asNumber(dynamic?.weather_modifier_mean),
+          daylight_modifier_mean: asNumber(dynamic?.daylight_modifier_mean),
+          lunar_modifier_mean: asNumber(dynamic?.lunar_modifier_mean),
+          source_viewyness_score: sourceScore,
+          visible_target_count: visibleTargetCount,
+          dynamic_weight_sum: asNumber(dynamic?.dynamic_weight_sum),
+          reachable_target_count:
+            visibleTargetCount ?? feature.properties.reachable_target_count,
+        },
+
+        // Important:
+        // Use the geometry from base/source_viewyness.geojson.
+        // Do not substitute target_viewability geometry here.
+        geometry: feature.geometry,
       },
-      geometry,
-    }];
+    ];
   });
 
   return { type: "FeatureCollection", features };
 }
-
 export async function loadSourceTargetVisibility(sourceCellId?: string): Promise<SourceTargetVisibilityRecord[]> {
   if (!sourceCellId) return [];
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { PointerEvent, WheelEvent } from "react";
+import type { CSSProperties, PointerEvent, WheelEvent } from "react";
 import type {
   SourceCellTimeSeriesPoint,
   ViewabilityAreaConditionPoint,
@@ -8,6 +8,7 @@ import type {
 
 type Metric = "weather" | "daylight" | "lunar";
 type PlotMode = "combine" | "stacked";
+type SourceChartMode = "raw" | "seasonal_anomaly";
 type AnalysisTab = "conditions" | "source";
 
 type Props = {
@@ -23,6 +24,17 @@ type Props = {
   sourceTimeSeriesBySource: Record<string, SourceCellTimeSeriesPoint[]>;
   hoveredSourceCellId: string | null;
   onHoverSourceCell: (sourceCellId: string | null) => void;
+};
+
+type SourceChartPoint = SourceCellTimeSeriesPoint & {
+  chartValue?: number;
+  rawValue?: number;
+  seasonalMean?: number;
+};
+
+type NumericDomain = {
+  min: number;
+  max: number;
 };
 
 type MetricConfig = {
@@ -118,21 +130,28 @@ function sourceScoreValue(point: SourceCellTimeSeriesPoint): number | undefined 
     : undefined;
 }
 
-function sourceYForValue(value: number, max: number): number {
-  return MARGIN.top + (1 - Math.max(0, Math.min(1, value / max))) * PLOT_HEIGHT;
+function sourceYForValue(value: number, domain: NumericDomain): number {
+  const span = domain.max - domain.min;
+  if (span <= 0) return MARGIN.top + PLOT_HEIGHT;
+  const pct = Math.max(0, Math.min(1, (value - domain.min) / span));
+  return MARGIN.top + (1 - pct) * PLOT_HEIGHT;
 }
 
-function sourceLinePath(points: SourceCellTimeSeriesPoint[], max: number): string {
+function sourceLinePath(points: SourceChartPoint[], domain: NumericDomain): string {
   return points.reduce((path, point, index) => {
-    const value = sourceScoreValue(point);
-    if (value === undefined) return path;
+    const value = point.chartValue;
+    if (!Number.isFinite(value)) return path;
     const command = path.length === 0 ? "M" : "L";
-    return `${path}${command}${xForIndex(index, points.length).toFixed(2)},${sourceYForValue(value, max).toFixed(2)}`;
+    return `${path}${command}${xForIndex(index, points.length).toFixed(2)},${sourceYForValue(value as number, domain).toFixed(2)}`;
   }, "");
 }
 
 function periodLabel(value: string | undefined): string {
   return value && value.length >= 7 ? value.slice(0, 7) : value ?? "";
+}
+
+function sourcePointDate(point: SourceCellTimeSeriesPoint): string | undefined {
+  return point.period ?? (point as { date?: string }).date;
 }
 
 function sourceLineColor(index: number): string {
@@ -177,6 +196,42 @@ function stackedBandPath(points: ViewabilityAreaConditionPoint[], metric: Metric
 
   return high.length > 1 ? `M${high.join("L")}L${low.join("L")}Z` : "";
 }
+function dayOfYear(dateString: string): number {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.floor((date.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
+function mean(values: number[]): number {
+  return values.length === 0
+    ? 0
+    : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function buildSeasonalMeanByDoy<T>(
+  points: T[],
+  getDate: (point: T) => string | null | undefined,
+  getValue: (point: T) => number | null | undefined,
+): Map<number, number> {
+  const valuesByDoy = new Map<number, number[]>();
+
+  for (const point of points) {
+    const date = getDate(point);
+    const value = getValue(point);
+
+    if (!date || !Number.isFinite(value)) continue;
+
+    const doy = dayOfYear(date);
+    const values = valuesByDoy.get(doy) ?? [];
+    values.push(value as number);
+    valuesByDoy.set(doy, values);
+  }
+
+  return new Map(
+    Array.from(valuesByDoy.entries()).map(([doy, values]) => [doy, mean(values)]),
+  );
+}
+
 
 export function ViewabilityBottomDrawer({
   open,
@@ -203,6 +258,7 @@ export function ViewabilityBottomDrawer({
   const [dragStart, setDragStart] = useState<{ clientX: number; start: number; end: number } | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [sourceVisibleWindow, setSourceVisibleWindow] = useState<{ start: number; end: number } | null>(null);
+  const [sourceChartMode, setSourceChartMode] = useState<SourceChartMode>("raw");
   const [sourceDragStart, setSourceDragStart] = useState<{ clientX: number; start: number; end: number } | null>(null);
 
   const selectedIndex = useMemo(
@@ -223,11 +279,39 @@ export function ViewabilityBottomDrawer({
 
   const activeMetrics = METRICS.filter((metric) => visibleMetrics[metric.key]);
   const chartHeight = plotMode === "stacked" ? STACKED_HEIGHT : HEIGHT;
-  const selectedSourceSeries = sourceCellIds.map((sourceId, index) => ({
-    sourceId,
-    color: sourceLineColor(index),
-    points: sourceTimeSeriesBySource[sourceId] ?? [],
-  }));
+  const selectedSourceSeries = sourceCellIds.map((sourceId, index) => {
+    const rawPoints = sourceTimeSeriesBySource[sourceId] ?? [];
+    const seasonalMeanByDoy = buildSeasonalMeanByDoy(
+      rawPoints,
+      sourcePointDate,
+      sourceScoreValue,
+    );
+
+    const points: SourceChartPoint[] = rawPoints.map((point) => {
+      const rawValue = sourceScoreValue(point);
+      const date = sourcePointDate(point);
+      const seasonalMean = date ? seasonalMeanByDoy.get(dayOfYear(date)) : undefined;
+      const chartValue =
+        sourceChartMode === "seasonal_anomaly" &&
+        Number.isFinite(rawValue) &&
+        Number.isFinite(seasonalMean)
+          ? (rawValue as number) - (seasonalMean as number)
+          : rawValue;
+
+      return {
+        ...point,
+        chartValue,
+        rawValue,
+        seasonalMean,
+      };
+    });
+
+    return {
+      sourceId,
+      color: sourceLineColor(index),
+      points,
+    };
+  });
   const maxSourceSeriesLength = Math.max(0, ...selectedSourceSeries.map((series) => series.points.length));
   const sourceClampedWindow = sourceVisibleWindow
     ? clampWindow(sourceVisibleWindow.start, sourceVisibleWindow.end, maxSourceSeriesLength)
@@ -236,8 +320,31 @@ export function ViewabilityBottomDrawer({
     ...series,
     points: series.points.slice(sourceClampedWindow.start, sourceClampedWindow.end + 1),
   }));
-  const sourceValues = visibleSourceSeries.flatMap((series) => series.points.map((point) => sourceScoreValue(point) ?? 0));
-  const sourceMax = Math.max(...sourceValues, 1);
+  const sourceValues = visibleSourceSeries.flatMap((series) =>
+    series.points
+      .map((point) => point.chartValue)
+      .filter((value): value is number => Number.isFinite(value))
+  );
+
+  const rawSourceMax = Math.max(...sourceValues, 0);
+  const rawSourceAbsMax = Math.max(...sourceValues.map((value) => Math.abs(value)), 0);
+  const sourceYDomain: NumericDomain =
+    sourceChartMode === "seasonal_anomaly"
+      ? {
+          min: -Math.max(0.02, rawSourceAbsMax * 1.18),
+          max: Math.max(0.02, rawSourceAbsMax * 1.18),
+        }
+      : {
+          min: 0,
+          max:
+            rawSourceMax <= 0
+              ? 1
+              : Math.min(1, Math.max(0.05, rawSourceMax * 1.18)),
+        };
+  const sourceMiddleValue =
+    sourceChartMode === "seasonal_anomaly"
+      ? 0
+      : sourceYDomain.max / 2;
   const latestSourceSeries = sourceCellId ? sourceTimeSeriesBySource[sourceCellId] ?? [] : [];
   const latestSourcePoint = latestSourceSeries.at(-1);
   const latestSourceValue = latestSourcePoint ? sourceScoreValue(latestSourcePoint) : undefined;
@@ -637,6 +744,23 @@ export function ViewabilityBottomDrawer({
               {maxSourceSeriesLength > 0 ? (
                 <>
                   <div className="viewabilityConditionControls viewabilitySourceChartControls" aria-label="Source chart controls">
+                    <div className="viewabilitySourceDrawerChart__modeToggle" role="group" aria-label="Source chart mode">
+                      <button
+                        type="button"
+                        className={`viewabilitySourceDrawerChart__modeButton${sourceChartMode === "raw" ? " isActive" : ""}`}
+                        onClick={() => setSourceChartMode("raw")}
+                      >
+                        Raw
+                      </button>
+                      <button
+                        type="button"
+                        className={`viewabilitySourceDrawerChart__modeButton${sourceChartMode === "seasonal_anomaly" ? " isActive" : ""}`}
+                        onClick={() => setSourceChartMode("seasonal_anomaly")}
+                        title="Compare each day to the typical value for that day of year."
+                      >
+                        Seasonal anomaly
+                      </button>
+                    </div>
                     <button
                       type="button"
                       className="viewabilityChartIconBtn"
@@ -691,26 +815,36 @@ export function ViewabilityBottomDrawer({
                       }}
                       onDoubleClick={resetSourceZoom}
                     >
-                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax, sourceMax)} y2={sourceYForValue(sourceMax, sourceMax)} />
-                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMax / 2, sourceMax)} y2={sourceYForValue(sourceMax / 2, sourceMax)} />
-                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(0, sourceMax)} y2={sourceYForValue(0, sourceMax)} />
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceYDomain.max, sourceYDomain)} y2={sourceYForValue(sourceYDomain.max, sourceYDomain)} />
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceMiddleValue, sourceYDomain)} y2={sourceYForValue(sourceMiddleValue, sourceYDomain)} />
+                      <line className="viewabilitySourceDrawerChart__grid" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(sourceYDomain.min, sourceYDomain)} y2={sourceYForValue(sourceYDomain.min, sourceYDomain)} />
+                      {sourceChartMode === "seasonal_anomaly" && (
+                        <line className="viewabilitySourceDrawerChart__zeroLine" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={sourceYForValue(0, sourceYDomain)} y2={sourceYForValue(0, sourceYDomain)} />
+                      )}
                       <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={WIDTH - MARGIN.right} y1={HEIGHT - MARGIN.bottom} y2={HEIGHT - MARGIN.bottom} />
                       <line className="viewabilitySourceDrawerChart__axis" x1={MARGIN.left} x2={MARGIN.left} y1={MARGIN.top} y2={HEIGHT - MARGIN.bottom} />
-                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceMax, sourceMax) + 4}>{sourceMax.toFixed(2)}</text>
-                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(0, sourceMax) + 4}>0</text>
+                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceYDomain.max, sourceYDomain) + 4}>
+                        {sourceYDomain.max.toFixed(2)}
+                      </text>
+                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceMiddleValue, sourceYDomain) + 4}>
+                        {sourceMiddleValue.toFixed(2)}
+                      </text>
+                      <text className="viewabilitySourceDrawerChart__tick" x={8} y={sourceYForValue(sourceYDomain.min, sourceYDomain) + 4}>
+                        {sourceYDomain.min.toFixed(2)}
+                      </text>
                       <text className="viewabilitySourceDrawerChart__tick" x={MARGIN.left} y={HEIGHT - 8}>{periodLabel(firstVisibleSourcePoint?.period)}</text>
                       <text className="viewabilitySourceDrawerChart__tick viewabilitySourceDrawerChart__tick--end" x={WIDTH - MARGIN.right} y={HEIGHT - 8}>
                         {periodLabel(lastVisibleSourcePoint?.period)}
                       </text>
 
                       {visibleSourceSeries.map((series) => {
-                        const path = sourceLinePath(series.points, sourceMax);
+                        const path = sourceLinePath(series.points, sourceYDomain);
                         if (!path) return null;
                         const isHovered = hoveredSourceCellId === series.sourceId;
                         return (
                           <g
                             key={series.sourceId}
-                            style={{ "--source-line-color": series.color } as React.CSSProperties}
+                            style={{ "--source-line-color": series.color } as CSSProperties}
                           >
                             <path
                               className="viewabilitySourceDrawerChart__hitLine"
