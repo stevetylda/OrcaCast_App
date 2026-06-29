@@ -23,6 +23,13 @@ type Props = {
   onSelectedDateOrPeriodChange: (value: string) => void;
   scoreType: ViewabilityScoreType;
   onScoreTypeChange: (value: ViewabilityScoreType) => void;
+  showTargetCells: boolean;
+  showSourceCells: boolean;
+  onToggleTargetCells: () => void;
+  onToggleSourceCells: () => void;
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
+  onTogglePoiAll: () => void;
+  onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
   hasSelection: boolean;
   onResetSelection: () => void;
 };
@@ -140,11 +147,13 @@ function ViewabilityDynamicOption({
     <div ref={containerRef} className={`viewabilitySegmented__item${open ? " viewabilitySegmented__item--open" : ""}`}>
       <button
         type="button"
-        className={`viewabilitySegmented__option viewabilitySegmented__option--dynamic${selected ? " isSelected" : ""}`}
+        className={`viewabilitySegmented__option viewabilitySegmented__option--dynamic viewabilitySegmented__option--symbol${selected ? " isSelected" : ""}`}
         role="radio"
         aria-checked={selected}
         aria-haspopup="dialog"
         aria-expanded={open}
+        title="Dynamic score"
+        aria-label="Dynamic score"
         onClick={(event) => {
           onSelectDynamic();
           if ((event.target as HTMLElement).closest(".viewabilitySegmented__playAffordance")) {
@@ -152,7 +161,9 @@ function ViewabilityDynamicOption({
           }
         }}
       >
-        <span>Dynamic</span>
+        <span className="material-symbols-rounded" aria-hidden="true">
+          auto_awesome_motion
+        </span>
         <span className="viewabilitySegmented__playAffordance" aria-label={`Open date slider, current date ${currentLabel}`} title={currentLabel}>
           <span className="material-symbols-rounded" aria-hidden="true">
             play_arrow
@@ -241,26 +252,156 @@ function ViewabilityDynamicOption({
   );
 }
 
+function ViewabilityPoiMenu({
+  poiFilters,
+  onTogglePoiAll,
+  onTogglePoiType,
+}: {
+  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
+  onTogglePoiAll: () => void;
+  onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const poiActive = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className={`toolMenu viewabilityTopControls__poiMenu${open ? " toolMenu--open" : ""}`}>
+      <button
+        type="button"
+        className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}
+        onClick={() => setOpen((current) => !current)}
+        title="POI filters"
+        aria-label="POI filters"
+        aria-pressed={poiActive}
+        aria-expanded={open}
+      >
+        <span className="material-symbols-rounded">pin_drop</span>
+      </button>
+      {open && (
+        <div className="toolMenu__popover viewabilityTopControls__poiPopover" role="menu" aria-label="Points of interest">
+          <button
+            type="button"
+            className={`toolMenu__option${poiFilters.Park && poiFilters.Marina && poiFilters.Ferry ? " toolMenu__option--active" : ""}`}
+            onClick={onTogglePoiAll}
+            title="Toggle all POIs"
+            aria-label="Toggle all POIs"
+            aria-pressed={poiFilters.Park && poiFilters.Marina && poiFilters.Ferry}
+          >
+            <span className="material-symbols-rounded">pin_drop</span>
+          </button>
+          <button
+            type="button"
+            className={`toolMenu__option${poiFilters.Park ? " toolMenu__option--active" : ""}`}
+            onClick={() => onTogglePoiType("Park")}
+            title="Parks"
+            aria-label="Parks"
+            aria-pressed={poiFilters.Park}
+          >
+            <span className="material-symbols-rounded">park</span>
+          </button>
+          <button
+            type="button"
+            className={`toolMenu__option${poiFilters.Marina ? " toolMenu__option--active" : ""}`}
+            onClick={() => onTogglePoiType("Marina")}
+            title="Marinas"
+            aria-label="Marinas"
+            aria-pressed={poiFilters.Marina}
+          >
+            <span className="material-symbols-rounded">sailing</span>
+          </button>
+          <button
+            type="button"
+            className={`toolMenu__option${poiFilters.Ferry ? " toolMenu__option--active" : ""}`}
+            onClick={() => onTogglePoiType("Ferry")}
+            title="Ferries"
+            aria-label="Ferries"
+            aria-pressed={poiFilters.Ferry}
+          >
+            <span className="material-symbols-rounded">directions_boat</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ViewabilityTopControls({
   selectedDateOrPeriod,
   availableDates,
   onSelectedDateOrPeriodChange,
   scoreType,
   onScoreTypeChange,
+  showTargetCells,
+  showSourceCells,
+  onToggleTargetCells,
+  onToggleSourceCells,
+  poiFilters,
+  onTogglePoiAll,
+  onTogglePoiType,
   hasSelection,
   onResetSelection,
 }: Props) {
   return (
     <div className="viewabilityTopControls" aria-label="Viewability controls">
+      <div className="viewabilitySegmented viewabilitySegmented--iconOnly" role="group" aria-label="Visible cells">
+        <button
+          type="button"
+          className={`viewabilitySegmented__option viewabilitySegmented__option--iconOnly${showSourceCells ? " isSelected" : ""}`}
+          aria-pressed={showSourceCells}
+          onClick={onToggleSourceCells}
+          title="Show source cells"
+          aria-label="Show source cells"
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            eyeglasses_3
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`viewabilitySegmented__option viewabilitySegmented__option--iconOnly${showTargetCells ? " isSelected" : ""}`}
+          aria-pressed={showTargetCells}
+          onClick={onToggleTargetCells}
+          title="Show target cells"
+          aria-label="Show target cells"
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            target
+          </span>
+        </button>
+      </div>
+
       <div className="viewabilitySegmented" role="radiogroup" aria-label="Score type">
         <button
           type="button"
-          className={`viewabilitySegmented__option${scoreType === "base" ? " isSelected" : ""}`}
+          className={`viewabilitySegmented__option viewabilitySegmented__option--symbol${scoreType === "base" ? " isSelected" : ""}`}
           role="radio"
           aria-checked={scoreType === "base"}
           onClick={() => onScoreTypeChange("base")}
+          title="Base score"
+          aria-label="Base score"
         >
-          Base
+          <span className="material-symbols-rounded" aria-hidden="true">
+            radio_button_unchecked
+          </span>
         </button>
         <ViewabilityDynamicOption
           selected={scoreType === "dynamic"}
@@ -270,6 +411,8 @@ export function ViewabilityTopControls({
           onSelectDynamic={() => onScoreTypeChange("dynamic")}
         />
       </div>
+
+      <ViewabilityPoiMenu poiFilters={poiFilters} onTogglePoiAll={onTogglePoiAll} onTogglePoiType={onTogglePoiType} />
 
       {hasSelection && (
         <button type="button" className="iconBtn viewabilityResetBtn" onClick={onResetSelection} aria-label="Reset source selection" title="Reset selection">

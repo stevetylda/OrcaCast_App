@@ -4,6 +4,7 @@ import { useMapState } from "../../state/MapStateContext";
 import { ViewabilityAreaSelectionModal } from "./components/ViewabilityAreaSelectionModal";
 import { ViewabilityBottomDrawer } from "./components/ViewabilityBottomDrawer";
 import { ViewabilityFooter } from "./components/ViewabilityFooter";
+import { ViewabilityHeatSelectionModal } from "./components/ViewabilityHeatSelectionModal";
 import { ViewabilityLegend } from "./components/ViewabilityLegend";
 import { ViewabilityMap, type ViewabilityMapHandle } from "./components/ViewabilityMap";
 import { ViewabilitySettingsPanel } from "./components/ViewabilitySettingsPanel";
@@ -110,6 +111,13 @@ export function ViewabilityPage() {
             onSelectedDateOrPeriodChange={controller.setSelectedDateOrPeriod}
             scoreType={controller.scoreType}
             onScoreTypeChange={controller.setScoreType}
+            showTargetCells={controller.showTargetCells}
+            showSourceCells={controller.showSourceCells}
+            onToggleTargetCells={controller.toggleTargetCells}
+            onToggleSourceCells={controller.toggleSourceCells}
+            poiFilters={controller.poiFilters}
+            onTogglePoiAll={controller.togglePoiAll}
+            onTogglePoiType={controller.togglePoiType}
             hasSelection={controller.selectedSourceCellIds.length > 0 || controller.selectedTargetCellIds.length > 0}
             onResetSelection={controller.resetSelection}
           />
@@ -138,6 +146,7 @@ export function ViewabilityPage() {
           selectedSourceVisibility={controller.selectedTargetSources}
           mode={controller.mapMode}
           scoreType={controller.scoreType}
+          displayMode={controller.displayMode}
           showTargetCells={controller.showTargetCells}
           showSourceCells={controller.showSourceCells}
           selectedSourceCellId={controller.selectedSourceCellId}
@@ -159,18 +168,15 @@ export function ViewabilityPage() {
         <ViewabilitySettingsPanel
           open={controller.settingsOpen}
           settings={controller.colorScaleSettings}
-          showTargetCells={controller.showTargetCells}
-          showSourceCells={controller.showSourceCells}
+          scoreType={controller.scoreType}
+          displayMode={controller.displayMode}
           selectionMode={controller.selectionMode}
           drawSelectionKind={controller.drawSelectionKind}
-          poiFilters={controller.poiFilters}
           onChange={controller.setColorScale}
-          onToggleTargetCells={controller.toggleTargetCells}
-          onToggleSourceCells={controller.toggleSourceCells}
+          onDisplayModeChange={controller.setDisplayMode}
           onSelectCellMode={controller.closeAreaSelection}
           onSelectAreaMode={controller.openAreaSelection}
-          onTogglePoiAll={controller.togglePoiAll}
-          onTogglePoiType={controller.togglePoiType}
+          onSelectHeatMode={controller.openHeatSelection}
           onToggleOpen={() => controller.setSettingsOpen(!controller.settingsOpen)}
           onClose={() => controller.setSettingsOpen(false)}
         />
@@ -185,6 +191,23 @@ export function ViewabilityPage() {
           onClear={handleAreaSelectionClear}
           onClose={controller.closeAreaSelection}
           onSelect={handleAreaSelectionSelect}
+        />
+
+        <ViewabilityHeatSelectionModal
+          open={controller.selectionMode === "heat"}
+          mode={controller.heatMode}
+          percentile={controller.heatPercentile}
+          presetValues={controller.heatPresetValues}
+          resolution={controller.heatResolution}
+          resolutionOptions={controller.heatResolutionOptions}
+          preview={controller.heatSelectionPreview}
+          applyBusy={controller.heatApplyBusy}
+          onModeChange={controller.setHeatMode}
+          onPercentileChange={controller.setHeatPercentile}
+          onResolutionChange={controller.setHeatResolution}
+          onClear={controller.resetSelection}
+          onClose={controller.closeAreaSelection}
+          onSelect={controller.applyHeatSelection}
         />
 
         <ViewabilityLegend

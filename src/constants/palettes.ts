@@ -8,7 +8,7 @@ export type PaletteId =
   | "mediterranean_atlas"
   | "red_atlas";
 
-export type ViewabilityOnlyPaletteId = "relief_atlas";
+export type ViewabilityOnlyPaletteId = "relief_atlas" | "northern_lights";
 
 export type ViewabilityPaletteId = PaletteId | ViewabilityOnlyPaletteId;
 
@@ -159,6 +159,21 @@ export const VIEWABILITY_ONLY_PALETTES: Record<ViewabilityOnlyPaletteId, Palette
       "#1F6670",
     ],
     dominant: "#4E8F94",
+  },
+  northern_lights: {
+    id: "northern_lights",
+    name: "Northern Lights",
+    colors: [
+      "#071326",
+      "#102A43",
+      "#124E66",
+      "#167A7A",
+      "#1FBF9A",
+      "#79E0C5",
+      "#A7F3D0",
+      "#D9FFF3",
+    ],
+    dominant: "#1FBF9A",
   },
 };
 

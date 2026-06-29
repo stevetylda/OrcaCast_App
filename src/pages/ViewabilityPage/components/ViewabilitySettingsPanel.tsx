@@ -1,23 +1,20 @@
 import { useEffect, useRef } from "react";
 import { VIEWABILITY_PALETTE_OPTIONS } from "../../../constants/palettes";
-import type { ViewabilityColorScaleSettings } from "../../../data/viewabilityTypes";
+import type { ViewabilityColorScaleSettings, ViewabilityDisplayMode, ViewabilityScoreType } from "../../../data/viewabilityTypes";
 import type { ViewabilitySelectionMode } from "../useViewabilityPageController";
 
 type Props = {
   open: boolean;
   settings: ViewabilityColorScaleSettings;
-  showTargetCells: boolean;
-  showSourceCells: boolean;
+  scoreType: ViewabilityScoreType;
+  displayMode: ViewabilityDisplayMode;
   selectionMode: ViewabilitySelectionMode;
   drawSelectionKind: "target" | "source";
-  poiFilters: { Park: boolean; Marina: boolean; Ferry: boolean };
   onChange: (next: Partial<ViewabilityColorScaleSettings>) => void;
-  onToggleTargetCells: () => void;
-  onToggleSourceCells: () => void;
+  onDisplayModeChange: (mode: ViewabilityDisplayMode) => void;
   onSelectCellMode: () => void;
   onSelectAreaMode: () => void;
-  onTogglePoiAll: () => void;
-  onTogglePoiType: (type: "Park" | "Marina" | "Ferry") => void;
+  onSelectHeatMode: () => void;
   onToggleOpen: () => void;
   onClose: () => void;
 };
@@ -25,23 +22,20 @@ type Props = {
 export function ViewabilitySettingsPanel({
   open,
   settings,
-  showTargetCells,
-  showSourceCells,
+  scoreType,
+  displayMode,
   selectionMode,
   drawSelectionKind,
-  poiFilters,
   onChange,
-  onToggleTargetCells,
-  onToggleSourceCells,
+  onDisplayModeChange,
   onSelectCellMode,
   onSelectAreaMode,
-  onTogglePoiAll,
-  onTogglePoiType,
+  onSelectHeatMode,
   onToggleOpen,
   onClose,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const poiActive = poiFilters.Park || poiFilters.Marina || poiFilters.Ferry;
+  const heatAvailable = scoreType === "dynamic";
 
   useEffect(() => {
     if (!open) return;
@@ -70,23 +64,34 @@ export function ViewabilitySettingsPanel({
       </button>
       {open && (
         <div className="viewabilitySettings__panel" aria-label="Viewability settings panel">
-          <div className="viewabilityLayerToggles viewabilityLayerToggles--settings" aria-label="Layer visibility">
-            <button
-              type="button"
-              className={`viewabilityToggle${showTargetCells ? " isSelected" : ""}`}
-              aria-pressed={showTargetCells}
-              onClick={onToggleTargetCells}
-            >
-              Target cells
-            </button>
-            <button
-              type="button"
-              className={`viewabilityToggle${showSourceCells ? " isSelected" : ""}`}
-              aria-pressed={showSourceCells}
-              onClick={onToggleSourceCells}
-            >
-              Source cells
-            </button>
+          <div className="viewabilityField">
+            <span>Display mode</span>
+            <div className="viewabilityLayerToggles viewabilityLayerToggles--settings" aria-label="Display mode">
+              <button
+                type="button"
+                className={`viewabilityToggle${displayMode === "hex" ? " isSelected" : ""}`}
+                aria-pressed={displayMode === "hex"}
+                onClick={() => onDisplayModeChange("hex")}
+                title="Hex view"
+                aria-label="Hex view"
+              >
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  hexagon
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`viewabilityToggle${displayMode === "smooth" ? " isSelected" : ""}`}
+                aria-pressed={displayMode === "smooth"}
+                onClick={() => onDisplayModeChange("smooth")}
+                title="Smooth surface view"
+                aria-label="Smooth surface view"
+              >
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  blur_on
+                </span>
+              </button>
+            </div>
           </div>
           <div className="viewabilityField">
             <span>Selection mode</span>
@@ -96,8 +101,12 @@ export function ViewabilitySettingsPanel({
                 className={`viewabilityToggle${selectionMode === "cell" ? " isSelected" : ""}`}
                 aria-pressed={selectionMode === "cell"}
                 onClick={onSelectCellMode}
+                title="Cell select"
+                aria-label="Cell select"
               >
-                Cell select
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  point_scan
+                </span>
               </button>
               <button
                 type="button"
@@ -105,52 +114,25 @@ export function ViewabilitySettingsPanel({
                 aria-pressed={selectionMode === "area"}
                 onClick={onSelectAreaMode}
                 title={`Open area selection for ${drawSelectionKind} cells`}
+                aria-label="Area select"
               >
-                Area selection
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  select
+                </span>
               </button>
-            </div>
-          </div>
-          <div className="viewabilitySettings__toolRow">
-            <div className="toolMenu toolMenu--open">
               <button
                 type="button"
-                className={`toolBtn${poiActive ? " toolBtn--active" : ""}`}
-                onClick={onTogglePoiAll}
-                title="POI filters"
-                aria-label="POI filters"
-                aria-pressed={poiActive}
+                className={`viewabilityToggle${selectionMode === "heat" ? " isSelected" : ""}`}
+                aria-pressed={selectionMode === "heat"}
+                onClick={onSelectHeatMode}
+                disabled={!heatAvailable}
+                title={heatAvailable ? "Select target cells from forecast hotspots" : "Heat selection is only available in dynamic mode"}
+                aria-label="Heat select"
               >
-                <span className="material-symbols-rounded">pin_drop</span>
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  local_fire_department
+                </span>
               </button>
-              <div className="toolMenu__popover viewabilitySettings__poiPopover" role="menu" aria-label="Points of interest">
-                <button
-                  type="button"
-                  className={`toolMenu__option${poiFilters.Park ? " toolMenu__option--active" : ""}`}
-                  onClick={() => onTogglePoiType("Park")}
-                  title="Parks"
-                  aria-label="Parks"
-                >
-                  <span className="material-symbols-rounded">park</span>
-                </button>
-                <button
-                  type="button"
-                  className={`toolMenu__option${poiFilters.Marina ? " toolMenu__option--active" : ""}`}
-                  onClick={() => onTogglePoiType("Marina")}
-                  title="Marinas"
-                  aria-label="Marinas"
-                >
-                  <span className="material-symbols-rounded">sailing</span>
-                </button>
-                <button
-                  type="button"
-                  className={`toolMenu__option${poiFilters.Ferry ? " toolMenu__option--active" : ""}`}
-                  onClick={() => onTogglePoiType("Ferry")}
-                  title="Ferries"
-                  aria-label="Ferries"
-                >
-                  <span className="material-symbols-rounded">directions_boat</span>
-                </button>
-              </div>
             </div>
           </div>
           <label className="viewabilityField">

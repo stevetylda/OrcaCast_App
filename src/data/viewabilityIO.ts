@@ -38,6 +38,7 @@ type ViewabilityManifest = {
     };
     target_viewability_template?: string;
     source_viewyness_template?: string;
+    daily_scores_parquet_template?: string;
     source_conditions_template?: string;
     source_timeseries_template?: string;
     months_template?: string;
@@ -140,6 +141,12 @@ const sourceVisibilityBundleCache = new Map<string, Promise<SourceTargetVisibili
 const sourceTimeseriesBundleCache = new Map<string, Promise<SourceCellTimeSeriesPoint[]>>();
 let allBundledSourceVisibilityPromise: Promise<SourceTargetVisibilityRecord[]> | null = null;
 let areaConditionsSeriesPromise: Promise<ViewabilityAreaConditionPoint[]> | null = null;
+let manifestPromise: Promise<ViewabilityManifest> | null = null;
+let baseTargetCellsPromise: Promise<ViewabilityTargetFeatureCollection> | null = null;
+let baseSourceCellsPromise: Promise<ViewabilitySourceFeatureCollection> | null = null;
+let sourceVisibilityIndexPromise: Promise<SourceVisibilityIndex | null> | null = null;
+const targetCellsByDateCache = new Map<string, Promise<ViewabilityTargetFeatureCollection>>();
+const sourceCellsByDateAndScoreCache = new Map<string, Promise<ViewabilitySourceFeatureCollection>>();
 
 function viewabilityPath(path: string): string {
   return `${VIEWABILITY_ROOT}/${path}`;
@@ -210,8 +217,11 @@ function enumerateDates(start: string, end: string): string[] {
 }
 
 async function loadManifest(): Promise<ViewabilityManifest> {
-  const { data } = await fetchJson<ViewabilityManifest>(viewabilityPath("manifest.json"), { cache: "no-store", retries: 0 });
-  return data;
+  if (!manifestPromise) {
+    manifestPromise = fetchJson<ViewabilityManifest>(viewabilityPath("manifest.json"), { cache: "no-store", retries: 0 })
+      .then(({ data }) => data);
+  }
+  return manifestPromise;
 }
 
 export async function loadViewabilityDates(): Promise<string[]> {
@@ -221,8 +231,11 @@ export async function loadViewabilityDates(): Promise<string[]> {
 }
 
 async function loadBaseTargetCells(manifest: ViewabilityManifest): Promise<ViewabilityTargetFeatureCollection> {
-  const { data } = await fetchJson<ViewabilityTargetFeatureCollection>(viewabilityPath(manifest.base.target_viewability));
-  return data;
+  if (!baseTargetCellsPromise) {
+    baseTargetCellsPromise = fetchJson<ViewabilityTargetFeatureCollection>(viewabilityPath(manifest.base.target_viewability))
+      .then(({ data }) => data);
+  }
+  return baseTargetCellsPromise;
 }
 
 async function loadDynamicScoresByH3(template: string | undefined, date: string): Promise<Map<string, Record<string, unknown>>> {
@@ -257,11 +270,20 @@ async function loadDynamicMonthParquet(
   date: string,
   entity: "target" | "source"
 ): Promise<Map<string, Record<string, unknown>> | null> {
-  const template = manifest.dynamic?.monthly_scores_template ?? manifest.dynamic?.months_template;
+  const month = monthFromDate(date);
+  const dailyTemplate = manifest.dynamic?.daily_scores_parquet_template;
+  const monthlyTemplate = manifest.dynamic?.monthly_scores_template ?? manifest.dynamic?.months_template;
+  const template = dailyTemplate?.endsWith(".parquet") ? dailyTemplate : monthlyTemplate;
   if (!template || !template.endsWith(".parquet")) return null;
 
-  const month = monthFromDate(date);
-  const path = viewabilityPath(templatePath(template, { month, yyyy_mm: month }));
+  const path = viewabilityPath(
+    templatePath(template, {
+      date,
+      month,
+      yyyy_mm: month,
+      yyyy_mm_dd: date,
+    })
+  );
   const cacheKey = `${path}|${date}|${entity}`;
   let promise = dynamicMonthParquetCache.get(cacheKey);
   if (!promise) {
@@ -405,18 +427,23 @@ function viewabilityDynamicRelativePath(path: string): string {
 }
 
 async function loadSourceVisibilityIndex(manifest: ViewabilityManifest): Promise<SourceVisibilityIndex | null> {
-  try {
-    const { data } = await fetchJson<SourceVisibilityIndexFile>(
-      viewabilityPath(manifest.base.source_visibility_index ?? "base/source_visibility_index.json")
-    );
-    const bundledSourceIds = data.bundles ? Object.keys(data.bundles) : [];
-    return {
-      sourceH3: new Set(data.source_h3 ?? bundledSourceIds),
-      bundlesBySourceH3: new Map(Object.entries(data.bundles ?? {})),
-    };
-  } catch {
-    return null;
+  if (!sourceVisibilityIndexPromise) {
+    sourceVisibilityIndexPromise = (async () => {
+      try {
+        const { data } = await fetchJson<SourceVisibilityIndexFile>(
+          viewabilityPath(manifest.base.source_visibility_index ?? "base/source_visibility_index.json")
+        );
+        const bundledSourceIds = data.bundles ? Object.keys(data.bundles) : [];
+        return {
+          sourceH3: new Set(data.source_h3 ?? bundledSourceIds),
+          bundlesBySourceH3: new Map(Object.entries(data.bundles ?? {})),
+        };
+      } catch {
+        return null;
+      }
+    })();
   }
+  return sourceVisibilityIndexPromise;
 }
 
 async function loadBundledSourceVisibility(
@@ -570,33 +597,40 @@ async function loadAllBundledSourceVisibility(index: SourceVisibilityIndex): Pro
 
 export async function loadViewabilityTargetCells(date?: string): Promise<ViewabilityTargetFeatureCollection> {
   const selectedDate = selectedDateOrDefault(date);
-  const manifest = await loadManifest();
-  const [baseTargets, dynamicScores] = await Promise.all([
-    loadBaseTargetCells(manifest),
-    loadDynamicTargetScoresByH3(manifest, selectedDate),
-  ]);
+  let cached = targetCellsByDateCache.get(selectedDate);
+  if (!cached) {
+    cached = (async () => {
+      const manifest = await loadManifest();
+      const [baseTargets, dynamicScores] = await Promise.all([
+        loadBaseTargetCells(manifest),
+        loadDynamicTargetScoresByH3(manifest, selectedDate),
+      ]);
 
-  return {
-    ...baseTargets,
-    features: baseTargets.features.map((feature) => {
-      const score = dynamicScores.get(feature.properties.h3);
       return {
-        ...feature,
-        properties: {
-          ...feature.properties,
-          weather_viewability_score: asNumber(score?.weather_viewability_score),
-          daylight_viewability_score: asNumber(score?.daylight_viewability_score),
-          lunar_viewability_score: asNumber(score?.lunar_viewability_score),
-          weather_modifier: asNumber(score?.weather_modifier),
-          daylight_modifier: asNumber(score?.daylight_modifier),
-          lunar_modifier: asNumber(score?.lunar_modifier),
-          dynamic_viewability_score:
-            coalesceNumber(score?.dynamic_viewability_score, score?.weather_viewability_score) ??
-            feature.properties.dynamic_viewability_score,
-        },
+        ...baseTargets,
+        features: baseTargets.features.map((feature) => {
+          const score = dynamicScores.get(feature.properties.h3);
+          return {
+            ...feature,
+            properties: {
+              ...feature.properties,
+              weather_viewability_score: asNumber(score?.weather_viewability_score),
+              daylight_viewability_score: asNumber(score?.daylight_viewability_score),
+              lunar_viewability_score: asNumber(score?.lunar_viewability_score),
+              weather_modifier: asNumber(score?.weather_modifier),
+              daylight_modifier: asNumber(score?.daylight_modifier),
+              lunar_modifier: asNumber(score?.lunar_modifier),
+              dynamic_viewability_score:
+                coalesceNumber(score?.dynamic_viewability_score, score?.weather_viewability_score) ??
+                feature.properties.dynamic_viewability_score,
+            },
+          };
+        }),
       };
-    }),
-  };
+    })();
+    targetCellsByDateCache.set(selectedDate, cached);
+  }
+  return cached;
 }
 
 export async function loadViewabilitySourceCells(
@@ -604,64 +638,62 @@ export async function loadViewabilitySourceCells(
   scoreType: ViewabilityScoreType = "dynamic"
 ): Promise<ViewabilitySourceFeatureCollection> {
   const selectedDate = selectedDateOrDefault(date);
-  const manifest = await loadManifest();
+  const cacheKey = `${selectedDate}|${scoreType}`;
+  let cached = sourceCellsByDateAndScoreCache.get(cacheKey);
+  if (!cached) {
+    cached = (async () => {
+      const manifest = await loadManifest();
 
-  const [sourceSummary, dynamicScores, sourceVisibilityIndex] = await Promise.all([
-    fetchJson<ViewabilitySourceFeatureCollection>(
-      viewabilityPath(manifest.base.source_viewyness)
-    ).then((result) => result.data),
-    loadDynamicSourceScoresByH3(manifest, selectedDate),
-    loadSourceVisibilityIndex(manifest),
-  ]);
+      if (!baseSourceCellsPromise) {
+        baseSourceCellsPromise = fetchJson<ViewabilitySourceFeatureCollection>(
+          viewabilityPath(manifest.base.source_viewyness)
+        ).then((result) => result.data);
+      }
 
-  const features = sourceSummary.features.flatMap((feature) => {
-    const h3 = feature.properties.h3;
+      const [sourceSummary, dynamicScores] = await Promise.all([
+        baseSourceCellsPromise,
+        loadDynamicSourceScoresByH3(manifest, selectedDate),
+      ]);
 
-    // Keep this only if you want the map to show selectable source cells
-    // that actually have source-target lookup records.
-    if (sourceVisibilityIndex && !sourceVisibilityIndex.sourceH3.has(h3)) {
-      return [];
-    }
+      const features = sourceSummary.features.map((feature) => {
+        const h3 = feature.properties.h3;
+        const dynamic = dynamicScores.get(h3);
+        const baseScore = feature.properties.base_viewyness_score;
+        const weatherScore = asNumber(dynamic?.weather_viewyness_score);
+        const dynamicScore = coalesceNumber(
+          dynamic?.dynamic_viewyness_score,
+          dynamic?.weather_viewyness_score
+        );
+        const sourceScore = scoreType === "base" ? baseScore : dynamicScore ?? baseScore;
+        const visibleTargetCount = asNumber(dynamic?.visible_target_count);
 
-    const dynamic = dynamicScores.get(h3);
-    const baseScore = feature.properties.base_viewyness_score;
-    const weatherScore = asNumber(dynamic?.weather_viewyness_score);
-    const dynamicScore = coalesceNumber(
-      dynamic?.dynamic_viewyness_score,
-      dynamic?.weather_viewyness_score
-    );
-    const sourceScore = scoreType === "base" ? baseScore : dynamicScore ?? baseScore;
-    const visibleTargetCount = asNumber(dynamic?.visible_target_count);
+        return {
+          type: "Feature" as const,
+          properties: {
+            ...feature.properties,
+            base_viewyness_score: baseScore,
+            dynamic_viewyness_score: dynamicScore,
+            weather_viewyness_score: weatherScore,
+            daylight_viewyness_score: asNumber(dynamic?.daylight_viewyness_score),
+            lunar_viewyness_score: asNumber(dynamic?.lunar_viewyness_score),
+            weather_modifier_mean: asNumber(dynamic?.weather_modifier_mean),
+            daylight_modifier_mean: asNumber(dynamic?.daylight_modifier_mean),
+            lunar_modifier_mean: asNumber(dynamic?.lunar_modifier_mean),
+            source_viewyness_score: sourceScore,
+            visible_target_count: visibleTargetCount,
+            dynamic_weight_sum: asNumber(dynamic?.dynamic_weight_sum),
+            reachable_target_count:
+              visibleTargetCount ?? feature.properties.reachable_target_count,
+          },
+          geometry: feature.geometry,
+        };
+      });
 
-    return [
-      {
-        type: "Feature" as const,
-        properties: {
-          ...feature.properties,
-          base_viewyness_score: baseScore,
-          dynamic_viewyness_score: dynamicScore,
-          weather_viewyness_score: weatherScore,
-          daylight_viewyness_score: asNumber(dynamic?.daylight_viewyness_score),
-          lunar_viewyness_score: asNumber(dynamic?.lunar_viewyness_score),
-          weather_modifier_mean: asNumber(dynamic?.weather_modifier_mean),
-          daylight_modifier_mean: asNumber(dynamic?.daylight_modifier_mean),
-          lunar_modifier_mean: asNumber(dynamic?.lunar_modifier_mean),
-          source_viewyness_score: sourceScore,
-          visible_target_count: visibleTargetCount,
-          dynamic_weight_sum: asNumber(dynamic?.dynamic_weight_sum),
-          reachable_target_count:
-            visibleTargetCount ?? feature.properties.reachable_target_count,
-        },
-
-        // Important:
-        // Use the geometry from base/source_viewyness.geojson.
-        // Do not substitute target_viewability geometry here.
-        geometry: feature.geometry,
-      },
-    ];
-  });
-
-  return { type: "FeatureCollection", features };
+      return { type: "FeatureCollection", features };
+    })();
+    sourceCellsByDateAndScoreCache.set(cacheKey, cached);
+  }
+  return cached;
 }
 export async function loadSourceTargetVisibility(sourceCellId?: string): Promise<SourceTargetVisibilityRecord[]> {
   if (!sourceCellId) return [];
@@ -795,7 +827,13 @@ export async function loadSourceCellTimeSeries(sourceCellId?: string): Promise<S
                 SELECT
                   ${dateColumn} AS period,
                   ${viewabilityColumn ?? "NULL"} AS dynamic_viewability,
-                  ${columns.has("sighting_count") ? "sighting_count" : "NULL"} AS sighting_count
+                  ${
+                    columns.has("sighting_count_visible_targets")
+                      ? "sighting_count_visible_targets"
+                      : columns.has("sighting_count")
+                        ? "sighting_count"
+                        : "NULL"
+                  } AS sighting_count
                 FROM read_parquet(${sqlLiteral(fileName)})
                 WHERE ${sourceColumn} = ${sqlLiteral(sourceCellId)}
                 ORDER BY ${dateColumn}

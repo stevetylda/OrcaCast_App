@@ -189,11 +189,57 @@
   white-space: nowrap;
 }
 
+.viewabilityToggle:disabled,
+.viewabilitySegmented__option:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.viewabilityToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.viewabilityToggle .material-symbols-rounded {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .viewabilitySegmented__option--dynamic {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding-right: 4px;
+}
+
+.viewabilitySegmented--iconOnly {
+  flex: 0 0 auto;
+}
+
+.viewabilitySegmented__option--iconOnly,
+.viewabilitySegmented__option--symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewabilitySegmented__option--iconOnly {
+  min-width: 32px;
+  padding: 0 8px;
+}
+
+.viewabilitySegmented__option--symbol {
+  min-width: 38px;
+  padding: 0 8px;
+}
+
+.viewabilitySegmented__option--iconOnly .material-symbols-rounded,
+.viewabilitySegmented__option--symbol .material-symbols-rounded {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .viewabilitySegmented__playAffordance {
@@ -300,6 +346,19 @@
 
 .viewabilitySettings__toolRow .toolMenu {
   position: relative;
+}
+
+.viewabilityTopControls__poiMenu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.viewabilityTopControls__poiPopover {
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  bottom: auto;
+  transform: none;
 }
 
 .viewabilitySettings__poiPopover {
@@ -418,6 +477,21 @@
 
 .viewabilityAreaModal__actions .btn {
   flex: 1 1 0;
+}
+
+.viewabilityHeatModal__value {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.viewabilityHeatModal__error {
+  font-size: 12px;
+  color: #ff9fb8;
+}
+
+.viewabilityHeatModal__note {
+  font-size: 12px;
+  color: rgba(234, 242, 255, 0.78);
 }
 
 .viewabilityAreaToolbox .viewabilityLayerToggles {
@@ -3281,6 +3355,11 @@
   color: var(--ink-secondary);
 }
 
+.app:not(.app--dark) .viewabilitySegmented__option--iconOnly,
+.app:not(.app--dark) .viewabilitySegmented__option--symbol {
+  color: rgba(41, 66, 100, 0.82);
+}
+
 .app:not(.app--dark) .viewabilitySegmented__option.isSelected {
   background: rgba(0, 176, 198, 0.14);
   color: var(--ink-primary);
@@ -3462,6 +3541,14 @@
 
 .app:not(.app--dark) .viewabilityAreaModal__hint,
 .app:not(.app--dark) .viewabilityAreaToolbox__subtitle {
+  color: var(--ink-secondary);
+}
+
+.app:not(.app--dark) .viewabilityHeatModal__error {
+  color: #b4234d;
+}
+
+.app:not(.app--dark) .viewabilityHeatModal__note {
   color: var(--ink-secondary);
 }
 
@@ -3820,6 +3907,13 @@
   border-color: var(--ctrl-border);
   background: rgba(233, 243, 254, 0.94);
   color: var(--ink-primary);
+}
+
+.app:not(.app--dark) .toolMenu__option--active {
+  border-color: rgba(14, 115, 136, 0.5);
+  background: rgba(0, 176, 198, 0.18);
+  color: #0e5664;
+  box-shadow: 0 0 0 1px rgba(0, 176, 198, 0.16), 0 6px 14px rgba(0, 176, 198, 0.18);
 }
 
 .app:not(.app--dark) .toolMenu__option:hover,

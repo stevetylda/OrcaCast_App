@@ -2,6 +2,7 @@ import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from "g
 import type { ViewabilityPaletteId } from "../constants/palettes";
 
 export type ViewabilityScoreType = "base" | "dynamic";
+export type ViewabilityDisplayMode = "hex" | "smooth";
 
 export type ViewabilityMapMode = "overview" | "source-inspector" | "target-inspector";
 
