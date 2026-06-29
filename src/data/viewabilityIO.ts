@@ -1,17 +1,12 @@
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import { getParquetColumns, queryParquetFile, queryParquetFiles, sqlLiteral } from "./duckdbBrowser";
 import { fetchJson } from "./fetchClient";
-import {
-  sourceCellTimeSeriesFixture,
-  viewabilitySightingsBinsFixture,
-} from "./fixtures/viewabilityFixtures";
+import { sourceCellTimeSeriesFixture } from "./fixtures/viewabilityFixtures";
 import type {
-  SourceCellConditions,
   SourceCellTimeSeriesPoint,
   ViewabilityAreaConditionPoint,
   SourceTargetVisibilityRecord,
   ViewabilityScoreType,
-  ViewabilitySightingsBin,
   ViewabilitySourceFeatureCollection,
   ViewabilitySourceProperties,
   ViewabilityTargetFeatureCollection,
@@ -39,7 +34,6 @@ type ViewabilityManifest = {
     target_viewability_template?: string;
     source_viewyness_template?: string;
     daily_scores_parquet_template?: string;
-    source_conditions_template?: string;
     source_timeseries_template?: string;
     months_template?: string;
     monthly_scores_template?: string;
@@ -61,11 +55,6 @@ type DynamicScoresFile = {
   scores: Array<Record<string, unknown>>;
 };
 
-type DynamicConditionsFile = {
-  date: string;
-  conditions: Array<Record<string, unknown>>;
-};
-
 type SourceTimeSeriesFile = {
   h3: string;
   series: Array<Record<string, unknown>>;
@@ -74,7 +63,6 @@ type SourceTimeSeriesFile = {
 type DynamicMonthDate = {
   target_viewability?: DynamicScoresFile | Array<Record<string, unknown>>;
   source_viewyness?: DynamicScoresFile | Array<Record<string, unknown>>;
-  source_conditions?: DynamicConditionsFile & { lunar_context?: Record<string, unknown> };
 };
 
 type DynamicMonthFile = {
@@ -145,7 +133,7 @@ let manifestPromise: Promise<ViewabilityManifest> | null = null;
 let baseTargetCellsPromise: Promise<ViewabilityTargetFeatureCollection> | null = null;
 let baseSourceCellsPromise: Promise<ViewabilitySourceFeatureCollection> | null = null;
 let sourceVisibilityIndexPromise: Promise<SourceVisibilityIndex | null> | null = null;
-const targetCellsByDateCache = new Map<string, Promise<ViewabilityTargetFeatureCollection>>();
+const targetCellsByDateAndScoreCache = new Map<string, Promise<ViewabilityTargetFeatureCollection>>();
 const sourceCellsByDateAndScoreCache = new Map<string, Promise<ViewabilitySourceFeatureCollection>>();
 
 function viewabilityPath(path: string): string {
@@ -595,16 +583,23 @@ async function loadAllBundledSourceVisibility(index: SourceVisibilityIndex): Pro
   return allBundledSourceVisibilityPromise;
 }
 
-export async function loadViewabilityTargetCells(date?: string): Promise<ViewabilityTargetFeatureCollection> {
+export async function loadViewabilityTargetCells(
+  date?: string,
+  scoreType: ViewabilityScoreType = "dynamic"
+): Promise<ViewabilityTargetFeatureCollection> {
   const selectedDate = selectedDateOrDefault(date);
-  let cached = targetCellsByDateCache.get(selectedDate);
+  const cacheKey = `${selectedDate}|${scoreType}`;
+  let cached = targetCellsByDateAndScoreCache.get(cacheKey);
   if (!cached) {
     cached = (async () => {
       const manifest = await loadManifest();
-      const [baseTargets, dynamicScores] = await Promise.all([
-        loadBaseTargetCells(manifest),
-        loadDynamicTargetScoresByH3(manifest, selectedDate),
-      ]);
+      const baseTargets = await loadBaseTargetCells(manifest);
+
+      if (scoreType === "base") {
+        return baseTargets;
+      }
+
+      const dynamicScores = await loadDynamicTargetScoresByH3(manifest, selectedDate);
 
       return {
         ...baseTargets,
@@ -628,7 +623,7 @@ export async function loadViewabilityTargetCells(date?: string): Promise<Viewabi
         }),
       };
     })();
-    targetCellsByDateCache.set(selectedDate, cached);
+    targetCellsByDateAndScoreCache.set(cacheKey, cached);
   }
   return cached;
 }
@@ -650,10 +645,13 @@ export async function loadViewabilitySourceCells(
         ).then((result) => result.data);
       }
 
-      const [sourceSummary, dynamicScores] = await Promise.all([
-        baseSourceCellsPromise,
-        loadDynamicSourceScoresByH3(manifest, selectedDate),
-      ]);
+      const sourceSummary = await baseSourceCellsPromise;
+
+      if (scoreType === "base") {
+        return sourceSummary;
+      }
+
+      const dynamicScores = await loadDynamicSourceScoresByH3(manifest, selectedDate);
 
       const features = sourceSummary.features.map((feature) => {
         const h3 = feature.properties.h3;
@@ -664,7 +662,7 @@ export async function loadViewabilitySourceCells(
           dynamic?.dynamic_viewyness_score,
           dynamic?.weather_viewyness_score
         );
-        const sourceScore = scoreType === "base" ? baseScore : dynamicScore ?? baseScore;
+        const sourceScore = dynamicScore ?? baseScore;
         const visibleTargetCount = asNumber(dynamic?.visible_target_count);
 
         return {
@@ -739,47 +737,6 @@ export async function loadTargetSourceVisibility(targetCellId?: string): Promise
 
   const records = await loadAllBundledSourceVisibility(index);
   return records.filter((record) => record.target_h3 === targetCellId);
-}
-
-export async function loadSourceCellConditions(sourceCellId?: string, date?: string): Promise<SourceCellConditions | null> {
-  if (!sourceCellId) return null;
-
-  const selectedDate = selectedDateOrDefault(date);
-  const manifest = await loadManifest();
-  const day = await loadDynamicMonth(manifest, selectedDate);
-  const monthlyRow = day?.source_conditions?.conditions.find((condition) => condition.h3 === sourceCellId);
-  if (monthlyRow) {
-    return {
-      source_h3: sourceCellId,
-      selected_period: selectedDate,
-      weather_score: asNumber(monthlyRow.weather_score),
-      daylight_score: asNumber(monthlyRow.daylight_score),
-      lunar_score: asNumber(monthlyRow.lunar_score),
-      lunar_phase: asString(monthlyRow.lunar_phase),
-      moon_illumination: asNumber(monthlyRow.moon_illumination),
-      moonlit_dark_fraction: asNumber(monthlyRow.moonlit_dark_fraction),
-      dynamic_modifier: asNumber(monthlyRow.dynamic_modifier),
-    };
-  }
-
-  const template = manifest.dynamic?.source_conditions_template;
-  if (!template) return null;
-
-  const { data } = await fetchJson<DynamicConditionsFile>(viewabilityPath(templatePath(template, { date: selectedDate })));
-  const row = data.conditions.find((condition) => condition.h3 === sourceCellId);
-  if (!row) return null;
-
-  return {
-    source_h3: sourceCellId,
-    selected_period: selectedDate,
-    weather_score: asNumber(row.weather_score),
-    daylight_score: asNumber(row.daylight_score),
-    lunar_score: asNumber(row.lunar_score),
-    lunar_phase: asString(row.lunar_phase),
-    moon_illumination: asNumber(row.moon_illumination),
-    moonlit_dark_fraction: asNumber(row.moonlit_dark_fraction),
-    dynamic_modifier: asNumber(row.dynamic_modifier),
-  };
 }
 
 export async function loadSourceCellTimeSeries(sourceCellId?: string): Promise<SourceCellTimeSeriesPoint[]> {
@@ -866,11 +823,6 @@ export async function loadSourceCellTimeSeries(sourceCellId?: string): Promise<S
   } catch {
     return sourceCellTimeSeriesFixture;
   }
-}
-
-export async function loadViewabilitySightingsBins(): Promise<ViewabilitySightingsBin[]> {
-  // TODO: Connect this to a static binned sightings-vs-viewability artifact when exported.
-  return viewabilitySightingsBinsFixture;
 }
 
 export type ViewabilityTargetGeometryFeature = Feature<Polygon | MultiPolygon, ViewabilityTargetProperties>;

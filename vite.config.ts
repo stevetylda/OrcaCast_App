@@ -22,7 +22,7 @@ export default defineConfig(() => ({
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("maplibre-gl") || id.includes("@deck.gl")) return "map-vendor";
           if (id.includes("plotly.js") || id.includes("react-plotly.js")) return "plotly-vendor";
-          if (id.includes("reactflow") || id.includes("dagre")) return "flow-vendor";
+          if (id.includes("reactflow")) return "flow-vendor";
           if (id.includes("driver.js")) return "tour-vendor";
           return "vendor";
         },

@@ -73,18 +73,6 @@ export type ViewabilitySourceFeatureCollection = FeatureCollection<
 
 export type SourceTargetVisibilityRecord = SourceTargetVisibilityProperties;
 
-export type SourceCellConditions = {
-  source_h3: string;
-  selected_period: string;
-  weather_score?: number;
-  daylight_score?: number;
-  lunar_score?: number;
-  lunar_phase?: string;
-  moon_illumination?: number;
-  moonlit_dark_fraction?: number;
-  dynamic_modifier?: number;
-};
-
 export type SourceCellTimeSeriesPoint = {
   period: string;
   dynamic_viewability?: number;
@@ -102,15 +90,6 @@ export type ViewabilityAreaConditionPoint = {
   lunar?: number;
   lunarLow?: number;
   lunarHigh?: number;
-};
-
-export type ViewabilitySightingsBin = {
-  bin_label: string;
-  min_dynamic_viewability: number;
-  max_dynamic_viewability: number;
-  sighting_count?: number;
-  sighting_rate?: number;
-  cell_period_observations?: number;
 };
 
 export type ViewabilityColorScaleSettings = {

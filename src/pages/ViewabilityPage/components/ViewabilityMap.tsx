@@ -1,7 +1,7 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MutableRefObject } from "react";
-import maplibregl, { Map as MapLibreMap, type DataDrivenPropertyValueSpecification, type FilterSpecification } from "maplibre-gl";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import maplibregl, { Map as MapLibreMap, type FilterSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, MultiPolygon, Point, Polygon, Position } from "geojson";
+import type { Feature, GeoJsonProperties, MultiPolygon, Point, Polygon, Position } from "geojson";
 import type {
   SourceTargetVisibilityRecord,
   ViewabilityColorScaleSettings,
@@ -14,26 +14,40 @@ import type {
 import { applyBasemapVisualTuning, DARK_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM, VOYAGER_STYLE } from "../../../components/ForecastMap/buildLayers";
 import type { ViewabilityAreaSelectionTool, ViewabilitySelectionMode } from "../useViewabilityPageController";
 import { buildInspectorSourceCells, buildInspectorTargetCells } from "../utils/viewabilityLayerBuilders";
-import { buildViewabilityColorExpression, formatScore, getViewabilityScoreProperty, resolveViewabilityColor } from "../utils/viewabilityColorScales";
-
-const TARGET_SOURCE_ID = "viewability-target-cells";
-const SOURCE_SOURCE_ID = "viewability-source-cells";
-const TARGET_FILL_LAYER_ID = "viewability-target-fill";
-const TARGET_LINE_LAYER_ID = "viewability-target-line";
-const TARGET_HIT_LAYER_ID = "viewability-target-hit";
-const TARGET_SELECTED_LAYER_ID = "viewability-target-selected";
-const TARGET_SMOOTH_SOURCE_ID = "viewability-target-smooth-surface";
-const TARGET_SMOOTH_LAYER_ID = "viewability-target-smooth-surface-layer";
-const SOURCE_SMOOTH_SOURCE_ID = "viewability-source-smooth-surface";
-const SOURCE_SMOOTH_LAYER_ID = "viewability-source-smooth-surface-layer";
-const DRAW_SOURCE_ID = "viewability-draw-selection";
-const DRAW_FILL_LAYER_ID = "viewability-draw-selection-fill";
-const DRAW_LINE_LAYER_ID = "viewability-draw-selection-line";
-const SOURCE_FILL_LAYER_ID = "viewability-source-fill";
-const SOURCE_LINE_LAYER_ID = "viewability-source-line";
-const SOURCE_HIT_LAYER_ID = "viewability-source-hit";
-const SOURCE_SELECTED_LAYER_ID = "viewability-source-selected";
-const SOURCE_HOVER_LAYER_ID = "viewability-source-hover";
+import { buildViewabilityColorExpression, getViewabilityScoreProperty } from "../utils/viewabilityColorScales";
+import {
+  addLayers,
+  DRAW_SOURCE_ID,
+  SOURCE_FILL_LAYER_ID,
+  SOURCE_HIT_LAYER_ID,
+  SOURCE_HOVER_LAYER_ID,
+  SOURCE_LINE_LAYER_ID,
+  SOURCE_SELECTED_LAYER_ID,
+  SOURCE_SMOOTH_LAYER_ID,
+  SOURCE_SMOOTH_SOURCE_ID,
+  SOURCE_SOURCE_ID,
+  getViewabilityLineColors,
+  setLayerVisibility,
+  TARGET_FILL_LAYER_ID,
+  TARGET_HIT_LAYER_ID,
+  TARGET_LINE_LAYER_ID,
+  TARGET_SELECTED_LAYER_ID,
+  TARGET_SMOOTH_LAYER_ID,
+  TARGET_SMOOTH_SOURCE_ID,
+  TARGET_SOURCE_ID,
+} from "./ViewabilityMap/viewabilityMapLayers";
+import { bindInteractions } from "./ViewabilityMap/viewabilityMapInteractions";
+import { loadPoiData } from "./ViewabilityMap/viewabilityPoiMarkers";
+import {
+  applyAreaSelectionDraft,
+  createEmptyAreaSelectionDraft,
+  emptyFeatureCollection,
+  type AreaSelectionDraft,
+  syncAreaSelectionDraft,
+} from "./ViewabilityMap/viewabilityAreaDrawing";
+import { buildSmoothSurfaceOverlay, upsertSmoothSurface } from "./ViewabilityMap/viewabilitySmoothSurface";
+import { distanceKm } from "./ViewabilityMap/viewabilityGeometryMath";
+import { escapeHtml } from "./ViewabilityMap/viewabilityTooltips";
 
 type Props = {
   darkMode: boolean;
@@ -67,25 +81,6 @@ export type ViewabilityMapHandle = {
   clearAreaSelection: () => void;
   confirmAreaSelection: () => boolean;
 };
-
-type AreaSelectionDraft = {
-  tool: ViewabilityAreaSelectionTool;
-  points: Position[];
-  active: boolean;
-  cursorPoint: Position | null;
-  circleCenter: Position | null;
-  circleRadiusKm: number;
-};
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function setVisibility(map: MapLibreMap, layerId: string, visible: boolean) {
-  if (map.getLayer(layerId)) {
-    map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
-  }
-}
 
 export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function ViewabilityMap({
   darkMode,
@@ -137,6 +132,7 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
   const onAreaSelectionMetricsChangeRef = useRef(onAreaSelectionMetricsChange);
   const areaSelectionDraftRef = useRef<AreaSelectionDraft>(createEmptyAreaSelectionDraft(areaSelectionTool));
   const [mapReady, setMapReady] = useState(false);
+  const mapReadyRef = useRef(false);
 
   useImperativeHandle(
     ref,
@@ -259,12 +255,26 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     selectionModeRef.current = selectionMode;
     areaSelectionToolRef.current = areaSelectionTool;
     drawSelectionKindRef.current = drawSelectionKind;
-  }, [areaSelectionTool, colorScaleSettings, displayMode, drawSelectionKind, mapSources, mapTargets, scoreType, selectedSourceCellId, selectedSourceCellIds, selectedTargetCellIds, selectionMode, showSourceCells, showTargetCells]);
+    mapReadyRef.current = mapReady;
+  }, [
+    areaSelectionTool,
+    colorScaleSettings,
+    displayMode,
+    drawSelectionKind,
+    mapReady,
+    mapSources,
+    mapTargets,
+    scoreType,
+    selectedSourceCellId,
+    selectedSourceCellIds,
+    selectedTargetCellIds,
+    selectionMode,
+    showSourceCells,
+    showTargetCells,
+  ]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-
-    setMapReady(false);
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -296,16 +306,17 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
         selectedSourceCellId: selectedSourceCellIdRef.current,
       });
       bindInteractions(map, popupRef, onSelectSourceCellRef, onSelectTargetCellRef, selectionModeRef);
+      mapReadyRef.current = true;
       setMapReady(true);
     });
 
     return () => {
+      mapReadyRef.current = false;
       popupRef.current?.remove();
       poiMarkersRef.current.forEach((marker) => marker.remove());
       poiMarkersRef.current = [];
       map.remove();
       mapRef.current = null;
-      setMapReady(false);
     };
   }, [darkMode]);
 
@@ -402,7 +413,6 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     if (!map || !mapReady || !map.getLayer(TARGET_FILL_LAYER_ID)) return;
     const targetPropertyName = getViewabilityScoreProperty(scoreType);
     const sourcePropertyName = mode === "target-inspector" ? "source_target_weight" : "source_viewyness_score";
-    const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
     const selectedTargetIds = selectedTargetCellIds.length > 0 ? selectedTargetCellIds : ["__none__"];
     const sharedIds = sharedSourceTargetCellIds.size > 0 ? Array.from(sharedSourceTargetCellIds) : ["__none__"];
     const hideTargetInvisibleSourcesExpression = [
@@ -410,6 +420,14 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
       ["==", ["literal", mode], "target-inspector"],
       ["!", ["coalesce", ["get", "visible_to_selected_target"], false]],
     ] as const;
+    const dimUnselectedSourcesExpression = [
+      "all",
+      ["==", ["literal", mode], "source-inspector"],
+      [">", ["literal", selectedSourceCellIds.length], 0],
+      ["!", ["in", ["get", "h3"], ["literal", selectedSourceCellIds.length > 0 ? selectedSourceCellIds : ["__none__"]]]],
+    ] as const;
+    const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
+
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, targetPropertyName));
     map.setPaintProperty(TARGET_LINE_LAYER_ID, "line-color", lineColors.target);
     map.setPaintProperty(SOURCE_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, sourcePropertyName));
@@ -435,18 +453,16 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
       "case",
       hideTargetInvisibleSourcesExpression,
       0,
+      dimUnselectedSourcesExpression,
+      0.18,
       0.8,
-    ]);
-    map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-color", [
-      "case",
-      hideTargetInvisibleSourcesExpression,
-      "rgba(22, 42, 66, 0.28)",
-      lineColors.source,
     ]);
     map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-opacity", [
       "case",
       hideTargetInvisibleSourcesExpression,
       0,
+      dimUnselectedSourcesExpression,
+      0.22,
       0.95,
     ]);
     map.setPaintProperty(SOURCE_LINE_LAYER_ID, "line-width", [
@@ -454,9 +470,9 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
       ["linear"],
       ["zoom"],
       5,
-      ["case", hideTargetInvisibleSourcesExpression, 0, 1.6],
+      ["case", hideTargetInvisibleSourcesExpression, 0, dimUnselectedSourcesExpression, 1.1, 1.6],
       9,
-      ["case", hideTargetInvisibleSourcesExpression, 0, 3.0],
+      ["case", hideTargetInvisibleSourcesExpression, 0, dimUnselectedSourcesExpression, 2.2, 3.0],
     ]);
   }, [colorScaleSettings, mapReady, mode, scoreType, selectedSourceCellIds, selectedTargetCellIds, sharedSourceTargetCellIds]);
 
@@ -466,17 +482,17 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     const showInspectorTargets = mode !== "overview";
     const showSmoothSurface = displayMode === "smooth";
     const showInspectorSources = mode !== "overview";
-    setVisibility(map, TARGET_SMOOTH_LAYER_ID, showSmoothSurface && (showTargetCells || showInspectorTargets));
-    setVisibility(map, SOURCE_SMOOTH_LAYER_ID, showSmoothSurface && (showSourceCells || showInspectorSources));
-    setVisibility(map, TARGET_FILL_LAYER_ID, !showSmoothSurface && (showTargetCells || showInspectorTargets));
-    setVisibility(map, TARGET_LINE_LAYER_ID, !showSmoothSurface && (showTargetCells || showInspectorTargets));
-    setVisibility(map, TARGET_HIT_LAYER_ID, showTargetCells || showInspectorTargets);
-    setVisibility(map, TARGET_SELECTED_LAYER_ID, selectedTargetCellIds.length > 0);
-    setVisibility(map, SOURCE_FILL_LAYER_ID, !showSmoothSurface && (showSourceCells || showInspectorSources));
-    setVisibility(map, SOURCE_LINE_LAYER_ID, !showSmoothSurface && (showSourceCells || showInspectorSources));
-    setVisibility(map, SOURCE_HIT_LAYER_ID, showSourceCells || showInspectorSources);
-    setVisibility(map, SOURCE_SELECTED_LAYER_ID, selectedSourceCellIds.length > 0);
-    setVisibility(map, SOURCE_HOVER_LAYER_ID, (showSourceCells || showInspectorSources) && Boolean(hoveredSourceCellId));
+    setLayerVisibility(map, TARGET_SMOOTH_LAYER_ID, showSmoothSurface && (showTargetCells || showInspectorTargets));
+    setLayerVisibility(map, SOURCE_SMOOTH_LAYER_ID, showSmoothSurface && (showSourceCells || showInspectorSources));
+    setLayerVisibility(map, TARGET_FILL_LAYER_ID, !showSmoothSurface && (showTargetCells || showInspectorTargets));
+    setLayerVisibility(map, TARGET_LINE_LAYER_ID, !showSmoothSurface && (showTargetCells || showInspectorTargets));
+    setLayerVisibility(map, TARGET_HIT_LAYER_ID, showTargetCells || showInspectorTargets);
+    setLayerVisibility(map, TARGET_SELECTED_LAYER_ID, selectedTargetCellIds.length > 0);
+    setLayerVisibility(map, SOURCE_FILL_LAYER_ID, !showSmoothSurface && (showSourceCells || showInspectorSources));
+    setLayerVisibility(map, SOURCE_LINE_LAYER_ID, !showSmoothSurface && (showSourceCells || showInspectorSources));
+    setLayerVisibility(map, SOURCE_HIT_LAYER_ID, showSourceCells || showInspectorSources);
+    setLayerVisibility(map, SOURCE_SELECTED_LAYER_ID, selectedSourceCellIds.length > 0);
+    setLayerVisibility(map, SOURCE_HOVER_LAYER_ID, (showSourceCells || showInspectorSources) && Boolean(hoveredSourceCellId));
   }, [displayMode, hoveredSourceCellId, mapReady, mode, selectedSourceCellIds, selectedTargetCellIds, showSourceCells, showTargetCells]);
 
   useEffect(() => {
@@ -484,12 +500,12 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     if (!map || !mapReady) return;
     if (displayMode !== "smooth") return;
     const targetOverlay = buildSmoothSurfaceOverlay(
-      smoothTargetFeatures,
+      smoothTargetFeatures as Array<Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>>,
       getViewabilityScoreProperty(scoreType),
       colorScaleSettings
     );
     const sourceOverlay = buildSmoothSurfaceOverlay(
-      smoothSourceFeatures,
+      smoothSourceFeatures as Array<Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>>,
       mode === "target-inspector" ? "source_target_weight" : "source_viewyness_score",
       colorScaleSettings
     );
@@ -565,7 +581,7 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !map.getSource(DRAW_SOURCE_ID)) return;
+    if (!map || !mapReadyRef.current || !map.getSource(DRAW_SOURCE_ID)) return;
     syncAreaSelectionDraft(map, areaSelectionDraftRef.current, onAreaSelectionMetricsChangeRef);
 
     const handleMouseDown = (event: maplibregl.MapMouseEvent) => {
@@ -741,959 +757,3 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     </div>
   );
 });
-
-function addLayers(
-  map: MapLibreMap,
-  colorScaleSettings: ViewabilityColorScaleSettings,
-  propertyName: string,
-  visibility: { displayMode: ViewabilityDisplayMode; showTargetCells: boolean; showSourceCells: boolean; selectedSourceCellId: string | null }
-) {
-  const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
-  const targetVisibility = visibility.showTargetCells && visibility.displayMode === "hex" ? "visible" : "none";
-  const targetSmoothVisibility = visibility.showTargetCells && visibility.displayMode === "smooth" ? "visible" : "none";
-  const sourceSmoothVisibility = visibility.showSourceCells && visibility.displayMode === "smooth" ? "visible" : "none";
-  const sourceVisibility = visibility.showSourceCells && visibility.displayMode === "hex" ? "visible" : "none";
-  const selectedSourceVisibility = visibility.showSourceCells && visibility.selectedSourceCellId ? "visible" : "none";
-  if (!map.getLayer(TARGET_FILL_LAYER_ID)) {
-    map.addLayer({
-      id: TARGET_FILL_LAYER_ID,
-      type: "fill",
-      source: TARGET_SOURCE_ID,
-      layout: {
-        visibility: targetVisibility,
-      },
-      paint: {
-        "fill-color": buildViewabilityColorExpression(colorScaleSettings, propertyName) as DataDrivenPropertyValueSpecification<string>,
-        "fill-opacity": 0.88,
-      },
-    });
-  }
-  if (!map.getLayer(TARGET_LINE_LAYER_ID)) {
-    map.addLayer({
-      id: TARGET_LINE_LAYER_ID,
-      type: "line",
-      source: TARGET_SOURCE_ID,
-      layout: {
-        visibility: targetVisibility,
-      },
-      paint: {
-        "line-color": lineColors.target,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.4],
-      },
-    });
-  }
-  if (!map.getLayer(TARGET_HIT_LAYER_ID)) {
-    map.addLayer({
-      id: TARGET_HIT_LAYER_ID,
-      type: "fill",
-      source: TARGET_SOURCE_ID,
-      layout: {
-        visibility: targetVisibility,
-      },
-      paint: {
-        "fill-color": "rgba(0,0,0,1)",
-        "fill-opacity": 0,
-      },
-    });
-  }
-  if (!map.getLayer(TARGET_SELECTED_LAYER_ID)) {
-    map.addLayer({
-      id: TARGET_SELECTED_LAYER_ID,
-      type: "line",
-      source: TARGET_SOURCE_ID,
-      filter: ["==", ["get", "h3"], ""],
-      layout: {
-        visibility: "none",
-      },
-      paint: {
-        "line-color": "rgba(255, 92, 122, 0.96)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2.6, 9, 4.2],
-      },
-    });
-  }
-  if (!map.getSource(TARGET_SMOOTH_SOURCE_ID)) {
-    map.addSource(TARGET_SMOOTH_SOURCE_ID, {
-      type: "image",
-      url: emptyTransparentDataUrl(),
-      coordinates: [[-180, 85], [180, 85], [180, -85], [-180, -85]],
-    });
-  }
-  if (!map.getLayer(TARGET_SMOOTH_LAYER_ID)) {
-    map.addLayer({
-      id: TARGET_SMOOTH_LAYER_ID,
-      type: "raster",
-      source: TARGET_SMOOTH_SOURCE_ID,
-      layout: {
-        visibility: targetSmoothVisibility,
-      },
-      paint: {
-        "raster-opacity": 0.98,
-        "raster-resampling": "linear",
-        "raster-brightness-max": 1,
-        "raster-contrast": 0.14,
-        "raster-saturation": 0.12,
-      },
-    }, TARGET_HIT_LAYER_ID);
-  }
-  if (!map.getSource(SOURCE_SMOOTH_SOURCE_ID)) {
-    map.addSource(SOURCE_SMOOTH_SOURCE_ID, {
-      type: "image",
-      url: emptyTransparentDataUrl(),
-      coordinates: [[-180, 85], [180, 85], [180, -85], [-180, -85]],
-    });
-  }
-  if (!map.getLayer(DRAW_FILL_LAYER_ID)) {
-    map.addLayer({
-      id: DRAW_FILL_LAYER_ID,
-      type: "fill",
-      source: DRAW_SOURCE_ID,
-      layout: {
-        visibility: "visible",
-      },
-      paint: {
-        "fill-color": "rgba(255,255,255,0.12)",
-      },
-    });
-  }
-  if (!map.getLayer(DRAW_LINE_LAYER_ID)) {
-    map.addLayer({
-      id: DRAW_LINE_LAYER_ID,
-      type: "line",
-      source: DRAW_SOURCE_ID,
-      layout: {
-        visibility: "visible",
-      },
-      paint: {
-        "line-color": "rgba(255,255,255,0.96)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2.2, 9, 3.8],
-      },
-    });
-  }
-  if (!map.getLayer(SOURCE_FILL_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_FILL_LAYER_ID,
-      type: "fill",
-      source: SOURCE_SOURCE_ID,
-      layout: {
-        visibility: sourceVisibility,
-      },
-      paint: {
-        "fill-color": buildViewabilityColorExpression(colorScaleSettings, "source_viewyness_score") as DataDrivenPropertyValueSpecification<string>,
-        "fill-opacity": 0.8,
-      },
-    });
-  }
-  if (!map.getLayer(SOURCE_LINE_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_LINE_LAYER_ID,
-      type: "line",
-      source: SOURCE_SOURCE_ID,
-      layout: {
-        visibility: sourceVisibility,
-      },
-      paint: {
-        "line-color": lineColors.source,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.4, 9, 2.8],
-        "line-dasharray": [1.4, 1],
-        "line-opacity": 0.9,
-      },
-    });
-  }
-  if (!map.getLayer(SOURCE_HIT_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_HIT_LAYER_ID,
-      type: "fill",
-      source: SOURCE_SOURCE_ID,
-      layout: {
-        visibility: visibility.showSourceCells ? "visible" : "none",
-      },
-      paint: {
-        "fill-color": "rgba(0,0,0,1)",
-        "fill-opacity": 0,
-      },
-    });
-  }
-  if (!map.getLayer(SOURCE_SMOOTH_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_SMOOTH_LAYER_ID,
-      type: "raster",
-      source: SOURCE_SMOOTH_SOURCE_ID,
-      layout: {
-        visibility: sourceSmoothVisibility,
-      },
-      paint: {
-        "raster-opacity": 0.98,
-        "raster-resampling": "linear",
-        "raster-brightness-max": 1,
-        "raster-contrast": 0.14,
-        "raster-saturation": 0.12,
-      },
-    }, SOURCE_HIT_LAYER_ID);
-  }
-  if (!map.getLayer(SOURCE_SELECTED_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_SELECTED_LAYER_ID,
-      type: "line",
-      source: SOURCE_SOURCE_ID,
-      filter: ["==", ["get", "h3"], ""],
-      layout: {
-        visibility: selectedSourceVisibility,
-      },
-      paint: {
-        "line-color": "rgba(255, 92, 122, 0.96)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 3, 9, 5],
-      },
-    });
-  }
-  if (!map.getLayer(SOURCE_HOVER_LAYER_ID)) {
-    map.addLayer({
-      id: SOURCE_HOVER_LAYER_ID,
-      type: "line",
-      source: SOURCE_SOURCE_ID,
-      filter: ["==", ["get", "h3"], ""],
-      layout: {
-        visibility: "none",
-      },
-      paint: {
-        "line-color": "rgba(255,255,255,0.96)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 5, 9, 8],
-        "line-opacity": 0.95,
-      },
-    });
-  }
-}
-
-type SmoothSurfaceOverlay = {
-  url: string;
-  coordinates: [[number, number], [number, number], [number, number], [number, number]];
-};
-
-function upsertSmoothSurface(map: MapLibreMap, sourceId: string, overlay: SmoothSurfaceOverlay | null) {
-  const source = map.getSource(sourceId) as maplibregl.Source | undefined;
-  const imageSource = source as maplibregl.ImageSource & { updateImage?: (options: { url: string; coordinates: SmoothSurfaceOverlay["coordinates"] }) => void };
-  const next = overlay ?? {
-    url: emptyTransparentDataUrl(),
-    coordinates: [[-180, 85], [180, 85], [180, -85], [-180, -85]] as SmoothSurfaceOverlay["coordinates"],
-  };
-  imageSource?.updateImage?.(next);
-}
-
-function buildSmoothSurfaceOverlay(
-  featuresInput: Array<Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>>,
-  propertyName: string,
-  settings: ViewabilityColorScaleSettings
-): SmoothSurfaceOverlay | null {
-  const features = featuresInput.filter((feature) => feature.geometry);
-  if (features.length === 0) return null;
-  const bounds = getFeatureBounds(features);
-  if (!bounds) return null;
-
-  const width = 2400;
-  const height = 1800;
-  const baseCanvas = document.createElement("canvas");
-  baseCanvas.width = width;
-  baseCanvas.height = height;
-  const baseCtx = baseCanvas.getContext("2d");
-  if (!baseCtx) return null;
-
-  baseCtx.clearRect(0, 0, width, height);
-  baseCtx.globalCompositeOperation = "source-over";
-
-  for (const feature of features) {
-    const geometry = feature.geometry;
-    if (!geometry) continue;
-    const value = Number((feature.properties as Record<string, unknown> | null)?.[propertyName] ?? 0);
-    if (!Number.isFinite(value) || value <= 0) continue;
-    drawFeatureBlob(baseCtx, feature, value, settings, bounds, width, height);
-  }
-
-  const blurCanvas = document.createElement("canvas");
-  blurCanvas.width = width;
-  blurCanvas.height = height;
-  const blurCtx = blurCanvas.getContext("2d");
-  if (!blurCtx) return null;
-  blurCtx.clearRect(0, 0, width, height);
-  blurCtx.filter = "blur(34px)";
-  blurCtx.drawImage(baseCanvas, 0, 0);
-  blurCtx.globalAlpha = 0.92;
-  blurCtx.drawImage(baseCanvas, 0, 0);
-  blurCtx.filter = "none";
-  blurCtx.globalAlpha = 1;
-
-  const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = width;
-  maskCanvas.height = height;
-  const maskCtx = maskCanvas.getContext("2d");
-  if (!maskCtx) return null;
-  maskCtx.clearRect(0, 0, width, height);
-  maskCtx.fillStyle = "#ffffff";
-  let hasPolygonMask = false;
-  for (const feature of features) {
-    const geometry = feature.geometry;
-    if (!geometry) continue;
-    if (geometry.type === "Polygon") {
-      hasPolygonMask = true;
-      fillPolygonMask(maskCtx, geometry.coordinates, bounds, width, height);
-    } else if (geometry.type === "MultiPolygon") {
-      hasPolygonMask = true;
-      for (const polygon of geometry.coordinates) {
-        fillPolygonMask(maskCtx, polygon, bounds, width, height);
-      }
-    }
-  }
-
-  if (hasPolygonMask) {
-    blurCtx.globalCompositeOperation = "destination-in";
-    blurCtx.drawImage(maskCanvas, 0, 0);
-    blurCtx.globalCompositeOperation = "source-over";
-  }
-
-  return {
-    url: blurCanvas.toDataURL("image/png"),
-    coordinates: [
-      [bounds.west, bounds.north],
-      [bounds.east, bounds.north],
-      [bounds.east, bounds.south],
-      [bounds.west, bounds.south],
-    ],
-  };
-}
-
-function drawFeatureBlob(
-  ctx: CanvasRenderingContext2D,
-  feature: Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>,
-  value: number,
-  settings: ViewabilityColorScaleSettings,
-  bounds: { west: number; east: number; south: number; north: number },
-  width: number,
-  height: number
-) {
-  const center = getFeatureCentroid(feature);
-  if (!center) return;
-  const [x, y] = projectToCanvas(center, bounds, width, height);
-  const radius = Math.max(18, estimateFeatureRadiusPx(feature, bounds, width, height) * 2.6);
-  const gradient = ctx.createRadialGradient(x, y, radius * 0.08, x, y, radius);
-  const color = resolveViewabilityColor(settings, value);
-  gradient.addColorStop(0, applyAlphaToColor(color, 0.88));
-  gradient.addColorStop(0.24, applyAlphaToColor(color, 0.62));
-  gradient.addColorStop(0.52, applyAlphaToColor(color, 0.34));
-  gradient.addColorStop(1, applyAlphaToColor(color, 0));
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function fillPolygonMask(
-  ctx: CanvasRenderingContext2D,
-  polygon: Position[][],
-  bounds: { west: number; east: number; south: number; north: number },
-  width: number,
-  height: number
-) {
-  const outerRing = polygon[0] ?? [];
-  if (outerRing.length < 4) return;
-  ctx.beginPath();
-  for (let index = 0; index < outerRing.length; index += 1) {
-    const [x, y] = projectToCanvas(outerRing[index], bounds, width, height);
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
-
-function projectToCanvas(
-  point: Position,
-  bounds: { west: number; east: number; south: number; north: number },
-  width: number,
-  height: number
-): [number, number] {
-  const x = ((point[0] - bounds.west) / Math.max(bounds.east - bounds.west, 1e-9)) * width;
-  const mercatorNorth = mercatorY(bounds.north);
-  const mercatorSouth = mercatorY(bounds.south);
-  const mercatorPoint = mercatorY(point[1]);
-  const y = ((mercatorNorth - mercatorPoint) / Math.max(mercatorNorth - mercatorSouth, 1e-9)) * height;
-  return [x, y];
-}
-
-function getFeatureCentroid(feature: Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>): Position | null {
-  const geometry = feature.geometry;
-  if (!geometry) return null;
-  if (geometry.type === "Point") {
-    return geometry.coordinates;
-  }
-  const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
-  let totalX = 0;
-  let totalY = 0;
-  let count = 0;
-  for (const polygon of polygons) {
-    const ring = polygon[0] ?? [];
-    for (const [lng, lat] of ring) {
-      totalX += lng;
-      totalY += lat;
-      count += 1;
-    }
-  }
-  if (count === 0) return null;
-  return [totalX / count, totalY / count];
-}
-
-function estimateFeatureRadiusPx(
-  feature: Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>,
-  bounds: { west: number; east: number; south: number; north: number },
-  width: number,
-  height: number
-): number {
-  const geometry = feature.geometry;
-  if (!geometry) return 12;
-  if (geometry.type === "Point") return 18;
-  const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
-  let west = Number.POSITIVE_INFINITY;
-  let east = Number.NEGATIVE_INFINITY;
-  let south = Number.POSITIVE_INFINITY;
-  let north = Number.NEGATIVE_INFINITY;
-  for (const polygon of polygons) {
-    for (const ring of polygon) {
-      for (const [lng, lat] of ring) {
-        west = Math.min(west, lng);
-        east = Math.max(east, lng);
-        south = Math.min(south, lat);
-        north = Math.max(north, lat);
-      }
-    }
-  }
-  if (!Number.isFinite(west) || !Number.isFinite(east) || !Number.isFinite(south) || !Number.isFinite(north)) return 12;
-  const [minX, maxY] = projectToCanvas([west, north], bounds, width, height);
-  const [maxX, minY] = projectToCanvas([east, south], bounds, width, height);
-  const dx = Math.abs(maxX - minX);
-  const dy = Math.abs(maxY - minY);
-  return Math.max(10, Math.sqrt(dx * dx + dy * dy) * 0.65);
-}
-
-function getFeatureBounds(
-  features: Array<Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>>
-): { west: number; east: number; south: number; north: number } | null {
-  let west = Number.POSITIVE_INFINITY;
-  let east = Number.NEGATIVE_INFINITY;
-  let south = Number.POSITIVE_INFINITY;
-  let north = Number.NEGATIVE_INFINITY;
-  for (const feature of features) {
-    const geometry = feature.geometry;
-    if (!geometry) continue;
-    if (geometry.type === "Point") {
-      west = Math.min(west, geometry.coordinates[0]);
-      east = Math.max(east, geometry.coordinates[0]);
-      south = Math.min(south, geometry.coordinates[1]);
-      north = Math.max(north, geometry.coordinates[1]);
-      continue;
-    }
-    const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
-    for (const polygon of polygons) {
-      for (const ring of polygon) {
-        for (const [lng, lat] of ring) {
-          west = Math.min(west, lng);
-          east = Math.max(east, lng);
-          south = Math.min(south, lat);
-          north = Math.max(north, lat);
-        }
-      }
-    }
-  }
-  if (!Number.isFinite(west) || !Number.isFinite(east) || !Number.isFinite(south) || !Number.isFinite(north)) {
-    return null;
-  }
-  const padLng = Math.max((east - west) * 0.02, 0.01);
-  const padLat = Math.max((north - south) * 0.02, 0.01);
-  return { west: west - padLng, east: east + padLng, south: south - padLat, north: north + padLat };
-}
-
-function emptyTransparentDataUrl(): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = 2;
-  canvas.height = 2;
-  return canvas.toDataURL("image/png");
-}
-
-function mercatorY(latitude: number): number {
-  const clamped = Math.max(-85.05112878, Math.min(85.05112878, latitude));
-  const radians = (clamped * Math.PI) / 180;
-  return Math.log(Math.tan(Math.PI / 4 + radians / 2));
-}
-
-function applyAlphaToColor(color: string, alpha: number): string {
-  if (color.startsWith("#")) {
-    const hex = color.slice(1);
-    const normalized = hex.length === 3
-      ? hex.split("").map((char) => `${char}${char}`).join("")
-      : hex.slice(0, 6);
-    const r = Number.parseInt(normalized.slice(0, 2), 16);
-    const g = Number.parseInt(normalized.slice(2, 4), 16);
-    const b = Number.parseInt(normalized.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  if (color.startsWith("rgb(")) {
-    return color.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
-  }
-  if (color.startsWith("rgba(")) {
-    const parts = color.slice(5, -1).split(",").map((part) => part.trim());
-    return `rgba(${parts[0] ?? "255"}, ${parts[1] ?? "255"}, ${parts[2] ?? "255"}, ${alpha})`;
-  }
-  return color;
-}
-
-function createEmptyAreaSelectionDraft(tool: ViewabilityAreaSelectionTool): AreaSelectionDraft {
-  return {
-    tool,
-    points: [],
-    active: false,
-    cursorPoint: null,
-    circleCenter: null,
-    circleRadiusKm: 0,
-  };
-}
-
-function emptyFeatureCollection(): FeatureCollection<Geometry, GeoJsonProperties> {
-  return { type: "FeatureCollection", features: [] };
-}
-
-function syncAreaSelectionDraft(
-  map: MapLibreMap,
-  draft: AreaSelectionDraft,
-  onMetricsChangeRef: MutableRefObject<(areaKm2: number, ready: boolean) => void>
-) {
-  const source = map.getSource(DRAW_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-  source?.setData(buildAreaSelectionFeatureCollection(draft));
-  const polygon = getSelectionPolygonFromDraft(draft);
-  onMetricsChangeRef.current(polygon ? polygonAreaSqKm(polygon) : 0, Boolean(polygon));
-}
-
-function buildAreaSelectionFeatureCollection(draft: AreaSelectionDraft): FeatureCollection<Geometry, GeoJsonProperties> {
-  const features: Array<Feature<Geometry, GeoJsonProperties>> = [];
-
-  if (draft.tool === "circle") {
-    const polygon = getSelectionPolygonFromDraft(draft);
-    if (!polygon) return emptyFeatureCollection();
-    features.push({
-      type: "Feature",
-      properties: { kind: "polygon" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [polygon],
-      },
-    });
-    return { type: "FeatureCollection", features };
-  }
-
-  const linePoints = draft.tool === "polygon" && draft.cursorPoint
-    ? [...draft.points, draft.cursorPoint]
-    : draft.points;
-
-  if (linePoints.length >= 2) {
-    features.push({
-      type: "Feature",
-      properties: { kind: "line" },
-      geometry: {
-        type: "LineString",
-        coordinates: linePoints,
-      } satisfies LineString,
-    });
-  }
-
-  const polygon = getSelectionPolygonFromDraft(draft);
-  if (polygon) {
-    features.push({
-      type: "Feature",
-      properties: { kind: "polygon" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [polygon],
-      },
-    });
-  }
-
-  return { type: "FeatureCollection", features };
-}
-
-function getSelectionPolygonFromDraft(draft: AreaSelectionDraft): Position[] | null {
-  if (draft.tool === "circle") {
-    if (!draft.circleCenter || draft.circleRadiusKm <= 0) return null;
-    return buildCirclePolygon(draft.circleCenter, draft.circleRadiusKm);
-  }
-  if (draft.points.length < 3) return null;
-  return closePolygon(draft.points);
-}
-
-function applyAreaSelectionDraft(
-  draft: AreaSelectionDraft,
-  drawSelectionKind: "target" | "source",
-  sourceFeatures: ViewabilitySourceFeatureCollection["features"],
-  targetFeatures: ViewabilityTargetFeatureCollection["features"],
-  onSelectSourceCellsRef: MutableRefObject<(sourceCellIds: string[], additive?: boolean) => void>,
-  onSelectTargetCellsRef: MutableRefObject<(targetCellIds: string[], additive?: boolean) => void>
-): boolean {
-  const polygon = getSelectionPolygonFromDraft(draft);
-  if (!polygon) return false;
-
-  if (drawSelectionKind === "source") {
-    const ids = sourceFeatures
-      .filter((feature) => featureTouchesPolygon(feature as Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>, polygon))
-      .map((feature) => feature.properties.h3)
-      .filter((h3): h3 is string => typeof h3 === "string" && h3.length > 0);
-    onSelectSourceCellsRef.current(ids);
-  } else {
-    const ids = targetFeatures
-      .filter((feature) => featureTouchesPolygon(feature as Feature<Polygon | MultiPolygon, GeoJsonProperties>, polygon))
-      .map((feature) => feature.properties.h3)
-      .filter((h3): h3 is string => typeof h3 === "string" && h3.length > 0);
-    onSelectTargetCellsRef.current(ids);
-  }
-  return true;
-}
-
-function closePolygon(points: Position[]): Position[] {
-  if (points.length === 0) return [];
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (first[0] === last[0] && first[1] === last[1]) return points;
-  return [...points, first];
-}
-
-function featureTouchesPolygon(
-  feature: Feature<Polygon | MultiPolygon | Point, GeoJsonProperties>,
-  polygon: Position[]
-): boolean {
-  if (!feature.geometry) {
-    return false;
-  }
-  if (feature.geometry.type === "Point") {
-    return pointInPolygon(feature.geometry.coordinates, polygon);
-  }
-  if (feature.geometry.type === "Polygon") {
-    return polygonIntersects(feature.geometry.coordinates, polygon);
-  }
-  return feature.geometry.coordinates.some((coords) => polygonIntersects(coords, polygon));
-}
-
-function polygonIntersects(polygonCoords: Position[][], selection: Position[]): boolean {
-  const outerRing = polygonCoords[0] ?? [];
-  if (outerRing.length === 0 || selection.length < 4) return false;
-  for (const point of outerRing) {
-    if (pointInPolygon(point, selection)) return true;
-  }
-  for (const point of selection) {
-    if (pointInPolygon(point, outerRing)) return true;
-  }
-  return ringsIntersect(outerRing, selection);
-}
-
-function ringsIntersect(a: Position[], b: Position[]): boolean {
-  for (let idx = 0; idx < a.length - 1; idx += 1) {
-    const a1 = a[idx];
-    const a2 = a[idx + 1];
-    for (let jdx = 0; jdx < b.length - 1; jdx += 1) {
-      const b1 = b[jdx];
-      const b2 = b[jdx + 1];
-      if (segmentsIntersect(a1, a2, b1, b2)) return true;
-    }
-  }
-  return false;
-}
-
-function pointInPolygon(point: Position, ring: Position[]): boolean {
-  for (let idx = 0; idx < ring.length - 1; idx += 1) {
-    if (pointOnSegment(point, ring[idx], ring[idx + 1])) {
-      return true;
-    }
-  }
-  let inside = false;
-  for (let idx = 0, jdx = ring.length - 1; idx < ring.length; jdx = idx, idx += 1) {
-    const xi = ring[idx][0];
-    const yi = ring[idx][1];
-    const xj = ring[jdx][0];
-    const yj = ring[jdx][1];
-    const intersects = yi > point[1] !== yj > point[1]
-      && point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || Number.EPSILON) + xi;
-    if (intersects) inside = !inside;
-  }
-  return inside;
-}
-
-function segmentsIntersect(a1: Position, a2: Position, b1: Position, b2: Position): boolean {
-  const d1 = direction(b1, b2, a1);
-  const d2 = direction(b1, b2, a2);
-  const d3 = direction(a1, a2, b1);
-  const d4 = direction(a1, a2, b2);
-  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))
-    && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-    return true;
-  }
-  if (d1 === 0 && pointOnSegment(a1, b1, b2)) return true;
-  if (d2 === 0 && pointOnSegment(a2, b1, b2)) return true;
-  if (d3 === 0 && pointOnSegment(b1, a1, a2)) return true;
-  if (d4 === 0 && pointOnSegment(b2, a1, a2)) return true;
-  return false;
-}
-
-function direction(a: Position, b: Position, c: Position): number {
-  return (c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]);
-}
-
-function pointOnSegment(point: Position, start: Position, end: Position): boolean {
-  const epsilon = 1e-12;
-  if (Math.abs(direction(start, end, point)) > epsilon) {
-    return false;
-  }
-  return point[0] <= Math.max(start[0], end[0]) + epsilon
-    && point[0] >= Math.min(start[0], end[0]) - epsilon
-    && point[1] <= Math.max(start[1], end[1]) + epsilon
-    && point[1] >= Math.min(start[1], end[1]) - epsilon;
-}
-
-function buildCirclePolygon(center: Position, radiusKm: number, steps = 64): Position[] {
-  const points: Position[] = [];
-  for (let idx = 0; idx < steps; idx += 1) {
-    const bearing = (idx / steps) * Math.PI * 2;
-    points.push(destinationPoint(center, radiusKm, bearing));
-  }
-  return closePolygon(points);
-}
-
-function destinationPoint(origin: Position, distanceKmValue: number, bearingRadians: number): Position {
-  const earthRadiusKm = 6371.0088;
-  const angularDistance = distanceKmValue / earthRadiusKm;
-  const lat1 = degreesToRadians(origin[1]);
-  const lon1 = degreesToRadians(origin[0]);
-  const sinLat1 = Math.sin(lat1);
-  const cosLat1 = Math.cos(lat1);
-  const sinAngular = Math.sin(angularDistance);
-  const cosAngular = Math.cos(angularDistance);
-  const lat2 = Math.asin(sinLat1 * cosAngular + cosLat1 * sinAngular * Math.cos(bearingRadians));
-  const lon2 = lon1 + Math.atan2(
-    Math.sin(bearingRadians) * sinAngular * cosLat1,
-    cosAngular - sinLat1 * Math.sin(lat2)
-  );
-  return [radiansToDegrees(lon2), radiansToDegrees(lat2)];
-}
-
-function polygonAreaSqKm(ring: Position[]): number {
-  if (ring.length < 4) return 0;
-  const earthRadiusKm = 6371.0088;
-  const meanLatRadians = degreesToRadians(
-    ring.slice(0, -1).reduce((sum, point) => sum + point[1], 0) / Math.max(ring.length - 1, 1)
-  );
-  const projected = ring.map(([lng, lat]) => {
-    const x = earthRadiusKm * degreesToRadians(lng) * Math.cos(meanLatRadians);
-    const y = earthRadiusKm * degreesToRadians(lat);
-    return [x, y] as const;
-  });
-  let area = 0;
-  for (let idx = 0; idx < projected.length - 1; idx += 1) {
-    const [x1, y1] = projected[idx];
-    const [x2, y2] = projected[idx + 1];
-    area += x1 * y2 - x2 * y1;
-  }
-  return Math.abs(area) / 2;
-}
-
-function distanceKm(a: Position, b: Position): number {
-  const earthRadiusKm = 6371.0088;
-  const lat1 = degreesToRadians(a[1]);
-  const lat2 = degreesToRadians(b[1]);
-  const dLat = degreesToRadians(b[1] - a[1]);
-  const dLng = degreesToRadians(b[0] - a[0]);
-  const haversine = Math.sin(dLat / 2) ** 2
-    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-}
-
-function degreesToRadians(value: number): number {
-  return (value * Math.PI) / 180;
-}
-
-function radiansToDegrees(value: number): number {
-  return (value * 180) / Math.PI;
-}
-
-function getViewabilityLineColors(paletteId: ViewabilityColorScaleSettings["paletteId"]) {
-  if (paletteId === "relief_atlas") {
-    return {
-      target: "rgba(247,244,232,0.2)",
-      source: "rgba(31,102,112,0.42)",
-    };
-  }
-  if (paletteId === "northern_lights") {
-    return {
-      target: "rgba(217,255,243,0.24)",
-      source: "rgba(121,224,197,0.48)",
-    };
-  }
-  if (paletteId === "red_atlas") {
-    return {
-      target: "rgba(220,164,154,0.2)",
-      source: "rgba(190,76,68,0.42)",
-    };
-  }
-  return {
-    target: "rgba(193,255,250,0.18)",
-    source: "rgba(25,240,215,0.42)",
-  };
-}
-
-function bindInteractions(
-  map: MapLibreMap,
-  popupRef: MutableRefObject<maplibregl.Popup | null>,
-  onSelectSourceCellRef: MutableRefObject<(sourceCellId: string, additive?: boolean) => void>,
-  onSelectTargetCellRef: MutableRefObject<(targetCellId: string, additive?: boolean) => void>,
-  selectionModeRef: MutableRefObject<ViewabilitySelectionMode>
-) {
-  const onTargetMouseEnter = () => {
-    if (selectionModeRef.current === "area") return;
-    map.getCanvas().style.cursor = "pointer";
-  };
-  const onTargetMouseLeave = () => {
-    if (selectionModeRef.current !== "area") {
-      map.getCanvas().style.cursor = "";
-    }
-    popupRef.current?.remove();
-  };
-  const onTargetMouseMove = (event: maplibregl.MapLayerMouseEvent) => {
-    if (selectionModeRef.current === "area") {
-      popupRef.current?.remove();
-      return;
-    }
-    const feature = event.features?.[0];
-    if (!feature || !event.lngLat) return;
-    const props = feature.properties as Record<string, unknown>;
-    popupRef.current?.setLngLat(event.lngLat).setHTML(targetTooltipHtml(props)).addTo(map);
-  };
-  map.on("mouseenter", TARGET_HIT_LAYER_ID, onTargetMouseEnter);
-  map.on("mouseleave", TARGET_HIT_LAYER_ID, onTargetMouseLeave);
-  map.on("mouseenter", SOURCE_HIT_LAYER_ID, () => {
-    if (selectionModeRef.current === "area") return;
-    map.getCanvas().style.cursor = "pointer";
-  });
-  map.on("mouseleave", SOURCE_HIT_LAYER_ID, () => {
-    if (selectionModeRef.current !== "area") {
-      map.getCanvas().style.cursor = "";
-    }
-    popupRef.current?.remove();
-  });
-  map.on("click", (event) => {
-    if (selectionModeRef.current === "area") return;
-    popupRef.current?.remove();
-    const original = event.originalEvent as MouseEvent | undefined;
-    const additive = Boolean(original?.ctrlKey || original?.metaKey || original?.shiftKey);
-    const features = map.queryRenderedFeatures(event.point, {
-      layers: [SOURCE_HIT_LAYER_ID, TARGET_HIT_LAYER_ID],
-    });
-    const sourceFeature = features.find((feature) => feature.layer.id === SOURCE_HIT_LAYER_ID);
-    if (sourceFeature) {
-      const h3 = sourceFeature.properties?.h3;
-      if (typeof h3 === "string") {
-        onSelectSourceCellRef.current(h3, additive);
-        return;
-      }
-    }
-    const targetFeature = features.find((feature) => feature.layer.id === TARGET_HIT_LAYER_ID);
-    if (targetFeature) {
-      const h3 = targetFeature.properties?.h3;
-      if (typeof h3 === "string") {
-        onSelectTargetCellRef.current(h3, additive);
-      }
-    }
-  });
-  map.on("mousemove", TARGET_HIT_LAYER_ID, onTargetMouseMove);
-}
-
-async function loadPoiData(
-  loadedRef: MutableRefObject<boolean>,
-  dataRef: MutableRefObject<Array<{ type: string; name: string; latitude: number; longitude: number }> | null>
-) {
-  if (loadedRef.current && dataRef.current) return dataRef.current;
-  const base = import.meta.env.BASE_URL || "/";
-  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
-  const candidates = Array.from(new Set([
-    `${normalizedBase}data/places_of_interest.json`,
-    "/data/places_of_interest.json",
-    "data/places_of_interest.json",
-  ]));
-  let lastError: Error | null = null;
-
-  for (const url of candidates) {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        lastError = new Error(`Failed to load POI data from ${url}: ${response.status}`);
-        continue;
-      }
-      const payload = (await response.json()) as
-        | { items?: Array<{ type: string; name: string; latitude: number; longitude: number }> }
-        | Array<{ type: string; name: string; latitude: number; longitude: number }>
-        | { features?: Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: [number, number] } }> };
-
-      const items = Array.isArray(payload)
-        ? payload.map((entry) => ({
-            type: String((entry as { type?: string }).type ?? ""),
-            name: String((entry as { name?: string }).name ?? "POI"),
-            latitude: Number((entry as { latitude?: number }).latitude),
-            longitude: Number((entry as { longitude?: number }).longitude),
-          }))
-        : "items" in payload && Array.isArray(payload.items)
-          ? payload.items.map((entry) => ({
-              type: String(entry.type ?? ""),
-              name: String(entry.name ?? "POI"),
-              latitude: Number(entry.latitude),
-              longitude: Number(entry.longitude),
-            }))
-          : "features" in payload && Array.isArray(payload.features)
-            ? payload.features.map((feature) => {
-                const props = feature.properties ?? {};
-                const coordinates = feature.geometry?.coordinates ?? [Number.NaN, Number.NaN];
-                return {
-                  type: String(props.type ?? props.category ?? ""),
-                  name: String(props.name ?? "POI"),
-                  latitude: Number(coordinates[1]),
-                  longitude: Number(coordinates[0]),
-                };
-              })
-            : [];
-
-      loadedRef.current = true;
-      dataRef.current = items;
-      return items;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
-  }
-
-  throw lastError ?? new Error("Failed to load POI data");
-}
-
-function targetTooltipHtml(props: Record<string, unknown>) {
-  if (props.source_target_weight !== undefined) {
-    return `
-      <div class="viewabilityPopup__title">Target cell</div>
-      <div>${escapeHtml(String(props.h3 ?? "-"))}</div>
-      <dl>
-        <dt>Active source-target weight</dt><dd>${formatScore(Number(props.source_target_weight))}</dd>
-        <dt>Selected source cells</dt><dd>${escapeHtml(String(props.selected_source_count ?? 1))}</dd>
-        <dt>Base source-target weight</dt><dd>${formatScore(Number(props.base_source_target_weight))}</dd>
-        <dt>Dynamic source-target weight</dt><dd>${formatScore(Number(props.dynamic_source_target_weight))}</dd>
-        <dt>Dynamic modifier</dt><dd>${formatScore(Number(props.source_target_modifier))}</dd>
-        <dt>Distance km</dt><dd>${formatScore(Number(props.distance_km))}</dd>
-        <dt>Terrain weight</dt><dd>${formatScore(Number(props.weight_terrain))}</dd>
-        <dt>Vegetation weight</dt><dd>${formatScore(Number(props.weight_vegetation))}</dd>
-        <dt>Distance weight</dt><dd>${formatScore(Number(props.weight_distance))}</dd>
-      </dl>
-    `;
-  }
-  return `
-    <div class="viewabilityPopup__title">Target cell</div>
-    <div>${escapeHtml(String(props.h3 ?? "-"))}</div>
-    <dl>
-      <dt>Base score</dt><dd>${formatScore(Number(props.base_viewability_score))}</dd>
-      <dt>Dynamic score</dt><dd>${formatScore(Number(props.dynamic_viewability_score))}</dd>
-    </dl>
-  `;
-}

@@ -557,61 +557,11 @@
   font-weight: 750;
 }
 
-.viewabilityInspector {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  bottom: 104px;
-  z-index: 11;
-  width: min(360px, calc(100vw - 28px));
-  overflow: auto;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(25, 240, 215, 0.42);
-  background: rgba(8, 18, 44, 0.9);
-  box-shadow: var(--teal-glow-soft), var(--shadow);
-  color: rgba(234, 242, 255, 0.94);
-}
-
-.viewabilityPanelHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.viewabilityPanelHeader h2,
-.viewabilityPanelSection h3,
 .viewabilityDrawerPanel h3 {
   margin: 0;
   color: #ffffff;
   font-size: 14px;
   letter-spacing: 0;
-}
-
-.viewabilityPanelHeader p {
-  margin: 4px 0 0;
-  color: rgba(234, 242, 255, 0.68);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.viewabilityPanelSection {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.viewabilityConditionGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
 }
 
 .viewabilityStat,
@@ -1098,9 +1048,7 @@
   font-weight: 750;
 }
 
-.viewabilityRelationshipChart,
 .viewabilityMiniChart {
-  height: 118px;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
@@ -1115,64 +1063,6 @@
   height: 94px;
 }
 
-.viewabilitySourceSeries {
-  display: grid;
-  gap: 8px;
-}
-
-.viewabilitySourceSeries__summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  color: rgba(234, 242, 255, 0.68);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.viewabilitySourceSeries__summary strong {
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.viewabilitySourceSeries svg {
-  width: 100%;
-  height: 132px;
-  display: block;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.viewabilitySourceSeries__grid {
-  stroke: rgba(210, 229, 244, 0.14);
-  stroke-width: 1;
-}
-
-.viewabilitySourceSeries__axis {
-  stroke: rgba(210, 229, 244, 0.24);
-  stroke-width: 1;
-}
-
-.viewabilitySourceSeries__tick {
-  fill: rgba(234, 242, 255, 0.6);
-  font-size: 10px;
-  font-weight: 750;
-}
-
-.viewabilitySourceSeries__tick--end {
-  text-anchor: end;
-}
-
-.viewabilitySourceSeries__line {
-  stroke: #19f0d7;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.viewabilityRelationshipChart__barWrap,
 .viewabilityMiniChart__barWrap {
   height: 100%;
   display: grid;
@@ -1185,7 +1075,6 @@
   font-weight: 800;
 }
 
-.viewabilityRelationshipChart__bar,
 .viewabilityMiniChart__bar {
   width: 100%;
   min-height: 8px;
@@ -1288,14 +1177,6 @@
   .viewabilityLayerToggles {
     width: 100%;
     overflow-x: auto;
-  }
-
-  .viewabilityInspector {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    bottom: 92px;
-    width: auto;
   }
 
   .viewabilityLegend {
@@ -3796,13 +3677,11 @@
 }
 
 .app:not(.app--dark) .viewabilityComponentGrid > div,
-.app:not(.app--dark) .viewabilityRelationshipChart,
 .app:not(.app--dark) .viewabilityMiniChart {
   background: rgba(224, 236, 249, 0.72);
   color: var(--ink-secondary);
 }
 
-.app:not(.app--dark) .viewabilityRelationshipChart__barWrap,
 .app:not(.app--dark) .viewabilityMiniChart__barWrap,
 .app:not(.app--dark) .viewabilityDetailsGrid {
   color: var(--ink-secondary);
@@ -3813,29 +3692,6 @@
   color: var(--ink-primary);
 }
 
-.app:not(.app--dark) .viewabilitySourceSeries__summary {
-  color: var(--ink-secondary);
-}
-
-.app:not(.app--dark) .viewabilitySourceSeries__summary strong {
-  color: var(--ink-primary);
-}
-
-.app:not(.app--dark) .viewabilitySourceSeries svg {
-  background: rgba(224, 236, 249, 0.72);
-}
-
-.app:not(.app--dark) .viewabilitySourceSeries__grid {
-  stroke: rgba(42, 59, 89, 0.12);
-}
-
-.app:not(.app--dark) .viewabilitySourceSeries__axis {
-  stroke: rgba(42, 59, 89, 0.22);
-}
-
-.app:not(.app--dark) .viewabilitySourceSeries__tick {
-  fill: var(--ink-secondary);
-}
 
 .app:not(.app--dark) .viewabilityEmptyState {
   border-color: rgba(42, 59, 89, 0.24);
