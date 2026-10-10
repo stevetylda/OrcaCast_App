@@ -1,4 +1,5 @@
-import maplibregl, { type Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { type Map as MapLibreMap } from "maplibre-gl";
 import type { Feature, GeoJsonProperties, MultiPolygon, Point, Polygon, Position } from "geojson";
 import type { ViewabilityColorScaleSettings } from "../../../../data/viewabilityTypes";
 import { resolveViewabilityColor } from "../../utils/viewabilityColorScales";

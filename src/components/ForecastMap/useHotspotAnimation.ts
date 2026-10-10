@@ -30,7 +30,7 @@ export function useHotspotAnimation({
       }
     };
 
-    const setLayerPaint = (layerId: string, property: string, value: number | string) => {
+    const setLayerPaint = (layerId: string, property: Parameters<MapLibreMap["setPaintProperty"]>[1], value: number | string) => {
       try {
         if (hasStyleLayer(layerId)) {
           map.setPaintProperty(layerId, property, value);
@@ -55,7 +55,7 @@ export function useHotspotAnimation({
         const edgeBaseWidth =
           z <= 6 ? 0.9 : z <= 9 ? 0.9 + ((z - 6) / 3) * 0.35 : z <= 12 ? 1.25 + ((z - 9) / 3) * 0.55 : 1.8;
         const edgePulseWidth = edgeBaseWidth + 0.1 * Math.sin(t * 1.7 + 0.5);
-        const opacityPairs: Array<[string, string, number]> = [
+        const opacityPairs: Array<[string, Parameters<MapLibreMap["setPaintProperty"]>[1], number]> = [
           ["grid-shimmer-fill", "fill-opacity", hideGrid ? 0 : 0.16 + 0.06 * Math.sin(t * 0.6)],
           ["grid-peak-shine", "line-opacity", hideGrid ? 0 : 0.22 + 0.06 * Math.sin(t * 0.5 + 0.8)],
           ["grid-bio-glow-fill", "fill-opacity", hideGrid ? 0 : 0.13 + 0.06 * Math.sin(t * 1.35 + 0.4)],

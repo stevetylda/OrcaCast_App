@@ -1,5 +1,7 @@
+import "../../maplibreWorker";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { LAST_WEEK_LAYER_CONFIG } from "../../config/mapLayers";

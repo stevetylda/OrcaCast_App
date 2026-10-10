@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type maplibregl from "maplibre-gl";
+import type * as maplibregl from "maplibre-gl";
 import type { ViewabilitySelectionMode } from "../../useViewabilityPageController";
 import { SOURCE_HIT_LAYER_ID, TARGET_HIT_LAYER_ID } from "./viewabilityMapLayers";
 import { targetTooltipHtml } from "./viewabilityTooltips";

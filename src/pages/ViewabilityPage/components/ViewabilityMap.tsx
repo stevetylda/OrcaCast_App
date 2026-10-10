@@ -1,5 +1,7 @@
+import "../../../maplibreWorker";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import maplibregl, { Map as MapLibreMap, type FilterSpecification } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { Map as MapLibreMap, type FilterSpecification, type ExpressionSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Feature, GeoJsonProperties, MultiPolygon, Point, Polygon, Position } from "geojson";
 import type {
@@ -415,17 +417,17 @@ export const ViewabilityMap = forwardRef<ViewabilityMapHandle, Props>(function V
     const sourcePropertyName = mode === "target-inspector" ? "source_target_weight" : "source_viewyness_score";
     const selectedTargetIds = selectedTargetCellIds.length > 0 ? selectedTargetCellIds : ["__none__"];
     const sharedIds = sharedSourceTargetCellIds.size > 0 ? Array.from(sharedSourceTargetCellIds) : ["__none__"];
-    const hideTargetInvisibleSourcesExpression = [
+    const hideTargetInvisibleSourcesExpression: ExpressionSpecification = [
       "all",
       ["==", ["literal", mode], "target-inspector"],
       ["!", ["coalesce", ["get", "visible_to_selected_target"], false]],
-    ] as const;
-    const dimUnselectedSourcesExpression = [
+    ];
+    const dimUnselectedSourcesExpression: ExpressionSpecification = [
       "all",
       ["==", ["literal", mode], "source-inspector"],
       [">", ["literal", selectedSourceCellIds.length], 0],
       ["!", ["in", ["get", "h3"], ["literal", selectedSourceCellIds.length > 0 ? selectedSourceCellIds : ["__none__"]]]],
-    ] as const;
+    ];
     const lineColors = getViewabilityLineColors(colorScaleSettings.paletteId);
 
     map.setPaintProperty(TARGET_FILL_LAYER_ID, "fill-color", buildViewabilityColorExpression(colorScaleSettings, targetPropertyName));
