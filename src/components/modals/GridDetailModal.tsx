@@ -1,5 +1,7 @@
+import "../../maplibreWorker";
 import { useEffect, useMemo, useRef, useState } from "react";
-import maplibregl, { type Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { type Map as MapLibreMap } from "maplibre-gl";
 import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson";
 import {
   getActualsPathForPeriod,
@@ -1332,10 +1334,11 @@ function NeighborMiniMap({
     };
     const onLeave = () => onActivate(null);
     map.on("mousemove", onMove);
-    map.on("mouseleave", onLeave);
+    const canvas = map.getCanvas();
+    canvas.addEventListener("mouseleave", onLeave);
     return () => {
       map.off("mousemove", onMove);
-      map.off("mouseleave", onLeave);
+      canvas.removeEventListener("mouseleave", onLeave);
     };
   }, [onActivate, series]);
 

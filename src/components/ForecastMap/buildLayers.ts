@@ -1,4 +1,5 @@
-import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { Map as MapLibreMap } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { LAST_WEEK_LAYER_CONFIG } from "../../config/mapLayers";
 import { getPerfObjectId } from "../../debug/perf";
@@ -217,16 +218,16 @@ export function applyLastWeekModeFilters(
   mode: LastWeekMode,
   sourceLayer?: string
 ) {
-  const toNumber = (property: string) => ["to-number", ["coalesce", ["get", property], 0]];
+  const toNumber = (property: string): maplibregl.ExpressionSpecification => ["to-number", ["coalesce", ["get", property], 0]];
   const yearExpr = sourceLayer
-    ? (["coalesce", toNumber("YEAR"), toNumber("year"), toNumber("Year")] as unknown[])
-    : (["to-number", ["coalesce", ["get", "year"], ["get", "YEAR"], selected.year]] as unknown[]);
+    ? (["coalesce", toNumber("YEAR"), toNumber("year"), toNumber("Year")] as maplibregl.ExpressionSpecification)
+    : (["to-number", ["coalesce", ["get", "year"], ["get", "YEAR"], selected.year]] as maplibregl.ExpressionSpecification);
   const weekExpr = sourceLayer
-    ? (["coalesce", toNumber("WEEK"), toNumber("week"), toNumber("STAT_WEEK")] as unknown[])
-    : (["to-number", ["coalesce", ["get", "week"], ["get", "WEEK"], selected.week]] as unknown[]);
+    ? (["coalesce", toNumber("WEEK"), toNumber("week"), toNumber("STAT_WEEK")] as maplibregl.ExpressionSpecification)
+    : (["to-number", ["coalesce", ["get", "week"], ["get", "WEEK"], selected.week]] as maplibregl.ExpressionSpecification);
 
-  const isSelected = ["all", ["==", yearExpr, selected.year], ["==", weekExpr, selected.week]];
-  const isPrevious = ["all", ["==", yearExpr, previous.year], ["==", weekExpr, previous.week]];
+  const isSelected: maplibregl.ExpressionSpecification = ["all", ["==", yearExpr, selected.year], ["==", weekExpr, selected.week]];
+  const isPrevious: maplibregl.ExpressionSpecification = ["all", ["==", yearExpr, previous.year], ["==", weekExpr, previous.week]];
   const modeFilter =
     mode === "selected"
       ? isSelected

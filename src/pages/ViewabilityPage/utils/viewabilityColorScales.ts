@@ -1,3 +1,4 @@
+import type { ExpressionSpecification } from "maplibre-gl";
 import { getViewabilityPaletteOrDefault } from "../../../constants/palettes";
 import type { ViewabilityColorScaleSettings, ViewabilityScoreType } from "../../../data/viewabilityTypes";
 
@@ -12,10 +13,10 @@ export function getViewabilityScoreProperty(scoreType: ViewabilityScoreType): st
   }
 }
 
-export function buildViewabilityColorExpression(settings: ViewabilityColorScaleSettings, propertyName: string): unknown[] {
+export function buildViewabilityColorExpression(settings: ViewabilityColorScaleSettings, propertyName: string): ExpressionSpecification {
   const palette = getViewabilityPaletteOrDefault(settings.paletteId);
   const colors = settings.reversePalette ? [...palette.colors].reverse() : palette.colors;
-  const scoreExpression = ["min", 1, ["max", 0, ["coalesce", ["to-number", ["get", propertyName]], 0]]];
+  const scoreExpression: ExpressionSpecification = ["min", 1, ["max", 0, ["coalesce", ["to-number", ["get", propertyName]], 0]]];
   return [
     "interpolate",
     ["linear"],
